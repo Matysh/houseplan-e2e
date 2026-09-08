@@ -9,25 +9,31 @@ import { expect } from '@playwright/test';
 export async function loginThroughUi(page, user) {
   await page.goto('/');
   await page.waitForURL(/\/auth\/authorize/, { timeout: 60_000 });
-  const username = page.locator('input[name="username"]').or(page.getByLabel(/username/i)).first();
-  const password = page.locator('input[name="password"]').or(page.getByLabel(/password/i)).first();
+  const username = page.locator('input[name="username"], input[autocomplete="username"]').first();
+  const password = page.locator('input[name="password"], input[type="password"]').first();
   await username.waitFor({ state: 'visible', timeout: 60_000 });
   await username.fill(user.username);
   await password.fill(user.password);
-  // "Keep me logged in" decides whether tokens land in localStorage; the
-  // saved storage state needs them there.
-  const keep = page.getByLabel(/keep me logged in/i);
+  // "Keep me logged in" decides whether HA persists its tokens in
+  // localStorage; the saved browser state needs them there. The control is a
+  // wa-checkbox: read the real checked state, click the host if needed.
+  const keep = page.locator('ha-checkbox').filter({ hasText: /keep me logged in/i }).first();
+  const isKept = () => keep.evaluate((el) => !!(el.checked ?? el.shadowRoot?.querySelector('input')?.checked));
   if (await keep.count()) {
-    const checked = await keep.first().isChecked().catch(() => true);
-    if (!checked) await keep.first().check().catch(() => {});
+    if (!(await isKept())) await keep.click();
+    await expect.poll(isKept, { message: 'Keep me logged in did not check' }).toBe(true);
   }
   await password.press('Enter');
   await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 60_000 });
   await expect(page.locator('home-assistant-main')).toBeVisible({ timeout: 60_000 });
-  await expect.poll(() => page.evaluate(() => !!window.localStorage.getItem('hassTokens')), {
-    timeout: 30_000,
-    message: 'HA did not persist its tokens (Keep me logged in)',
-  }).toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    // fallback for a login page without the checkbox: HA keeps the tokens in
+    // memory (window.__tokenCache); persist them the way enableWrite() does
+    if (!window.localStorage.getItem('hassTokens') && window.__tokenCache?.tokens) {
+      window.localStorage.setItem('hassTokens', JSON.stringify(window.__tokenCache.tokens));
+    }
+    return !!window.localStorage.getItem('hassTokens');
+  }), { timeout: 30_000, message: 'HA did not persist its tokens' }).toBe(true);
 }
 
 /** The House Plan card inside whatever host is on the page. */
