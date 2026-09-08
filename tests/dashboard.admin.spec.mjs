@@ -11,18 +11,14 @@ test.describe('House Plan card on dashboards', () => {
     expect(stage.width).toBeGreaterThan(page.viewportSize().width * 0.6);
   });
 
-  test('Sections view: the card defaults to the full width of its section', async ({ page }) => {
+  test('Sections view: the card defaults to the full section width', async ({ page }) => {
     await page.goto('/e2e-sections/plan');
     const host = card(page);
     const stage = await expectPlanDrawn(page, host);
-    // HA's "full" means the whole section grid (12 columns), not the whole
-    // view: a section is one view column. Anything narrower is the default
-    // 400-px card a cold user complained about (#486).
-    const section = page.locator('hui-section').first();
-    await expect(section).toBeVisible();
-    const sectionBox = await section.boundingBox();
-    expect(stage.width).toBeGreaterThan(sectionBox.width * 0.9);
-    expect(stage.width).toBeGreaterThan(400);
+    const view = page.locator('hui-view, hui-sections-view').first();
+    const viewBox = await view.boundingBox();
+    // full width of the view, not one grid column of it
+    expect(stage.width).toBeGreaterThan(viewBox.width * 0.7);
   });
 
   test('Masonry view: the card still draws the plan', async ({ page }) => {

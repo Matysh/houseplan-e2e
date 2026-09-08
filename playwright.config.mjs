@@ -5,6 +5,9 @@ const CI = !!process.env.CI;
 
 export default defineConfig({
   testDir: './tests',
+  // first-run/ and upgrade/ need their own Home Assistant (empty seed, older
+  // integration) and run as separate CI jobs via --project
+  testIgnore: ['**/first-run/**', '**/upgrade/**'],
   // One Home Assistant, one plan: journeys mutate shared state (lights, the
   // plan itself), so they run one after another, in file order.
   fullyParallel: false,
@@ -43,6 +46,32 @@ export default defineConfig({
       testMatch: /.*\.mobile\.spec\.mjs/,
       dependencies: ['setup'],
       use: { ...devices['Pixel 7'], storageState: USERS.admin.storageState },
+    },
+    // --- separate Home Assistant instances ---
+    {
+      name: 'first-run-viewer',
+      testDir: './tests/first-run',
+      testIgnore: [],
+      testMatch: /.*\.viewer\.spec\.mjs/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: USERS.viewer.storageState },
+    },
+    {
+      name: 'first-run-admin',
+      testDir: './tests/first-run',
+      testIgnore: [],
+      testMatch: /.*\.admin\.spec\.mjs/,
+      // the viewer must see the empty state before the admin creates a space
+      dependencies: ['setup', 'first-run-viewer'],
+      use: { ...devices['Desktop Chrome'], storageState: USERS.admin.storageState },
+    },
+    {
+      name: 'upgrade',
+      testDir: './tests/upgrade',
+      testIgnore: [],
+      dependencies: ['setup'],
+      retries: 0,
+      use: { ...devices['Desktop Chrome'], storageState: USERS.admin.storageState },
     },
   ],
 });

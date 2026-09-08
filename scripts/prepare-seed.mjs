@@ -2,7 +2,11 @@
 /**
  * Build the Home Assistant config directory an E2E run boots from.
  *
- *   node scripts/prepare-seed.mjs [--out=run]
+ *   node scripts/prepare-seed.mjs [--out=run] [--variant=house|empty]
+ *
+ * `empty` keeps the same Home Assistant (areas, devices, users, dashboards)
+ * but removes every House Plan document, so the run starts where a new user
+ * does: the integration is configured, no plan exists yet.
  *
  * `seed/` is the pristine tree (derived from the public demo stand). It is
  * copied verbatim, then the parts that must never be committed are written:
@@ -23,6 +27,7 @@ const arg = (name, fallback) => {
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 const out = resolve(ROOT, arg('out', 'run'));
+const variant = arg('variant', process.env.E2E_SEED_VARIANT || 'house');
 
 if (existsSync(out)) rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
@@ -44,4 +49,14 @@ writeFileSync(resolve(out, '.storage/core.uuid'), JSON.stringify({
   version: 1, minor_version: 1, key: 'core.uuid', data: { uuid: randomBytes(16).toString('hex') },
 }, null, 2) + '\n');
 
-console.log(`seed → ${out} (users: ${Object.values(USERS).map((u) => u.username).join(', ')})`);
+if (variant === 'empty') {
+  for (const file of ['houseplan.config', 'houseplan.layout', 'houseplan.trails']) {
+    rmSync(resolve(out, '.storage', file), { force: true });
+  }
+  rmSync(resolve(out, 'houseplan'), { recursive: true, force: true });
+} else if (variant !== 'house') {
+  throw new Error(`unknown seed variant ${variant}`);
+}
+writeFileSync(resolve(out, '.e2e-seed.json'), JSON.stringify({ variant }, null, 2) + '\n');
+
+console.log(`seed (${variant}) → ${out} (users: ${Object.values(USERS).map((u) => u.username).join(', ')})`);

@@ -61,3 +61,20 @@ export async function expectPlanDrawn(page, host = card(page)) {
 export const deviceMarker = (host, entityId) => host.locator(`[data-hp="device"][data-entity="${entityId}"]`).first();
 export const spaceTabs = (host) => host.locator('[data-hp="space-tab"]');
 export const editorTabs = (host) => host.locator('[data-editor-navigation]');
+
+/** In-app navigation (no page load), the way HA's own sidebar does it. */
+export async function navigateInApp(page, path) {
+  await page.evaluate((p) => {
+    history.pushState(null, '', p);
+    window.dispatchEvent(new CustomEvent('location-changed'));
+  }, path);
+}
+
+/**
+ * Screenshot as evidence, attached to the report of every run — not compared.
+ * A real HA shows live values that drift by the minute, so pixel gates would
+ * only produce noise; the product's own golden suite owns pixel fidelity.
+ */
+export async function evidence(testInfo, page, name) {
+  await testInfo.attach(name, { body: await page.screenshot(), contentType: 'image/png' });
+}
