@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace.house_plan",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "title": "План дома",
+          "path": "plan",
+          "icon": "mdi:floor-plan",
+          "type": "panel",
+          "cards": [
+            {
+              "type": "custom:houseplan-card"
+            }
+          ]
+        },
+        {
+          "title": "Киоск",
+          "path": "kiosk",
+          "icon": "mdi:tablet-dashboard",
+          "type": "panel",
+          "cards": [
+            {
+              "type": "custom:houseplan-card",
+              "kiosk": true,
+              "cycle": 30
+            }
+          ]
+        },
+        {
+          "title": "Схема",
+          "path": "static",
+          "icon": "mdi:image-outline",
+          "cards": [
+            {
+              "type": "custom:houseplan-space-card",
+              "space": "floor1"
+            },
+            {
+              "type": "custom:houseplan-space-card",
+              "space": "yard"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,105 @@
+# Honest end-to-end run: a real Home Assistant in Docker, House Plan installed
+# from the exact release asset HACS ships, two real users, a real browser.
+name: E2E на реальном Home Assistant
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      houseplan_ref:
+        description: "House Plan: latest (беты включительно) | stable | тег | ветка"
+        required: false
+        default: latest
+      ha_version:
+        description: "Тег образа ghcr.io/home-assistant/home-assistant"
+        required: false
+        default: stable
+  schedule:
+    - cron: "0 3 * * *"   # ночью: свежая бета House Plan на текущем stable HA
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}-${{ inputs.ha_version || 'stable' }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: "House Plan ${{ inputs.houseplan_ref || 'latest' }} · HA ${{ inputs.ha_version || 'stable' }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      HOUSEPLAN_REF: ${{ inputs.houseplan_ref || 'latest' }}
+      HA_VERSION: ${{ inputs.ha_version || 'stable' }}
+      HA_URL: http://127.0.0.1:8123
+      GITHUB_TOKEN: ${{ github.token }}
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Зависимости и браузер
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Конфиг HA из seed
+        run: node scripts/prepare-seed.mjs --out=run
+
+      - name: House Plan в конфиг (как ставит HACS)
+        run: node scripts/install-houseplan.mjs --ref="$HOUSEPLAN_REF" --out=run
+
+      - name: Home Assistant в docker
+        run: |
+          docker pull -q "ghcr.io/home-assistant/home-assistant:${HA_VERSION}"
+          node scripts/ha.mjs up --version="$HA_VERSION" --dir="$PWD/run"
+          node scripts/ha.mjs wait --timeout=480
+
+      - name: Сценарии
+        run: npx playwright test
+
+      - name: Логи HA
+        if: always()
+        run: |
+          mkdir -p artifacts
+          node scripts/ha.mjs logs > artifacts/docker.log 2>&1 || true
+          sudo cp run/home-assistant.log artifacts/home-assistant.log 2>/dev/null || true
+          cp run/.e2e-houseplan.json artifacts/ 2>/dev/null || true
+          {
+            echo "### House Plan под тестом"
+            echo '```json'; cat run/.e2e-houseplan.json; echo; echo '```'
+            echo "Home Assistant: \`${HA_VERSION}\` → $(docker inspect --format='{{index .Config.Image}}' hp-e2e 2>/dev/null)"
+            echo
+            echo "Ошибки в журнале HA (houseplan|custom_components):"
+            echo '```'; grep -iE "error|warning" artifacts/home-assistant.log 2>/dev/null | grep -iE "houseplan|custom_comp|frontend" | tail -n 30; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Артефакты (отчёт, трейсы, логи)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ github.run_number }}-hp-${{ inputs.houseplan_ref || 'latest' }}-ha-${{ inputs.ha_version || 'stable' }}
+          path: |
+            playwright-report
+            test-results
+            artifacts
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Telegram при падении
+        if: failure() && env.TG_BOT_TOKEN != '' && env.TG_CHAT_ID != ''
+        run: |
+          text="❌ E2E House Plan: ${HOUSEPLAN_REF} на HA ${HA_VERSION} — красный. ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT_ID}" --data-urlencode "text=${text}"
+
+      - name: Остановить HA
+        if: always()
+        run: node scripts/ha.mjs down

@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace.e2e_sections",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "title": "Sections",
+          "path": "plan",
+          "type": "sections",
+          "max_columns": 4,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "House Plan in a Sections view"
+                },
+                {
+                  "type": "custom:houseplan-card"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Masonry",
+          "path": "masonry",
+          "cards": [
+            {
+              "type": "custom:houseplan-card"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

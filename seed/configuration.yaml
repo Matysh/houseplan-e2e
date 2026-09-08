@@ -1,0 +1,986 @@
+# House Plan E2E seed — derived from the public demo stand (anonymized real
+# house). An ephemeral Home Assistant boots from a copy of this folder for
+# every run; scripts/prepare-seed.mjs writes the auth provider and uuid.
+default_config:
+
+homeassistant:
+  name: House Plan Demo
+  latitude: 55.75
+  longitude: 37.62
+  elevation: 150
+  unit_system: metric
+  time_zone: Europe/Moscow
+  country: RU
+  currency: RUB
+  # users: see scripts/prepare-seed.mjs (admin `demo`, viewer `viewer`)
+  auth_providers:
+    - type: homeassistant
+
+# the demo house runs on template/helper entities + the `demo:` integration,
+# no real hardware and no broker (see mqtt-plan.md: MQTT deliberately not used)
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.31.7.1
+    - 127.0.0.1
+
+logger:
+  default: warning
+
+frontend:
+  extra_module_url:
+    - /houseplan_files/houseplan-card.js
+
+recorder:
+  db_url: 'sqlite:////config/home-assistant_v2.db'
+  purge_keep_days: 1
+
+demo:
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# --- checklist coverage (2026-08-08, stand v2) --------------------------------
+# The scripted robot vacuum (demo/stand/demo_robot in the repo): a robot map
+# sensor (same attribute shape the card reads for real vacuums) + a vacuum that drives a serpentine route through the plan
+# rooms. Marker lives in the Under-Stairs Closet; do not touch the component.
+demo_robot:
+
+# Alarm demo: leaks are flipped by hand (Settings -> Devices & services ->
+# Helpers), kitchen smoke fires by itself every 10 minutes (automations.yaml).
+# All of them feed template binary_sensors so the red alarm pulse is showable.
+input_boolean:
+  demo_leak:
+    name: "Demo: leak in the Guest WC (toggle)"
+    icon: mdi:water-alert
+  demo_leak_2:
+    name: "Demo: leak in the Boiler Room (toggle)"
+    icon: mdi:water-alert
+  demo_smoke:
+    name: "Demo: smoke in the Kitchen (auto-fires every 10 min)"
+    icon: mdi:smoke-detector-variant
+  demo_smoke_2:
+    name: "Demo: smoke in the Boiler Room (toggle)"
+    icon: mdi:smoke-detector-variant
+  # backing state for the template lights: one helper per light group, every
+  # lamp of the group follows it and toggles it back (same trick as v1's leak)
+  lights_kitchen_living:
+    name: "Backing: wall lights (Kitchen & Living)"
+  lights_hallway:
+    name: "Backing: hallway lights"
+  lights_kids_room_a:
+    name: "Backing: Kids Room A lights"
+  lights_kids_room_b:
+    name: "Backing: Kids Room B lights"
+  study_dimmer_on:
+    name: "Backing: study dimmer"
+  kettle_night_light_on:
+    name: "Backing: kettle night light"
+  # backing state for template switches / covers / locks / fan
+  kettle_power:
+    name: "Backing: kettle"
+  sauna_power:
+    name: "Backing: sauna heater"
+  fridge_express:
+    name: "Backing: fridge express mode"
+  washer_power:
+    name: "Backing: washing machine"
+    initial: on
+  dryer_power:
+    name: "Backing: dryer"
+  hood_fan:
+    name: "Backing: kitchen hood fan"
+  plug_1:
+    name: "Backing: smart plug"
+    initial: on
+  curtain_left_open:
+    name: "Backing: curtain left"
+    initial: on
+  curtain_right_open:
+    name: "Backing: curtain right"
+    initial: on
+  lock_front_locked:
+    name: "Backing: front door lock"
+    initial: on
+  lock_terrace_locked:
+    name: "Backing: terrace door lock"
+    initial: on
+  lock_storage_locked:
+    name: "Backing: storage door lock"
+    initial: on
+  valve_main:
+    name: "Backing: main water valve"
+    initial: on
+  valve_heating:
+    name: "Backing: heating water valve"
+    initial: on
+
+# Zigbee-style sensors: no radios on the stand, so LQI lives in a `linkquality`
+# attribute the card reads the same way it reads Z2M devices. Values drift
+# with the clock so the badges look alive.
+template:
+  - binary_sensor:
+      - unique_id: smoke_kitchen
+        name: "Smoke Kitchen (auto-fires periodically)"
+        device_class: smoke
+        state: "{{ is_state('input_boolean.demo_smoke', 'on') }}"
+      - unique_id: smoke_boiler
+        name: "Smoke Boiler Room (toggle in Helpers)"
+        device_class: smoke
+        state: "{{ is_state('input_boolean.demo_smoke_2', 'on') }}"
+      - unique_id: leak_guest_wc
+        name: "Leak Guest WC (toggle in Helpers)"
+        device_class: moisture
+        state: "{{ is_state('input_boolean.demo_leak', 'on') }}"
+      - unique_id: leak_boiler
+        name: "Leak Boiler Room (toggle in Helpers)"
+        device_class: moisture
+        state: "{{ is_state('input_boolean.demo_leak_2', 'on') }}"
+      - unique_id: fridge_door
+        name: "Fridge Door"
+        device_class: door
+        state: "{{ now().minute % 23 < 1 }}"
+      - unique_id: sauna_door
+        name: "Sauna Door"
+        device_class: door
+        state: "{{ now().minute % 37 < 1 }}"
+      - unique_id: presence_study
+        name: "Presence Study"
+        device_class: occupancy
+        state: "{{ now().minute % 20 < 13 }}"
+        attributes:
+          linkquality: "{{ 172 + now().minute % 12 }}"
+      - unique_id: motion_study
+        name: "Motion Study"
+        device_class: motion
+        state: "{{ now().minute % 7 < 1 }}"
+        attributes:
+          linkquality: "{{ 128 + now().minute % 16 }}"
+      - unique_id: lte_router
+        name: "LTE Router Online"
+        device_class: connectivity
+        state: "{{ true }}"
+  - sensor:
+      - unique_id: ground_floor_temperature
+        name: "Ground Floor Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 24.6 + (now().minute % 10) / 10 }}"
+      - unique_id: ground_floor_humidity
+        name: "Ground Floor Humidity"
+        device_class: humidity
+        unit_of_measurement: "%"
+        state: "{{ 41 + now().minute % 6 }}"
+      - unique_id: outdoor_temperature
+        name: "Outdoor Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ (12.5 + ([0, state_attr('sun.sun','elevation') | float(0)] | max) / 5) | round(1) }}"
+      - unique_id: boiler_flow_temperature
+        name: "Boiler Flow Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 54 + now().minute % 8 }}"
+      - unique_id: water_tank_level
+        name: "Water Tank Level"
+        unit_of_measurement: "%"
+        state: "{{ 62 + now().minute % 15 }}"
+      - unique_id: temp_living_temperature
+        name: "Temperature Living"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 24.8 + (now().minute % 10) / 10 }}"
+        attributes:
+          linkquality: "{{ 196 + now().minute % 14 }}"
+      - unique_id: temp_living_humidity
+        name: "Humidity Living"
+        device_class: humidity
+        unit_of_measurement: "%"
+        state: "{{ 38 + now().minute % 7 }}"
+      - unique_id: temp_living_battery
+        name: "Battery Living Sensor"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 84 + now().minute % 9 }}"
+      - unique_id: temp_guest_temperature
+        name: "Temperature Guest"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 25.1 + (now().minute % 10) / 10 }}"
+        attributes:
+          linkquality: "{{ 150 + now().minute % 18 }}"
+      - unique_id: temp_guest_humidity
+        name: "Humidity Guest"
+        device_class: humidity
+        unit_of_measurement: "%"
+        state: "{{ 38 + now().minute % 7 }}"
+      - unique_id: temp_guest_battery
+        name: "Battery Guest Sensor"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 84 + now().minute % 9 }}"
+      - unique_id: temp_bedroom_temperature
+        name: "Temperature Bedroom"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 26.4 + (now().minute % 10) / 10 }}"
+        attributes:
+          linkquality: "{{ 88 + now().minute % 16 }}"
+      - unique_id: temp_bedroom_humidity
+        name: "Humidity Bedroom"
+        device_class: humidity
+        unit_of_measurement: "%"
+        state: "{{ 44 + now().minute % 7 }}"
+      - unique_id: temp_bedroom_battery
+        name: "Battery Bedroom Sensor"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 84 + now().minute % 9 }}"
+      - unique_id: air_monitor_co2
+        name: "Air Monitor CO2"
+        device_class: carbon_dioxide
+        unit_of_measurement: "ppm"
+        state: "{{ 620 + now().minute * 3 }}"
+      - unique_id: air_monitor_pm25
+        name: "Air Monitor PM2.5"
+        device_class: pm25
+        unit_of_measurement: "µg/m³"
+        state: "{{ 4 + now().minute % 7 }}"
+      - unique_id: air_monitor_temperature
+        name: "Air Monitor Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 24.2 + (now().minute % 8) / 10 }}"
+      - unique_id: air_monitor_humidity
+        name: "Air Monitor Humidity"
+        device_class: humidity
+        unit_of_measurement: "%"
+        state: "{{ 39 + now().minute % 6 }}"
+      - unique_id: air_monitor_battery
+        name: "Air Monitor Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 76 + now().minute % 5 }}"
+      - unique_id: air_monitor_2_co2
+        name: "Air Monitor 2 CO2"
+        device_class: carbon_dioxide
+        unit_of_measurement: "ppm"
+        state: "{{ 540 + now().minute * 2 }}"
+      - unique_id: air_monitor_2_pm25
+        name: "Air Monitor 2 PM2.5"
+        device_class: pm25
+        unit_of_measurement: "µg/m³"
+        state: "{{ 3 + now().minute % 5 }}"
+      - unique_id: air_monitor_2_battery
+        name: "Air Monitor 2 Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 91 - now().minute % 6 }}"
+      - unique_id: washing_machine_status
+        name: "Washing Machine Status"
+        state: "{% if is_state('input_boolean.washer_power','off') %}Standby{% else %}{{ ['Washing','Rinsing','Spinning','Done'][(now().minute // 15) % 4] }}{% endif %}"
+      - unique_id: washing_machine_energy
+        name: "Washing Machine Energy"
+        device_class: energy
+        unit_of_measurement: "kWh"
+        state_class: total_increasing
+        state: "{{ (now().timetuple().tm_yday * 1.83 + now().hour * 0.12 + now().minute * 0.001) | round(2) }}"
+      - unique_id: dryer_status
+        name: "Dryer Status"
+        state: "{% if is_state('input_boolean.dryer_power','off') %}Standby{% else %}{{ ['Drying','Cooling','Done'][(now().minute // 20) % 3] }}{% endif %}"
+      - unique_id: fridge_temperature
+        name: "Fridge Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 3.4 + (now().minute % 6) / 10 }}"
+      - unique_id: kettle_temperature
+        name: "Kettle Water Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 93 - now().minute % 20 if is_state('input_boolean.kettle_power','on') else 24 + now().minute % 3 }}"
+      - unique_id: sauna_temperature
+        name: "Sauna Temperature"
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: "{{ 76 + now().minute % 6 if is_state('input_boolean.sauna_power','on') else 24 + now().minute % 3 }}"
+      - unique_id: smart_plug_power
+        name: "Smart Plug Power"
+        device_class: power
+        unit_of_measurement: "W"
+        state: "{{ (38.5 + (now().minute % 10) * 2.1) | round(1) if is_state('input_boolean.plug_1','on') else 0.0 }}"
+      - unique_id: smart_plug_voltage
+        name: "Smart Plug Voltage"
+        device_class: voltage
+        unit_of_measurement: "V"
+        state: "{{ 228 + now().minute % 5 }}"
+      - unique_id: smart_plug_energy
+        name: "Smart Plug Energy"
+        device_class: energy
+        unit_of_measurement: "kWh"
+        state_class: total_increasing
+        state: "{{ (now().timetuple().tm_yday * 0.62 + now().hour * 0.026 + now().minute * 0.0004) | round(3) }}"
+      - unique_id: light_sensor_illuminance
+        name: "Light Sensor Illuminance"
+        device_class: illuminance
+        unit_of_measurement: "lx"
+        state: "{{ ([0, (state_attr('sun.sun','elevation') | float(0)) * 14] | max) | round(0) }}"
+        attributes:
+          linkquality: "{{ 64 + now().minute % 12 }}"
+      - unique_id: light_sensor_battery
+        name: "Light Sensor Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 79 + now().minute % 6 }}"
+      - unique_id: motion_sensor_illuminance
+        name: "Motion Sensor Illuminance"
+        device_class: illuminance
+        unit_of_measurement: "lx"
+        state: "{{ ([0, (state_attr('sun.sun','elevation') | float(0)) * 11] | max) | round(0) }}"
+      - unique_id: motion_sensor_battery
+        name: "Motion Sensor Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 88 - now().minute % 7 }}"
+      - unique_id: presence_sensor_battery
+        name: "Presence Sensor Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 95 - now().minute % 4 }}"
+      - unique_id: wall_switch_kitchen_battery
+        name: "Wall Switch Kitchen Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 74 + now().minute % 5 }}"
+        attributes:
+          linkquality: "{{ 168 + now().minute % 12 }}"
+      - unique_id: wall_switch_kids_a_battery
+        name: "Wall Switch Kids A Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 69 + now().minute % 5 }}"
+        attributes:
+          linkquality: "{{ 112 + now().minute % 20 }}"
+      - unique_id: curtain_left_battery
+        name: "Curtain Left Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 66 + now().minute % 4 }}"
+      - unique_id: curtain_right_battery
+        name: "Curtain Right Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 71 + now().minute % 4 }}"
+      - unique_id: front_door_lock_battery
+        name: "Front Door Lock Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 81 + now().minute % 4 }}"
+      - unique_id: terrace_door_lock_battery
+        name: "Terrace Door Lock Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 77 + now().minute % 4 }}"
+      - unique_id: storage_door_lock_battery
+        name: "Storage Door Lock Battery"
+        device_class: battery
+        unit_of_measurement: "%"
+        state: "{{ 85 + now().minute % 4 }}"
+  # every lamp follows its room helper and toggles it back, so tapping any
+  # lamp (or the group light) flips the whole room — same as a Z2M group
+  - light:
+      - unique_id: wall_lamp_1
+        name: "Wall Lamp 1"
+        state: "{{ 'on' if is_state('input_boolean.lights_kitchen_living','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+      - unique_id: wall_lamp_2
+        name: "Wall Lamp 2"
+        state: "{{ 'on' if is_state('input_boolean.lights_kitchen_living','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+      - unique_id: wall_lamp_3
+        name: "Wall Lamp 3"
+        state: "{{ 'on' if is_state('input_boolean.lights_kitchen_living','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+      - unique_id: wall_lamp_4
+        name: "Wall Lamp 4"
+        state: "{{ 'on' if is_state('input_boolean.lights_kitchen_living','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kitchen_living
+      - unique_id: hallway_lamp_1
+        name: "Hallway Lamp 1"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+      - unique_id: hallway_lamp_2
+        name: "Hallway Lamp 2"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+      - unique_id: hallway_lamp_3
+        name: "Hallway Lamp 3"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+      - unique_id: hallway_lamp_4
+        name: "Hallway Lamp 4"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+      - unique_id: hallway_lamp_5
+        name: "Hallway Lamp 5"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+      - unique_id: kids_room_a_lamp_1
+        name: "Kids Room A Lamp 1"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_2
+        name: "Kids Room A Lamp 2"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_3
+        name: "Kids Room A Lamp 3"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_4
+        name: "Kids Room A Lamp 4"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_5
+        name: "Kids Room A Lamp 5"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_6
+        name: "Kids Room A Lamp 6"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_7
+        name: "Kids Room A Lamp 7"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_a_lamp_8
+        name: "Kids Room A Lamp 8"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_a','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_a
+      - unique_id: kids_room_b_lamp_1
+        name: "Kids Room B Lamp 1"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_2
+        name: "Kids Room B Lamp 2"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_3
+        name: "Kids Room B Lamp 3"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_4
+        name: "Kids Room B Lamp 4"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_5
+        name: "Kids Room B Lamp 5"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_6
+        name: "Kids Room B Lamp 6"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_7
+        name: "Kids Room B Lamp 7"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: kids_room_b_lamp_8
+        name: "Kids Room B Lamp 8"
+        state: "{{ 'on' if is_state('input_boolean.lights_kids_room_b','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_kids_room_b
+      - unique_id: study_dimmer
+        name: "Study Dimmer"
+        state: "{{ 'on' if is_state('input_boolean.study_dimmer_on','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.study_dimmer_on
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.study_dimmer_on
+      - unique_id: kettle_night_light
+        name: "Kettle Night Light"
+        state: "{{ 'on' if is_state('input_boolean.kettle_night_light_on','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.kettle_night_light_on
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.kettle_night_light_on
+  - switch:
+      - unique_id: washing_machine_power
+        name: "Washing Machine Power"
+        state: "{{ 'on' if is_state('input_boolean.washer_power','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.washer_power
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.washer_power
+      - unique_id: dryer_power
+        name: "Dryer Power"
+        state: "{{ 'on' if is_state('input_boolean.dryer_power','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.dryer_power
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.dryer_power
+      - unique_id: fridge_express_mode
+        name: "Fridge Express Mode"
+        state: "{{ 'on' if is_state('input_boolean.fridge_express','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.fridge_express
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.fridge_express
+      - unique_id: kettle
+        name: "Kettle"
+        state: "{{ 'on' if is_state('input_boolean.kettle_power','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.kettle_power
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.kettle_power
+      - unique_id: sauna_heater
+        name: "Sauna Heater"
+        state: "{{ 'on' if is_state('input_boolean.sauna_power','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.sauna_power
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.sauna_power
+      - unique_id: water_valve_main
+        name: "Water Valve Main"
+        state: "{{ 'on' if is_state('input_boolean.valve_main','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.valve_main
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.valve_main
+      - unique_id: water_valve_heating
+        name: "Water Valve Heating"
+        state: "{{ 'on' if is_state('input_boolean.valve_heating','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.valve_heating
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.valve_heating
+      - unique_id: smart_plug
+        name: "Smart Plug"
+        state: "{{ 'on' if is_state('input_boolean.plug_1','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.plug_1
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.plug_1
+      - unique_id: smart_plug_2
+        name: "Smart Plug 2"
+        state: "{{ 'on' if is_state('input_boolean.plug_1','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.plug_1
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.plug_1
+      - unique_id: wall_switch_hallway
+        name: "Wall Switch Hallway Relay"
+        state: "{{ 'on' if is_state('input_boolean.lights_hallway','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lights_hallway
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lights_hallway
+  - cover:
+      - unique_id: curtain_left
+        name: "Curtain Left"
+        device_class: curtain
+        state: "{{ 'open' if is_state('input_boolean.curtain_left_open','on') else 'closed' }}"
+        open_cover:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.curtain_left_open
+        close_cover:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.curtain_left_open
+      - unique_id: curtain_right
+        name: "Curtain Right"
+        device_class: curtain
+        state: "{{ 'open' if is_state('input_boolean.curtain_right_open','on') else 'closed' }}"
+        open_cover:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.curtain_right_open
+        close_cover:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.curtain_right_open
+  - fan:
+      - unique_id: kitchen_hood
+        name: "Kitchen Hood"
+        state: "{{ 'on' if is_state('input_boolean.hood_fan','on') else 'off' }}"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.hood_fan
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.hood_fan
+  # openings on the Ground Floor reference these lock entities (tap the door
+  # arc in the card to lock/unlock)
+  - lock:
+      - unique_id: front_door
+        name: "Front Door"
+        state: "{{ is_state('input_boolean.lock_front_locked','on') }}"
+        lock:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lock_front_locked
+        unlock:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lock_front_locked
+      - unique_id: terrace_door
+        name: "Terrace Door"
+        state: "{{ is_state('input_boolean.lock_terrace_locked','on') }}"
+        lock:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lock_terrace_locked
+        unlock:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lock_terrace_locked
+      - unique_id: storage_door
+        name: "Storage Door"
+        state: "{{ is_state('input_boolean.lock_storage_locked','on') }}"
+        lock:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.lock_storage_locked
+        unlock:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.lock_storage_locked
+
+# group lights: same platform the real house used for its lamp groups
+light:
+  - platform: group
+    unique_id: wall_lights
+    name: "Wall Lights"
+    entities:
+      - light.wall_lamp_1
+      - light.wall_lamp_2
+      - light.wall_lamp_3
+      - light.wall_lamp_4
+  - platform: group
+    unique_id: hallway_lights
+    name: "Hallway Lights"
+    entities:
+      - light.hallway_lamp_1
+      - light.hallway_lamp_2
+      - light.hallway_lamp_3
+      - light.hallway_lamp_4
+      - light.hallway_lamp_5
+  - platform: group
+    unique_id: kids_room_a_lights
+    name: "Kids Room A Lights"
+    entities:
+      - light.kids_room_a_lamp_1
+      - light.kids_room_a_lamp_2
+      - light.kids_room_a_lamp_3
+      - light.kids_room_a_lamp_4
+      - light.kids_room_a_lamp_5
+      - light.kids_room_a_lamp_6
+      - light.kids_room_a_lamp_7
+      - light.kids_room_a_lamp_8
+  - platform: group
+    unique_id: kids_room_b_lights
+    name: "Kids Room B Lights"
+    entities:
+      - light.kids_room_b_lamp_1
+      - light.kids_room_b_lamp_2
+      - light.kids_room_b_lamp_3
+      - light.kids_room_b_lamp_4
+      - light.kids_room_b_lamp_5
+      - light.kids_room_b_lamp_6
+      - light.kids_room_b_lamp_7
+      - light.kids_room_b_lamp_8
+
+# speakers/TVs: universal wrappers around the demo integration's players,
+# so every speaker marker has a live, controllable media_player behind it
+media_player:
+  - platform: universal
+    unique_id: demo_v2_kitchen_speaker
+    name: "Kitchen Speaker"
+    device_class: speaker
+    children:
+      - media_player.walkman
+  - platform: universal
+    unique_id: demo_v2_soundbar
+    name: "Soundbar"
+    device_class: speaker
+    children:
+      - media_player.lounge_room
+  - platform: universal
+    unique_id: demo_v2_guest_tv
+    name: "Guest TV"
+    device_class: tv
+    children:
+      - media_player.living_room
+  - platform: universal
+    unique_id: demo_v2_guest_soundbar
+    name: "Guest Soundbar"
+    device_class: speaker
+    children:
+      - media_player.lounge_room
+  - platform: universal
+    unique_id: demo_v2_kids_room_a_speaker
+    name: "Kids Speaker A"
+    device_class: speaker
+    children:
+      - media_player.bedroom
+  - platform: universal
+    unique_id: demo_v2_kids_room_b_speaker
+    name: "Kids Speaker B"
+    device_class: speaker
+    children:
+      - media_player.walkman
+  - platform: universal
+    unique_id: demo_v2_kids_bathroom_speaker
+    name: "Kids Bathroom Speaker"
+    device_class: speaker
+    children:
+      - media_player.bedroom
+  - platform: universal
+    unique_id: demo_v2_master_bathroom_speaker
+    name: "Master Bathroom Speaker"
+    device_class: speaker
+    children:
+      - media_player.walkman
+  - platform: universal
+    unique_id: demo_v2_study_speaker
+    name: "Study Speaker"
+    device_class: speaker
+    children:
+      - media_player.lounge_room
+  - platform: universal
+    unique_id: demo_v2_hall_speaker
+    name: "Hall Speaker"
+    device_class: speaker
+    children:
+      - media_player.bedroom
+  - platform: universal
+    unique_id: demo_v2_outdoor_speaker
+    name: "Outdoor Speaker"
+    device_class: speaker
+    children:
+      - media_player.walkman

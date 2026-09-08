@@ -1,0 +1,12 @@
+- id: demo_movie
+  name: "Кино"
+  entities:
+    light.ceiling_lights: off
+    light.bed_light: on
+- id: demo_scene_evening
+  name: "Вечер в гостиной"
+  entities:
+    light.ceiling_lights: on
+    light.living_room_rgbww_lights:
+      state: on
+      brightness: 90

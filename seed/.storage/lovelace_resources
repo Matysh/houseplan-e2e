@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace_resources",
+  "data": {
+    "items": [
+      {
+        "id": "672ea684f244490dae7f6be680bf4d9a",
+        "url": "/houseplan_files/houseplan-card.js?v=1.54.0",
+        "type": "module"
+      }
+    ]
+  }
+}

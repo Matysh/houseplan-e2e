@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.restore_state",
+  "data": [
+    {
+      "state": {"entity_id":"conversation.home_assistant","state":"unknown","attributes":{"friendly_name":"Home Assistant","supported_features":1},"last_changed":"2026-07-31T09:33:57.196325+00:00","last_reported":"2026-07-31T09:33:57.196325+00:00","last_updated":"2026-07-31T09:33:57.196325+00:00","context":{"id":"01KYVRBX2CGDGT13W3PX8R4M33","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"event.backup_automatic_backup","state":"unknown","attributes":{"event_types":["completed","failed","in_progress"],"event_type":null,"friendly_name":"Backup Automatic backup"},"last_changed":"2026-07-31T09:33:57.220068+00:00","last_reported":"2026-07-31T09:33:57.220068+00:00","last_updated":"2026-07-31T09:33:57.220068+00:00","context":{"id":"01KYVRBX34TAHS338JAA8RWTBN","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "last_event_type": null,
+        "last_event_attributes": null
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"scene.kino","state":"unknown","attributes":{"entity_id":["light.ceiling_lights","light.bed_light"],"id":"demo_movie","friendly_name":"Кино"},"last_changed":"2026-07-31T09:33:57.445420+00:00","last_reported":"2026-07-31T09:33:57.445420+00:00","last_updated":"2026-07-31T09:33:57.445420+00:00","context":{"id":"01KYVRBXA5J581VTDVC029BCTN","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"scene.vecher_v_gostinoi","state":"unknown","attributes":{"entity_id":["light.ceiling_lights","light.living_room_rgbww_lights"],"id":"demo_scene_evening","friendly_name":"Вечер в гостиной"},"last_changed":"2026-07-31T09:33:57.447253+00:00","last_reported":"2026-07-31T09:33:57.447253+00:00","last_updated":"2026-07-31T09:33:57.447253+00:00","context":{"id":"01KYVRBXA750G7DK8NWM56DAWW","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"script.demo_curtains","state":"off","attributes":{"last_triggered":null,"mode":"single","current":0,"friendly_name":"Открыть шторы"},"last_changed":"2026-07-31T09:33:57.480626+00:00","last_reported":"2026-07-31T09:33:57.480626+00:00","last_updated":"2026-07-31T09:33:57.480626+00:00","context":{"id":"01KYVRBXB8M2WQ9D282Z3831KZ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.demo_leak","state":"off","attributes":{"editable":false,"icon":"mdi:water-alert","friendly_name":"Демо: протечка на кухне (переключатель)"},"last_changed":"2026-07-31T09:36:59.251668+00:00","last_reported":"2026-07-31T09:36:59.251668+00:00","last_updated":"2026-07-31T09:36:59.251668+00:00","context":{"id":"01KYVRHEVKFA3B4P5TY8X2SAA4","parent_id":null,"user_id":"1fe0d039476741e0bb9d53ec09e0fa27"}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.demo_smoke","state":"off","attributes":{"editable":false,"icon":"mdi:smoke-detector-variant","friendly_name":"Демо: задымление в спальне (переключатель)"},"last_changed":"2026-07-31T09:40:30.244331+00:00","last_reported":"2026-07-31T09:40:30.244331+00:00","last_updated":"2026-07-31T09:40:30.244331+00:00","context":{"id":"01KYVRPZK5T5XB6HF0T9HYV878","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"person.demo","state":"unknown","attributes":{"editable":true,"id":"demo","device_trackers":[],"in_zones":[],"user_id":"1fe0d039476741e0bb9d53ec09e0fa27","friendly_name":"Demo"},"last_changed":"2026-07-31T09:33:57.495201+00:00","last_reported":"2026-07-31T09:34:45.070685+00:00","last_updated":"2026-07-31T09:34:45.070685+00:00","context":{"id":"01KYVRDBTE9ER99YVDB7NQFYAZ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"automation.vechernii_stsenarii","state":"on","attributes":{"id":"demo_evening","last_triggered":null,"mode":"single","current":0,"friendly_name":"Вечерний сценарий"},"last_changed":"2026-07-31T09:33:59.264403+00:00","last_reported":"2026-07-31T09:33:59.264403+00:00","last_updated":"2026-07-31T09:33:59.264403+00:00","context":{"id":"01KYVRBZ30CSRGJAVYJQ150M9V","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"automation.demo_dym_kazhdye_10_minut_na_30_sekund","state":"on","attributes":{"id":"demo_smoke_pulse","last_triggered":"2026-07-31T09:40:00.229868+00:00","mode":"single","current":0,"friendly_name":"Демо: дым каждые 10 минут на 30 секунд"},"last_changed":"2026-07-31T09:33:59.264712+00:00","last_reported":"2026-07-31T09:40:30.244813+00:00","last_updated":"2026-07-31T09:40:30.244813+00:00","context":{"id":"01KYVRQWX4P2HFBC3CEAX1J0HX","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"tts.google_translate_en_com","state":"unknown","attributes":{"friendly_name":"Google Translate en com"},"last_changed":"2026-07-31T09:33:59.273491+00:00","last_reported":"2026-07-31T09:33:59.273491+00:00","last_updated":"2026-07-31T09:33:59.273491+00:00","context":{"id":"01KYVRBZ39CX0GE8P9NR7P9AB0","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"alarm_control_panel.security","state":"disarmed","attributes":{"code_format":"number","changed_by":null,"code_arm_required":true,"previous_state":null,"next_state":null,"friendly_name":"Security","supported_features":63},"last_changed":"2026-07-31T09:33:59.535132+00:00","last_reported":"2026-07-31T09:33:59.535132+00:00","last_updated":"2026-07-31T09:33:59.535132+00:00","context":{"id":"01KYVRBZBFK6VGA78ZA322YMBK","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"button.push","state":"unknown","attributes":{"friendly_name":"Push"},"last_changed":"2026-07-31T09:33:59.536485+00:00","last_reported":"2026-07-31T09:33:59.536485+00:00","last_updated":"2026-07-31T09:33:59.536485+00:00","context":{"id":"01KYVRBZBGNT8R4HKCQ67F2K9E","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"event.push_button_press","state":"unknown","attributes":{"event_types":["pressed"],"event_type":null,"device_class":"button","friendly_name":"Push Button press"},"last_changed":"2026-07-31T09:33:59.543806+00:00","last_reported":"2026-07-31T09:33:59.543806+00:00","last_updated":"2026-07-31T09:33:59.543806+00:00","context":{"id":"01KYVRBZBQV7TW7A18KDWY64V4","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "last_event_type": null,
+        "last_event_attributes": null
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"notify.notifier","state":"unknown","attributes":{"friendly_name":"Notifier","supported_features":1},"last_changed":"2026-07-31T09:33:59.550416+00:00","last_reported":"2026-07-31T09:33:59.550416+00:00","last_updated":"2026-07-31T09:33:59.550416+00:00","context":{"id":"01KYVRBZBYAVDAWW9SNB56GNHQ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.total_energy_kwh","state":"1.5","attributes":{"state_class":"total","unit_of_measurement":"kWh","device_class":"energy","friendly_name":"Total energy 1"},"last_changed":"2026-07-31T09:43:59.554892+00:00","last_reported":"2026-07-31T09:43:59.554892+00:00","last_updated":"2026-07-31T09:43:59.554892+00:00","context":{"id":"01KYVRY9A2MDGZ6A4MZ7RA7MBX","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 1.5,
+        "native_unit_of_measurement": "kWh"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.total_energy_mwh","state":"0.00075","attributes":{"state_class":"total","unit_of_measurement":"MWh","device_class":"energy","friendly_name":"Total energy 2"},"last_changed":"2026-07-31T09:43:59.555113+00:00","last_reported":"2026-07-31T09:43:59.555113+00:00","last_updated":"2026-07-31T09:43:59.555113+00:00","context":{"id":"01KYVRY9A3VYA8EA2WR5KE1G34","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 0.00075,
+        "native_unit_of_measurement": "MWh"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.total_gas_m3","state":"0.075","attributes":{"state_class":"total","unit_of_measurement":"m³","device_class":"gas","friendly_name":"Total gas 1"},"last_changed":"2026-07-31T09:43:59.555223+00:00","last_reported":"2026-07-31T09:43:59.555223+00:00","last_updated":"2026-07-31T09:43:59.555223+00:00","context":{"id":"01KYVRY9A3MM8RFP9V08RT6KXB","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 0.07500000000000001,
+        "native_unit_of_measurement": "m³"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.total_gas_ft3","state":"0.084950539776","attributes":{"state_class":"total","unit_of_measurement":"m³","device_class":"gas","friendly_name":"Total gas 2"},"last_changed":"2026-07-31T09:43:59.556747+00:00","last_reported":"2026-07-31T09:43:59.556747+00:00","last_updated":"2026-07-31T09:43:59.556747+00:00","context":{"id":"01KYVRY9A4FGGNAM1VJNJ5E78G","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 3.0,
+        "native_unit_of_measurement": "ft³"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"stt.demo_stt","state":"unknown","attributes":{"friendly_name":"Demo STT"},"last_changed":"2026-07-31T09:33:59.556235+00:00","last_reported":"2026-07-31T09:33:59.556235+00:00","last_updated":"2026-07-31T09:33:59.556235+00:00","context":{"id":"01KYVRBZC4VXB4VGNW7KXVBY0B","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_update_no_install","state":"on","attributes":{"auto_update":false,"display_precision":0,"installed_version":"1.0.0","in_progress":false,"latest_version":"1.0.1","release_summary":"Awesome update, fixing everything!","release_url":"https://www.example.com/release/1.0.1","skipped_version":null,"title":"Awesomesoft Inc.","update_percentage":null,"entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo Update No Install","supported_features":0},"last_changed":"2026-07-31T09:33:59.559166+00:00","last_reported":"2026-07-31T09:33:59.559166+00:00","last_updated":"2026-07-31T09:33:59.559166+00:00","context":{"id":"01KYVRBZC7Y7A6BQHPMX1M64M7","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_no_update","state":"off","attributes":{"auto_update":false,"display_precision":0,"installed_version":"1.0.0","in_progress":false,"latest_version":"1.0.0","release_summary":null,"release_url":null,"skipped_version":null,"title":"AdGuard Home","update_percentage":null,"entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo No Update","supported_features":11},"last_changed":"2026-07-31T09:33:59.559396+00:00","last_reported":"2026-07-31T09:33:59.559396+00:00","last_updated":"2026-07-31T09:33:59.559396+00:00","context":{"id":"01KYVRBZC7FBA92PWYR3FAYVHY","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_add_on","state":"off","attributes":{"auto_update":false,"display_precision":0,"installed_version":"1.0.1","in_progress":false,"latest_version":"1.0.1","release_summary":"Awesome update, fixing everything!","release_url":"https://www.example.com/release/1.0.1","skipped_version":null,"title":"AdGuard Home","update_percentage":null,"entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo add-on","supported_features":11},"last_changed":"2026-07-31T09:43:55.841424+00:00","last_reported":"2026-07-31T09:43:55.841492+00:00","last_updated":"2026-07-31T09:43:55.841492+00:00","context":{"id":"01KYVRY5P0XZFG8J4SEXF9D1YS","parent_id":null,"user_id":"1fe0d039476741e0bb9d53ec09e0fa27"}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_living_room_bulb_update","state":"on","attributes":{"auto_update":false,"display_precision":0,"installed_version":"1.93.3","in_progress":false,"latest_version":"1.94.2","release_summary":"Added support for effects","release_url":"https://www.example.com/release/1.93.3","skipped_version":null,"title":"Philips Lamps Firmware","update_percentage":null,"device_class":"firmware","entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo Living Room Bulb Update","supported_features":11},"last_changed":"2026-07-31T09:33:59.559908+00:00","last_reported":"2026-07-31T09:33:59.559908+00:00","last_updated":"2026-07-31T09:33:59.559908+00:00","context":{"id":"01KYVRBZC7FMDWSPNBQ38VDHF7","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_update_with_progress","state":"off","attributes":{"auto_update":false,"display_precision":0,"installed_version":"1.94.2","in_progress":false,"latest_version":"1.94.2","release_summary":"Added support for effects","release_url":"https://www.example.com/release/1.93.3","skipped_version":null,"title":"Philips Lamps Firmware","update_percentage":null,"device_class":"firmware","entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo Update with Progress","supported_features":31},"last_changed":"2026-07-31T09:44:08.201056+00:00","last_reported":"2026-07-31T09:44:08.201229+00:00","last_updated":"2026-07-31T09:44:08.201056+00:00","context":{"id":"01KYVRYHR90QY87BNEBK7DFZXJ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"update.demo_update_with_decimal_progress","state":"on","attributes":{"auto_update":false,"display_precision":2,"installed_version":"1.93.3","in_progress":true,"latest_version":"1.94.2","release_summary":"Added support for effects","release_url":"https://www.example.com/release/1.93.3","skipped_version":null,"title":"Philips Lamps Firmware","update_percentage":1.3,"device_class":"firmware","entity_picture":"/api/brands/integration/demo/icon.png","friendly_name":"Demo Update with Decimal Progress","supported_features":31},"last_changed":"2026-07-31T09:33:59.560295+00:00","last_reported":"2026-07-31T09:44:12.425262+00:00","last_updated":"2026-07-31T09:44:12.425262+00:00","context":{"id":"01KYVRYNW97B7YZGZ521H93XQB","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.demo_leak","state":"off","attributes":{"device_class":"moisture","friendly_name":"Датчик протечки (демо: переключается в Помощниках)"},"last_changed":"2026-07-31T09:36:59.251971+00:00","last_reported":"2026-07-31T09:36:59.251971+00:00","last_updated":"2026-07-31T09:36:59.251971+00:00","context":{"id":"01KYVRHEVKFA3B4P5TY8X2SAA4","parent_id":null,"user_id":"1fe0d039476741e0bb9d53ec09e0fa27"}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.demo_smoke","state":"off","attributes":{"device_class":"smoke","friendly_name":"Датчик дыма (демо: сам срабатывает каждые 10 минут)"},"last_changed":"2026-07-31T09:40:30.244625+00:00","last_reported":"2026-07-31T09:40:30.244625+00:00","last_updated":"2026-07-31T09:40:30.244625+00:00","context":{"id":"01KYVRPZK5T5XB6HF0T9HYV878","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.demo_zb_door_hall","state":"off","attributes":{"linkquality":176,"device_class":"door","friendly_name":"Дверной датчик (Zigbee)"},"last_changed":"2026-07-31T09:35:54.286309+00:00","last_reported":"2026-07-31T09:44:00.168628+00:00","last_updated":"2026-07-31T09:44:00.168628+00:00","context":{"id":"01KYVRY9X8NGSCS502C6WEQX2S","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.demo_zb_temp_living","state":"22.8","attributes":{"linkquality":202,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в гостиной (Zigbee)"},"last_changed":"2026-07-31T09:44:00.370263+00:00","last_reported":"2026-07-31T09:44:00.370263+00:00","last_updated":"2026-07-31T09:44:00.370263+00:00","context":{"id":"01KYVRYA3J7T0R4GBQGN226QNY","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 22.799999999999997,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.demo_zb_temp_kitchen","state":"26.0","attributes":{"linkquality":144,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр на кухне (Zigbee)"},"last_changed":"2026-07-31T09:44:00.398218+00:00","last_reported":"2026-07-31T09:44:00.494001+00:00","last_updated":"2026-07-31T09:44:00.494001+00:00","context":{"id":"01KYVRYA7EHGZ7ZDKDQ0M5K8BP","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 26.0,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.demo_zb_temp_bedroom","state":"18.7","attributes":{"linkquality":96,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в спальне (Zigbee)"},"last_changed":"2026-07-31T09:44:00.357269+00:00","last_reported":"2026-07-31T09:44:00.357269+00:00","last_updated":"2026-07-31T09:44:00.357269+00:00","context":{"id":"01KYVRYA357M16DTB284WHQJ7X","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 18.7,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.demo_zb_temp_office","state":"22.3","attributes":{"linkquality":20,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в кабинете (Zigbee)"},"last_changed":"2026-07-31T09:44:00.181408+00:00","last_reported":"2026-07-31T09:44:00.190634+00:00","last_updated":"2026-07-31T09:44:00.190634+00:00","context":{"id":"01KYVRY9XYXRQZV5NQNSZ6D1XG","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 22.299999999999997,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:44:12.694741+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.datchik_protechki_demo_perekliuchaetsia_v_pomoshchnikakh","state":"off","attributes":{"device_class":"moisture","friendly_name":"Датчик протечки (демо: переключается в Помощниках)"},"last_changed":"2026-07-31T09:34:45.071371+00:00","last_reported":"2026-07-31T09:34:45.083711+00:00","last_updated":"2026-07-31T09:34:45.071371+00:00","context":{"id":"01KYVRDBTFF1YDSGT6FJB65CCX","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:35:54.279187+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.datchik_dyma_demo_sam_srabatyvaet_kazhdye_10_minut","state":"off","attributes":{"device_class":"smoke","friendly_name":"Датчик дыма (демо: сам срабатывает каждые 10 минут)"},"last_changed":"2026-07-31T09:34:45.071684+00:00","last_reported":"2026-07-31T09:34:45.083741+00:00","last_updated":"2026-07-31T09:34:45.071684+00:00","context":{"id":"01KYVRDBTF4BKBR2NETEKSFBJ2","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:35:54.283415+00:00"
+    },
+    {
+      "state": {"entity_id":"binary_sensor.dvernoi_datchik_zigbee","state":"off","attributes":{"linkquality":179,"device_class":"door","friendly_name":"Дверной датчик (Zigbee)"},"last_changed":"2026-07-31T09:34:45.072808+00:00","last_reported":"2026-07-31T09:35:00.234423+00:00","last_updated":"2026-07-31T09:35:00.234423+00:00","context":{"id":"01KYVRDTMA6K97W28AVXZZTAG7","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-07-31T09:35:54.285701+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.termometr_v_gostinoi_zigbee","state":"22.9","attributes":{"linkquality":207,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в гостиной (Zigbee)"},"last_changed":"2026-07-31T09:35:00.074934+00:00","last_reported":"2026-07-31T09:35:00.076501+00:00","last_updated":"2026-07-31T09:35:00.076501+00:00","context":{"id":"01KYVRDTFC5K9THRPMKW5M6YMC","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 22.9,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:35:54.289997+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.termometr_na_kukhne_zigbee","state":"26.1","attributes":{"linkquality":155,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр на кухне (Zigbee)"},"last_changed":"2026-07-31T09:35:00.151475+00:00","last_reported":"2026-07-31T09:35:00.473367+00:00","last_updated":"2026-07-31T09:35:00.473367+00:00","context":{"id":"01KYVRDTVSKA2JKHS5NTC1AND8","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 26.1,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:35:54.292080+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.termometr_v_spalne_zigbee","state":"18.8","attributes":{"linkquality":87,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в спальне (Zigbee)"},"last_changed":"2026-07-31T09:35:00.360484+00:00","last_reported":"2026-07-31T09:35:00.375394+00:00","last_updated":"2026-07-31T09:35:00.375394+00:00","context":{"id":"01KYVRDTRQ068RA9AWDJBEQG4C","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 18.8,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:35:54.293895+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.termometr_v_kabinete_zigbee","state":"22.4","attributes":{"linkquality":25,"unit_of_measurement":"°C","device_class":"temperature","friendly_name":"Термометр в кабинете (Zigbee)"},"last_changed":"2026-07-31T09:35:00.315480+00:00","last_reported":"2026-07-31T09:35:00.315480+00:00","last_updated":"2026-07-31T09:35:00.315480+00:00","context":{"id":"01KYVRDTPVZZ6BDXN3GGVG1433","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 22.4,
+        "native_unit_of_measurement": "°C"
+      },
+      "last_seen": "2026-07-31T09:35:54.296037+00:00"
+    }
+  ]
+}
