@@ -4,6 +4,7 @@
  * `data-editor-navigation` hooks (docs/STYLING-HOOKS.md) and element names.
  */
 import { expect } from '@playwright/test';
+import { HP } from './hooks.mjs';
 
 /** Log in through HA's own login page and return once the app has loaded. */
 export async function loginThroughUi(page, user) {
@@ -48,7 +49,12 @@ export function card(page) {
  */
 export async function expectPlanDrawn(page, host = card(page)) {
   await expect(host).toBeVisible({ timeout: 60_000 });
-  const rooms = host.locator('[data-hp="room"]');
+  // declared readiness (data-hp-state, since 1.73.0-beta.7) when the build
+  // under test has it; rooms and a sized stage are the user-visible proof
+  if (await host.locator('ha-card[data-hp-state]').count()) {
+    await expect(host.locator(HP.ready)).toBeVisible({ timeout: 60_000 });
+  }
+  const rooms = host.locator(HP.room);
   await expect.poll(() => rooms.count(), { timeout: 60_000, message: 'no rooms drawn' }).toBeGreaterThan(0);
   const stage = host.locator('.stage').first();
   await expect(stage).toBeVisible();
@@ -58,10 +64,10 @@ export async function expectPlanDrawn(page, host = card(page)) {
   return stage.boundingBox();
 }
 
-export const deviceMarker = (host, entityId) => host.locator(`[data-hp="device"][data-entity="${entityId}"]`).first();
-export const spaceTabs = (host) => host.locator('[data-hp="space-tab"]');
+export const deviceMarker = (host, entityId) => host.locator(HP.device(entityId)).first();
+export const spaceTabs = (host) => host.locator(HP.spaceTab);
 /** The three editor mode tabs (the close crosses also carry `view`). */
-export const editorTabs = (host) => host.locator('[data-editor-navigation]:not([data-editor-navigation="view"])');
+export const editorTabs = (host) => host.locator(HP.editorTabs);
 
 /** In-app navigation (no page load), the way HA's own sidebar does it. */
 export async function navigateInApp(page, path) {

@@ -78,6 +78,9 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: Контракт data-hp — все селекторы объявлены
+        run: node scripts/contract.mjs lint
+
       - name: "Конфиг HA из seed (${{ matrix.variant }})"
         run: node scripts/prepare-seed.mjs --out=run --variant="${{ matrix.variant }}"
 

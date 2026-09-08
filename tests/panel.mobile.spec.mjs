@@ -2,6 +2,7 @@
 // and offer HA's drawer through the panel's own menu button.
 import { test, expect } from '@playwright/test';
 import { expectPlanDrawn } from './lib/ha-page.mjs';
+import { HP } from './lib/hooks.mjs';
 
 test('sidebar page on a phone draws the plan and opens the drawer', async ({ page }) => {
   await page.goto('/houseplan');
@@ -15,6 +16,6 @@ test('sidebar page on a phone draws the plan and opens the drawer', async ({ pag
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 
-  await panel.locator('.menu').tap();
+  await panel.locator(HP.panelMenu).first().tap();
   await expect(page.locator('ha-sidebar')).toBeVisible();
 });

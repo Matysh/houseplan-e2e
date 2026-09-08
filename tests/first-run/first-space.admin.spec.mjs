@@ -4,6 +4,7 @@
 import { test, expect } from '@playwright/test';
 import { seedVariant } from '../lib/ha-ctl.mjs';
 import { card, editorTabs, evidence, spaceTabs } from '../lib/ha-page.mjs';
+import { HP, confirmIn } from '../lib/hooks.mjs';
 
 test.skip(() => seedVariant() !== 'empty', 'needs the empty seed variant');
 
@@ -11,23 +12,22 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   await page.goto('/houseplan');
   await expect(page.locator('houseplan-panel')).toBeVisible({ timeout: 60_000 });
   const host = card(page);
-  const empty = host.locator('.empty');
+  const empty = host.locator(HP.empty).first();
   await expect(empty).toBeVisible({ timeout: 60_000 });
   await expect(empty).toContainText(/add the first space/i);
   await evidence(testInfo, page, 'empty-admin.png');
 
   // an administrator with write access gets the space dialog opened for
   // them (onboarding); the Add space button is the fallback path
-  // TODO(houseplan-card#489): data-hp="create-space", "dialog", "dialog-confirm"
-  const dialog = host.locator('hp-dialog').first();
+  const dialog = host.locator(HP.dialog('space')).first();
   if (!(await dialog.isVisible().catch(() => false))) {
-    await empty.getByRole('button', { name: /add space/i }).click();
+    await host.locator(HP.createSpace).first().click();
   }
   await expect(dialog).toBeVisible();
   await dialog.locator('input[type="text"]').first().fill('Ground floor');
   await dialog.getByText(/no image/i).click();
   await evidence(testInfo, page, 'first-space-dialog.png');
-  await dialog.getByRole('button', { name: /^save$/i }).click();
+  await confirmIn(dialog).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await expect(spaceTabs(host)).toHaveCount(1);

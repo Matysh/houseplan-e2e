@@ -20,7 +20,7 @@ golden и мутантами в репозитории продукта. Тут 
 | Установка House Plan | `scripts/install-houseplan.mjs --ref=latest\|stable\|<тег>\|<ветка>\|<путь>` — релизы из asset `houseplan.zip`, ветки — снапшот (бандл закоммичен) |
 | HA | `scripts/ha.mjs up\|wait\|logs\|down` — `ghcr.io/home-assistant/home-assistant:<tag>`, порт только на loopback; `wait` ждёт не «ядро поднялось», а «интеграция отдала бандл» |
 | Тесты | `tests/*.spec.mjs`, Playwright; логин через настоящую страницу входа один раз (`auth.setup.mjs`), дальше — сохранённое состояние браузера |
-| Оракулы | состояние — HA REST (`tests/lib/ha-api.mjs`), DOM — только объявленные хуки `data-hp` / `data-editor-navigation` (STYLING-HOOKS.md продукта; расширение контракта — houseplan-card#489) |
+| Оракулы | состояние — HA REST (`tests/lib/ha-api.mjs`), DOM — только объявленный контракт продукта `data-hp` (houseplan-card#489): копия в `contract/data-hp-contract.json` (`npm run contract:sync -- --ref=dev`), селекторы в `tests/lib/hooks.mjs`, `npm run contract:lint` валит прогон на необъявленном хуке ещё до старта HA |
 
 Три сьюта, у каждого свой Home Assistant (отдельные job в CI):
 
@@ -65,7 +65,8 @@ npm run ha:down
 
 ## Что дальше
 
-- обвести комнату настоящими кликами и привязать устройство (ждёт хуков #489);
+- обвести комнату настоящими кликами и привязать устройство (хуки #489 есть; нужен хук на точки сетки);
+- снять legacy-фолбэки в `hooks.mjs`, когда самая старая версия в матрице ≥ 1.73.0-beta.7;
 - мягкое визуальное сравнение стабильных кадров (панель, kiosk) с масками и порогом — как предупреждение, не гейт;
 - матрица версий HA: ночью уже stable + beta; добавить минимальную поддерживаемую;
 - реальный апдейт через HACS на демо-стенде (нужен его GitHub-токен).

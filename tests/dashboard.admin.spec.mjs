@@ -3,6 +3,7 @@
 // Sections view, and a card there is ~400 px wide unless it asks for full width.
 import { test, expect } from '@playwright/test';
 import { card, expectPlanDrawn } from './lib/ha-page.mjs';
+import { HP } from './lib/hooks.mjs';
 
 test.describe('House Plan card on dashboards', () => {
   test('Panel view: the card owns the page', async ({ page }) => {
@@ -35,7 +36,7 @@ test.describe('House Plan card on dashboards', () => {
     const host = card(page);
     await expectPlanDrawn(page, host);
     // hidden or not rendered at all — either way nothing of the header shows
-    await expect(host.locator('[data-hp="space-tab"]').first()).toBeHidden();
-    await expect(host.locator('[data-editor-navigation]').first()).toBeHidden();
+    await expect(host.locator(HP.spaceTab).first()).toBeHidden();
+    await expect(host.locator(HP.editorTabs).first()).toBeHidden();
   });
 });

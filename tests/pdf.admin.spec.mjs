@@ -2,19 +2,19 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
+import { HP, confirmIn } from './lib/hooks.mjs';
 
 test('the current space downloads as a real PDF', async ({ page }, testInfo) => {
   await page.goto('/houseplan');
   const host = card(page);
   await expectPlanDrawn(page, host);
-  // TODO(houseplan-card#489): data-hp="pdf" / data-hp="dialog-confirm"
-  await host.locator('.pdf-button').click();
-  const dialog = host.locator('hp-dialog').first();
+  await host.locator(HP.pdf).first().click();
+  const dialog = host.locator(HP.dialog('pdf')).first();
   await expect(dialog).toBeVisible();
   await evidence(testInfo, page, 'pdf-dialog.png');
 
   const downloadPromise = page.waitForEvent('download', { timeout: 60_000 });
-  await dialog.getByRole('button', { name: /^save$/i }).click();
+  await confirmIn(dialog).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
   const path = await download.path();

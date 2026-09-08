@@ -11,6 +11,8 @@
     "ha:wait": "node scripts/ha.mjs wait",
     "ha:down": "node scripts/ha.mjs down",
     "ha:logs": "node scripts/ha.mjs logs",
+    "contract:sync": "node scripts/contract.mjs sync",
+    "contract:lint": "node scripts/contract.mjs lint",
     "test": "playwright test",
     "report": "playwright show-report"
   },
