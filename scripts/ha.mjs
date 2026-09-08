@@ -14,6 +14,7 @@
  * actually loaded, not just the core).
  */
 import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,6 +43,10 @@ if (cmd === 'up') {
 } else if (cmd === 'wait') {
   const url = arg('url', process.env.HA_URL || 'http://127.0.0.1:8123').replace(/\/$/, '');
   const timeout = Number(arg('timeout', '300')) * 1000;
+  // the sidebar panel entry exists from v1.73.0-beta.5; older releases under
+  // test (the upgrade suite starts from one) ship only the card
+  const dir = resolve(ROOT, arg('dir', process.env.E2E_RUN_DIR || 'run'));
+  const expectsPanel = existsSync(resolve(dir, 'custom_components/houseplan/frontend/houseplan-panel.js'));
   const started = Date.now();
   const probe = async (path) => {
     try {
@@ -56,10 +61,10 @@ if (cmd === 'up') {
       // the frontend bundle is registered by the integration's own HTTP view:
       // 200 here means async_setup_entry ran, not merely that the core is up
       const bundle = await probe('/houseplan_files/houseplan-card.js');
-      const panel = await probe('/houseplan_files/houseplan-panel.js');
+      const panel = expectsPanel ? await probe('/houseplan_files/houseplan-panel.js') : 'n/a';
       const next = `api ${api}, card ${bundle}, panel ${panel}`;
       if (next !== stage) { stage = next; console.log(`${Math.round((Date.now() - started) / 1000)}s: ${stage}`); }
-      if (bundle === 200 && panel === 200) {
+      if (bundle === 200 && (!expectsPanel || panel === 200)) {
         // give the frontend a moment to finish its own startup work
         await sleep(3000);
         console.log('home assistant is ready');
