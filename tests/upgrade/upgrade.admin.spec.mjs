@@ -36,7 +36,11 @@ test('an open browser follows an integration update after the HA restart', async
   await navigateInApp(page, '/house-plan/plan');
   const host = card(page);
   const mismatch = page.getByText(/versions do not match/i);
-  await expect(host.locator('[data-hp="room"]').first().or(mismatch)).toBeVisible({ timeout: 90_000 });
+  await expect(host.locator('[data-hp="room"]').first().or(mismatch).first()).toBeVisible({ timeout: 90_000 });
+  testInfo.annotations.push({
+    type: 'same-tab after update',
+    description: (await mismatch.count()) ? 'version mismatch notice shown' : 'plan kept drawing on the old bundle',
+  });
   await evidence(testInfo, page, 'after-restart-same-tab.png');
 
   // 2. an ordinary reload (HTTP cache intact): the new bundle must load
