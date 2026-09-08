@@ -5,6 +5,7 @@
 #   journeys  — the seeded house: sidebar page, dashboards, roles, phone, PDF, HA restart
 #   first-run — the same HA without any plan: the administrator's first contact
 #   upgrade   — an older House Plan open in a browser, then the update + restart
+#   journeys-dev — the journeys suite against the dev branch snapshot
 name: E2E на реальном Home Assistant
 
 on:
@@ -57,6 +58,13 @@ jobs:
             variant: house
             ref: ${{ inputs.upgrade_from || 'stable' }}
             projects: "--project=upgrade"
+          # the dev branch too (committed bundle): regressions and new hooks
+          # show up here before a beta is cut
+          - suite: journeys-dev
+            variant: house
+            ref: dev
+            ha: stable
+            projects: "--project=admin --project=viewer --project=mobile"
     env:
       HOUSEPLAN_REF: ${{ inputs.houseplan_ref || 'latest' }}
       HA_VERSION: ${{ matrix.ha }}
