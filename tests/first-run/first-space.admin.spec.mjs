@@ -16,9 +16,13 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   await expect(empty).toContainText(/add the first space/i);
   await evidence(testInfo, page, 'empty-admin.png');
 
+  // an administrator with write access gets the space dialog opened for
+  // them (onboarding); the Add space button is the fallback path
   // TODO(houseplan-card#489): data-hp="create-space", "dialog", "dialog-confirm"
-  await empty.getByRole('button', { name: /add space/i }).click();
   const dialog = host.locator('hp-dialog').first();
+  if (!(await dialog.isVisible().catch(() => false))) {
+    await empty.getByRole('button', { name: /add space/i }).click();
+  }
   await expect(dialog).toBeVisible();
   await dialog.locator('input[type="text"]').first().fill('Ground floor');
   await dialog.getByText(/no image/i).click();
