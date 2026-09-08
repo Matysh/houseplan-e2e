@@ -61,8 +61,10 @@ export default defineConfig({
       testDir: './tests/first-run',
       testIgnore: [],
       testMatch: /.*\.admin\.spec\.mjs/,
-      // the viewer must see the empty state before the admin creates a space
+      // the viewer must see the empty state before the admin creates a space;
+      // creating it is not repeatable, so no retry
       dependencies: ['setup', 'first-run-viewer'],
+      retries: 0,
       use: { ...devices['Desktop Chrome'], storageState: USERS.admin.storageState },
     },
     {

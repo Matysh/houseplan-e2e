@@ -60,7 +60,8 @@ export async function expectPlanDrawn(page, host = card(page)) {
 
 export const deviceMarker = (host, entityId) => host.locator(`[data-hp="device"][data-entity="${entityId}"]`).first();
 export const spaceTabs = (host) => host.locator('[data-hp="space-tab"]');
-export const editorTabs = (host) => host.locator('[data-editor-navigation]');
+/** The three editor mode tabs (the close crosses also carry `view`). */
+export const editorTabs = (host) => host.locator('[data-editor-navigation]:not([data-editor-navigation="view"])');
 
 /** In-app navigation (no page load), the way HA's own sidebar does it. */
 export async function navigateInApp(page, path) {
