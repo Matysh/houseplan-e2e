@@ -36,40 +36,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The matrix is planned in a tiny job because a job-level `if` cannot read
+  # `matrix.*`: journeys-dev (the dev snapshot) belongs to the nightly only —
+  # a red dev must not withhold a stable release dispatched on a tag (#514).
+  plan:
+    name: Матрица прогона
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          HP_REF: ${{ inputs.houseplan_ref || 'latest' }}
+          UPGRADE_FROM: ${{ inputs.upgrade_from || 'stable' }}
+          HA_VERSION: ${{ inputs.ha_version || 'stable' }}
+        run: |
+          node -e '
+            const schedule = process.env.EVENT === "schedule";
+            const has = schedule ? ["stable", "beta"] : [process.env.HA_VERSION];
+            const suites = [
+              { suite: "journeys", variant: "house", ref: process.env.HP_REF, projects: "--project=admin --project=viewer --project=mobile" },
+              { suite: "first-run", variant: "empty", ref: process.env.HP_REF, projects: "--project=first-run-admin" },
+              { suite: "upgrade", variant: "house", ref: process.env.UPGRADE_FROM, projects: "--project=upgrade" },
+            ];
+            const include = has.flatMap((ha) => suites.map((s) => ({ ...s, ha })));
+            // the dev branch too (committed bundle): regressions and new hooks
+            // show up here before a beta is cut — nightly only
+            if (schedule) include.push({ suite: "journeys-dev", variant: "house", ref: "dev", ha: "stable", projects: "--project=admin --project=viewer --project=mobile" });
+            const matrix = JSON.stringify({ include });
+            console.log(matrix);
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${matrix}\n`);
+          '
   e2e:
+    needs: plan
     # The job name is a contract: houseplan-card's stable release gate (#514)
     # recognises the run it dispatched by ` · HP <tag> · ` in these names.
     name: "${{ matrix.suite }} · HP ${{ matrix.ref }} · HA ${{ matrix.ha }}"
-    # journeys-dev walks the dev snapshot: it belongs to the nightly, not to a
-    # dispatch on a tag — a red dev must not withhold a stable release (#514).
-    if: matrix.suite != 'journeys-dev' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
-      matrix:
-        ha: ${{ fromJSON(github.event_name == 'schedule' && '["stable","beta"]' || format('["{0}"]', inputs.ha_version || 'stable')) }}
-        suite: [journeys, first-run, upgrade]
-        include:
-          - suite: journeys
-            variant: house
-            ref: ${{ inputs.houseplan_ref || 'latest' }}
-            projects: "--project=admin --project=viewer --project=mobile"
-          - suite: first-run
-            variant: empty
-            ref: ${{ inputs.houseplan_ref || 'latest' }}
-            projects: "--project=first-run-admin"
-          - suite: upgrade
-            variant: house
-            ref: ${{ inputs.upgrade_from || 'stable' }}
-            projects: "--project=upgrade"
-          # the dev branch too (committed bundle): regressions and new hooks
-          # show up here before a beta is cut
-          - suite: journeys-dev
-            variant: house
-            ref: dev
-            ha: stable
-            projects: "--project=admin --project=viewer --project=mobile"
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       HOUSEPLAN_REF: ${{ inputs.houseplan_ref || 'latest' }}
       HA_VERSION: ${{ matrix.ha }}
