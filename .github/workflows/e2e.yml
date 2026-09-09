@@ -37,7 +37,12 @@ concurrency:
 
 jobs:
   e2e:
+    # The job name is a contract: houseplan-card's stable release gate (#514)
+    # recognises the run it dispatched by ` · HP <tag> · ` in these names.
     name: "${{ matrix.suite }} · HP ${{ matrix.ref }} · HA ${{ matrix.ha }}"
+    # journeys-dev walks the dev snapshot: it belongs to the nightly, not to a
+    # dispatch on a tag — a red dev must not withhold a stable release (#514).
+    if: matrix.suite != 'journeys-dev' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
