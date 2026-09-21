@@ -25,7 +25,14 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   }
   await expect(dialog).toBeVisible();
   await dialog.locator('input[type="text"]').first().fill('Ground floor');
-  await dialog.getByText(/no image/i).click();
+  // The redesigned dialog selects drawing instead of a separate "No image"
+  // action. Keep the old path for upgrade/older-stable E2E runs.
+  const drawWithoutImage = dialog.getByRole('radio', { name: /draw it myself/i });
+  if (await drawWithoutImage.count()) {
+    await drawWithoutImage.check();
+  } else {
+    await dialog.getByText(/no image/i).click();
+  }
   await evidence(testInfo, page, 'first-space-dialog.png');
   await confirmIn(dialog).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
