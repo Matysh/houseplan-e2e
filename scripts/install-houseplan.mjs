@@ -17,6 +17,7 @@ import { cpSync, existsSync, mkdtempSync, rmSync, writeFileSync, readFileSync } 
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { requireVersion } from './release-plan.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'Matysh/houseplan-card';
@@ -80,5 +81,6 @@ if (existsSync(ref) && existsSync(join(ref, 'custom_components', 'houseplan'))) 
 }
 rmSync(work, { recursive: true, force: true });
 const manifest = JSON.parse(readFileSync(join(target, 'manifest.json'), 'utf8'));
+requireVersion(manifest.version, arg('expect-version'));
 writeFileSync(join(out, '.e2e-houseplan.json'), JSON.stringify({ ref, installed, version: manifest.version }, null, 2));
 console.log(`houseplan ${manifest.version} ← ${installed} → ${target}`);

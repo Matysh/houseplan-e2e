@@ -23,7 +23,9 @@ export function installHouseplan(ref) {
   // HA (root inside the container) has written __pycache__ into the old
   // tree; remove it from inside, the way HACS replaces files as the HA process
   execFileSync('docker', ['exec', CONTAINER, 'rm', '-rf', '/config/custom_components/houseplan'], { stdio: 'inherit' });
-  execFileSync('node', [resolve(ROOT, 'scripts/install-houseplan.mjs'), `--ref=${ref}`, `--out=${RUN}`], { stdio: 'inherit' });
+  const versionArgs = process.env.HOUSEPLAN_EXPECTED_VERSION
+    ? [`--expect-version=${process.env.HOUSEPLAN_EXPECTED_VERSION}`] : [];
+  execFileSync('node', [resolve(ROOT, 'scripts/install-houseplan.mjs'), `--ref=${ref}`, `--out=${RUN}`, ...versionArgs], { stdio: 'inherit' });
   return installedHouseplan();
 }
 

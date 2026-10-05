@@ -18,7 +18,7 @@ on:
         required: false
         default: latest
       upgrade_from:
-        description: "Откуда обновляемся в suite upgrade: stable | тег"
+        description: "Откуда обновляемся: stable (предыдущий, если совпал с целью) | явный тег"
         required: false
         default: stable
       ha_version:
@@ -45,29 +45,20 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Проверки выбора версий и матрицы
+        run: node --test test/*.test.mjs
       - id: plan
         env:
           EVENT: ${{ github.event_name }}
           HP_REF: ${{ inputs.houseplan_ref || 'latest' }}
           UPGRADE_FROM: ${{ inputs.upgrade_from || 'stable' }}
           HA_VERSION: ${{ inputs.ha_version || 'stable' }}
-        run: |
-          node -e '
-            const schedule = process.env.EVENT === "schedule";
-            const has = schedule ? ["stable", "beta"] : [process.env.HA_VERSION];
-            const suites = [
-              { suite: "journeys", variant: "house", ref: process.env.HP_REF, projects: "--project=admin --project=viewer --project=mobile" },
-              { suite: "first-run", variant: "empty", ref: process.env.HP_REF, projects: "--project=first-run-admin" },
-              { suite: "upgrade", variant: "house", ref: process.env.UPGRADE_FROM, projects: "--project=upgrade" },
-            ];
-            const include = has.flatMap((ha) => suites.map((s) => ({ ...s, ha })));
-            // the dev branch too (committed bundle): regressions and new hooks
-            // show up here before a beta is cut — nightly only
-            if (schedule) include.push({ suite: "journeys-dev", variant: "house", ref: "dev", ha: "stable", projects: "--project=admin --project=viewer --project=mobile" });
-            const matrix = JSON.stringify({ include });
-            console.log(matrix);
-            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${matrix}\n`);
-          '
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/plan-run.mjs
   e2e:
     needs: plan
     # The job name is a contract: houseplan-card's stable release gate (#514)
@@ -79,7 +70,8 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
-      HOUSEPLAN_REF: ${{ inputs.houseplan_ref || 'latest' }}
+      HOUSEPLAN_REF: ${{ matrix.target_ref }}
+      HOUSEPLAN_EXPECTED_VERSION: ${{ matrix.target_version }}
       HA_VERSION: ${{ matrix.ha }}
       HA_URL: http://127.0.0.1:8123
       E2E_RUN_DIR: ${{ github.workspace }}/run
@@ -105,8 +97,11 @@ jobs:
       - name: "Конфиг HA из seed (${{ matrix.variant }})"
         run: node scripts/prepare-seed.mjs --out=run --variant="${{ matrix.variant }}"
 
-      - name: "House Plan ${{ matrix.ref }} в конфиг (как ставит HACS)"
-        run: node scripts/install-houseplan.mjs --ref="${{ matrix.ref }}" --out=run
+      - name: "House Plan ${{ matrix.install_ref }} в конфиг (как ставит HACS)"
+        env:
+          INSTALL_REF: ${{ matrix.install_ref }}
+          INSTALL_VERSION: ${{ matrix.install_version }}
+        run: node scripts/install-houseplan.mjs --ref="$INSTALL_REF" --expect-version="$INSTALL_VERSION" --out=run
 
       - name: Home Assistant в docker
         run: |
