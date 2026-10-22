@@ -14,7 +14,7 @@ import {
 } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
-requireHooks(test, 'stage@data-grid-step', 'mode-tab', 'field', 'action', 'furniture-category', 'furniture-item',
+requireHooks(test, 'decor', 'stage@data-grid-step', 'mode-tab', 'field', 'action', 'furniture-category', 'furniture-item',
   'image-upload', 'backdrop', 'decor@data-kind');
 restoreSeedAfterEach(test);
 

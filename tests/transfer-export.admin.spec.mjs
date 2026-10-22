@@ -44,7 +44,15 @@ test('a complex plan exports as a complete ZIP with its backdrop, pictures and Z
   const plan = complexPlan(await seedExport());
   const fixture = archive(plan);
   await testInfo.attach('complex-plan.zip', { body: fixture, contentType: 'application/zip' });
-  await restoreArchive(fixture);
+  // nothing in the complex plan is broken: its preview has nothing to report
+  const { preview } = await restoreArchive(fixture);
+  expect(preview.recovery?.total ?? 0).toBe(0);
+  expect(preview.bindings.missing).toBe(0);
+  expect(preview.missing_areas).toEqual([]);
+  expect(preview.confirmation_required).toBe(false);
+  expect(preview.content.every((row) => row.state === 'available')).toBe(true);
+  expect(preview.archive).toMatchObject({ complete: true, missing: [] });
+  expect(preview.counts.stairs).toBe(2);
 
   const { host, dialog } = await openExport(page);
   await expect(kindField(dialog, 'full')).toBeChecked();

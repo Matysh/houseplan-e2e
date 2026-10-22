@@ -53,10 +53,11 @@ export async function restoreArchive(zip, { confirm = false } = {}) {
     'content-type': 'application/zip', 'x-houseplan-operation': randomBytes(16).toString('hex'),
   });
   if (status !== 200) throw new Error(`archive preview: HTTP ${status} ${JSON.stringify(reply)}`);
-  return wsCall({
+  const applied = await wsCall({
     type: 'houseplan/import/apply', token: reply.token, expected_config_rev: reply.expected_config_rev,
     expected_layout_rev: reply.expected_layout_rev, confirm_missing_content: confirm,
   });
+  return { ...applied, preview: reply.preview };
 }
 
 /** Setup path: a JSON export previewed by the integration; the preview is the oracle. */
