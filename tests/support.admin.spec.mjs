@@ -28,7 +28,9 @@ test('the diagnostics package is prepared, previewed and downloaded without send
   const raw = field(dialog, 'support-preview-text');
   await expect(raw).toBeVisible();
   await expect.poll(async () => (await raw.inputValue()).includes('"spaces"')).toBe(true);
-  await evidence(testInfo, page, 'support-preview');
+  // the preview carries the package's own hash and timestamps: it goes into the
+  // report as text, not as a frame that would differ on every run
+  await testInfo.attach('support-preview.json', { body: await raw.inputValue(), contentType: 'application/json' });
 
   const downloading = page.waitForEvent('download');
   await action(dialog, 'support-download').click();

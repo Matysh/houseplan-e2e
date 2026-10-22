@@ -182,12 +182,13 @@ jobs:
         run: node scripts/ha.mjs down
 
   # A green stable gate (houseplan-card#1010): its frames become the new "last
-  # stable" baseline in this repository. Only when every suite passed and the
-  # planner found the stable tag of the dispatched candidate.
+  # stable" baseline in this repository. Only when every suite passed, the
+  # planner found the stable tag of the dispatched candidate, and the run is of
+  # main itself — a run dispatched on an issue branch never writes main.
   evidence-baseline:
     name: Эталон кадров последнего стабильного
     needs: [plan, e2e]
-    if: needs.plan.outputs.stable_tag != '' && needs.e2e.result == 'success'
+    if: github.ref == 'refs/heads/main' && needs.plan.outputs.stable_tag != '' && needs.e2e.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write

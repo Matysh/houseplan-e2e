@@ -7,7 +7,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { field } from './lib/plan.mjs';
+import { field, settle } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
 requireHooks(test, 'space-tab@data-space', 'space-delete', 'field', 'toast@data-id');
@@ -32,6 +32,8 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
   // a new space opens in the plan editor with the Walls tool, ready to draw
   await expect(host.locator(HP.mode('plan'))).toBeVisible();
   await expect(host.locator(HP.tool('draw'))).toHaveAttribute('aria-pressed', 'true');
+  // the editor toolbar fades in after the dialog closes
+  await settle(host);
   await evidence(testInfo, page, 'space-added');
 
   await page.reload();

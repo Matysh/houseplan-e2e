@@ -21,7 +21,10 @@ test('an open browser follows an integration update after the HA restart', async
   await expectPlanDrawn(page);
   const fpBefore = installedBundleFingerprint();
   expect(await pageFingerprint(page)).toBe(fpBefore);
-  await evidence(testInfo, page, `before-${before.version}.png`);
+  // frame names stay the same from release to release, so the frames pair with
+  // the stable baseline; the versions go into the report as annotations
+  testInfo.annotations.push({ type: 'upgrade from', description: before.version });
+  await evidence(testInfo, page, 'before-update');
 
   const after = installHouseplan(TARGET);
   expect(after.version).not.toBe(before.version);
@@ -50,7 +53,8 @@ test('an open browser follows an integration update after the HA restart', async
   const urls = await resourceVersions(page);
   expect(urls.some((u) => u.includes(`v=${after.version}`))).toBe(true);
   await expect(page.getByText(/versions do not match/i)).toHaveCount(0);
-  await evidence(testInfo, page, `after-${after.version}.png`);
+  testInfo.annotations.push({ type: 'upgrade to', description: after.version });
+  await evidence(testInfo, page, 'after-reload-new-bundle');
 
   // 3. the sidebar page of the new version works in that same browser
   await page.goto('/houseplan');

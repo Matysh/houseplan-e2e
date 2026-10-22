@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { requireHooks } from './lib/contract.mjs';
-import { archive, complexPlan, dirtyPlan, oldJsonPlan, seedExport } from './lib/backup-fixtures.mjs';
+import { archive, complexPlan, CREATED_AT, dirtyPlan, oldJsonPlan, seedExport } from './lib/backup-fixtures.mjs';
 import { chooseBackup, footerCancel, openMaintenance, previewReply, revisions } from './lib/backup.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, planLayout, wsCall } from './lib/ha-ws.mjs';
@@ -64,6 +64,9 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   await expect(replace).toBeDisabled();
   await field(dialog, 'backup-confirm-missing').check();
   await expect(replace).toBeEnabled();
+  // the frame shows the top of the report; further down the staged file
+  // names of the archive change from run to run
+  await dialog.getByText('dirty-plan.zip').scrollIntoViewIfNeeded();
   await evidence(testInfo, page, 'import-dirty-preview');
   await replace.click();
   await expect(toast(host, 'backup.full_done')).toBeVisible();
@@ -161,7 +164,7 @@ test('a JSON from House Plan 1.62 on another Home Assistant is migrated to the c
 test('a space exported as JSON comes back as a new space, devices already on the plan skipped', async ({ page }, testInfo) => {
   const before = (await planConfig()).config;
   const { document } = await wsCall({ type: 'houseplan/export/create', kind: 'space', space_id: 'f1', card_version: 'e2e' });
-  const raw = Buffer.from(JSON.stringify(document));
+  const raw = Buffer.from(JSON.stringify({ ...document, created_at: CREATED_AT })); // the preview shows it
   await testInfo.attach('ground-floor-space.json', { body: raw, contentType: 'application/json' });
   const { host, settings } = await openMaintenance(page);
   const replied = previewReply(page);
