@@ -55,11 +55,16 @@ export function missingHooks(specs, installed = installedContract()) {
   return specs.filter((spec) => !declares(installed, spec));
 }
 
-/** The version the vendored contract says a hook (or its attribute) first shipped in. */
+/**
+ * The version the vendored contract says a hook first shipped in; for
+ * `hook@attr`, the attribute's own `since` only. An attribute without one
+ * (a closed value list declared later on an old hook, e.g. `decor@data-kind`
+ * by #1011) is of unknown age: never called a regression.
+ */
 export function sinceOf(spec, contract = CONTRACT) {
   const [name, attr] = spec.split('@');
   const hook = contract?.hooks?.[name];
-  return (attr && hook?.attributeMetadata?.[attr]?.since) || hook?.since || null;
+  return (attr ? hook?.attributeMetadata?.[attr]?.since : hook?.since) || null;
 }
 
 /**
@@ -77,14 +82,22 @@ export function gate(specs, installed = installedContract(), version = installed
 
 /**
  * Skip the current file/describe/test when the installed House Plan is older
- * than a hook it relies on; fail loudly when a hook its version should have
- * is gone. Call at the top of a file or a describe.
+ * than a hook it relies on; fail it when a hook its version should have is
+ * gone. Call at the top of a file or a describe, or inside a test. A lost hook
+ * fails the journeys of that file, never the loading of the whole suite.
  */
 export function requireHooks(test, ...specs) {
   const record = installedRecord();
   const { newer, lost } = gate(specs);
   const product = `House Plan ${record?.version ?? '?'} (${record?.installed ?? 'unknown ref'})`;
-  if (lost.length) throw new Error(`${product} should declare ${lost.join(', ')} by its version, but its contract does not: a removed or renamed hook`);
+  if (lost.length) {
+    const error = new Error(`${product} should declare ${lost.join(', ')} by its version, but its contract does not: a removed or renamed hook`);
+    let running = true;
+    try { test.info(); } catch { running = false; }
+    if (running) throw error;
+    test.beforeEach(() => { throw error; });
+    return;
+  }
   test.skip(newer.length > 0, `${product} predates ${newer.join(', ')}`);
 }
 

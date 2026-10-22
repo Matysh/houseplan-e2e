@@ -3,7 +3,7 @@
 // are gated on what the installed product declares (houseplan-card#1010).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { CONTRACT, declares, gate, hp, missingHooks, root, sinceOf } from '../tests/lib/contract.mjs';
@@ -71,4 +71,24 @@ test('a hook newer than the installed release skips; a hook its version should h
   assert.deepEqual(gate(['summary-metric@data-id'], installed, `${since}-beta.1`).lost, []);
   // an unknown product version: nothing is called a regression
   assert.deepEqual(gate(['summary-metric@data-id'], installed, undefined), { newer: ['summary-metric@data-id'], lost: [] });
+});
+
+test('the latest stable contract (v1.82.0) never turns a journey of this suite into a regression', () => {
+  const v182 = JSON.parse(readFileSync(new URL('./fixtures/data-hp-contract-v1.82.0.json', import.meta.url), 'utf8'));
+  // the closed value list on an old hook was declared later: unknown age, skipped
+  assert.equal(sinceOf('decor@data-kind'), null);
+  assert.deepEqual(gate(['decor@data-kind'], v182, '1.82.1'), { newer: ['decor@data-kind'], lost: [] });
+  // every requireHooks of every journey, against the release the nightly runs
+  const dir = new URL('../tests/', import.meta.url);
+  const files = readdirSync(dir, { recursive: true }).filter((f) => /\.(spec|setup)\.mjs$/.test(f));
+  let calls = 0;
+  for (const file of files) {
+    const text = readFileSync(new URL(file, dir), 'utf8');
+    for (const [, args] of text.matchAll(/requireHooks\(\s*\w+\s*,([^)]*)\)/g)) {
+      const specs = [...args.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+      calls++;
+      for (const version of ['1.82.0', '1.82.1']) assert.deepEqual(gate(specs, v182, version).lost, [], `${file}: ${specs.join(', ')} on ${version}`);
+    }
+  }
+  assert.ok(calls >= 13, `found ${calls} requireHooks calls`);
 });

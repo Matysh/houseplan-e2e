@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "attribute": "data-hp",
+  "stability": {
+    "removalPolicy": "changelog-and-one-stable-version-transition",
+    "additionsAreCompatible": true
+  },
+  "hooks": {
+    "vacuum-map-preview": { "elements": ["image"], "since": "1.82.0", "audience": ["test"] },
+    "ecovacs-source-hint": { "elements": ["div"], "since": "1.82.0", "audience": ["test"] },
+    "properties-panel": { "elements": ["aside"], "since": "1.82.0", "audience": ["styling", "test"] },
+    "device-context-menu": { "elements": ["div"], "since": "1.82.0", "audience": ["test"] },
+    "device-copy": { "elements": ["button"], "since": "1.82.0", "audience": ["test"] },
+    "led-device-select": { "elements": ["path"], "since": "1.82.0", "audience": ["test"] },
+    "room-area-link": {
+      "elements": ["button"],
+      "since": "1.81.0",
+      "audience": ["test"]
+    },
+    "restore-retry": {
+      "elements": ["button"],
+      "since": "1.81.0",
+      "audience": ["test"]
+    },
+    "view-runtime-notice": { "elements": ["aside"], "since": "1.81.0", "audience": ["test"] },
+    "view-runtime-retry": { "elements": ["button"], "since": "1.81.0", "audience": ["test"] },
+    "view-runtime-reload": { "elements": ["button"], "since": "1.81.0", "audience": ["test"] },
+    "import-backup": {
+      "elements": ["button"],
+      "since": "1.81.0",
+      "audience": ["test"]
+    },
+    "create-space": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "decor": {
+      "elements": ["ellipse", "image", "line", "path", "rect", "text"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "device": {
+      "elements": ["div"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "dialog": {
+      "elements": ["hp-dialog"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"],
+      "attributes": {
+        "data-kind": [
+          "backup",
+          "confirm",
+          "decor",
+          "device-inbox",
+          "import",
+          "info",
+          "kiosk",
+          "led-picker",
+          "marker",
+          "marker-restore",
+          "onboarding",
+          "opening",
+          "pdf",
+          "physical",
+          "properties-variable",
+          "room",
+          "rules",
+          "settings",
+          "space",
+          "stairs",
+          "summary",
+          "support",
+          "vacuum"
+        ]
+      }
+    },
+    "dialog-cancel": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "dialog-confirm": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "editor-close": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "empty": {
+      "elements": ["div"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "header-menu": {
+      "elements": ["button"],
+      "since": "1.78.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "hidden-devices": {
+      "elements": ["button"],
+      "since": "1.82.0",
+      "audience": ["styling", "test"]
+    },
+    "header-menu-item": {
+      "elements": ["button"],
+      "since": "1.78.0-beta.3",
+      "audience": ["styling", "test"],
+      "attributes": { "data-id": ["mode-plan", "mode-devices", "mode-decor", "space-settings", "space-add", "settings", "pdf", "support", "hidden-devices", "summary-settings", "summary-toggle"] }
+    },
+    "header-menu-scrim": {
+      "elements": ["div"],
+      "since": "1.78.0-beta.3",
+      "audience": ["test"]
+    },
+    "mode-tab": {
+      "elements": ["button"],
+      "since": "1.78.0-beta.2",
+      "audience": ["test"],
+      "attributes": { "data-mode": ["plan", "devices", "decor"] }
+    },
+    "opening": {
+      "elements": ["g"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "opening-tunnel": {
+      "elements": ["g", "path"],
+      "since": "1.60.2",
+      "audience": ["styling", "test"]
+    },
+    "panel-menu": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "panel-title": {
+      "elements": ["div"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "partition": {
+      "elements": ["path"],
+      "since": "1.60.2-beta.1",
+      "audience": ["styling", "test"]
+    },
+    "pdf": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "room": {
+      "elements": ["path", "polygon", "rect"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "room-label": {
+      "elements": ["div"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "room-settings": {
+      "elements": ["button"],
+      "since": "1.67.0-rc.2",
+      "audience": ["styling", "test"]
+    },
+    "settings": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "space-add": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "space-settings": {
+      "elements": ["ha-icon"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "space-tab": {
+      "elements": ["button"],
+      "since": "1.59.0-beta.3",
+      "audience": ["styling", "test"]
+    },
+    "stair": {
+      "elements": ["g"],
+      "since": "1.78.0-beta.5",
+      "audience": ["styling", "test"]
+    },
+    "stair-frame": {
+      "elements": ["g"],
+      "since": "1.78.0-beta.6",
+      "audience": ["styling", "test"]
+    },
+    "support": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "toast": {
+      "elements": ["div"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"],
+      "attributes": {
+        "data-kind": ["message"]
+      }
+    },
+    "toast-portal": {
+      "elements": ["div"],
+      "since": "1.82.0",
+      "audience": ["test"]
+    },
+    "tool": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"],
+      "attributes": {
+        "data-tool": [
+          "add-device",
+          "backdrop",
+          "column",
+          "delete-room",
+          "device-inbox",
+          "draw",
+          "ellipse",
+          "erase",
+          "furniture",
+          "icon-rules",
+          "image",
+          "line",
+          "merge",
+          "opening",
+          "rect",
+          "resize",
+          "rooms",
+          "select",
+          "shapes",
+          "split",
+          "stairs",
+          "text",
+          "wall-thickness"
+        ]
+      }
+    },
+    "toolbar": {
+      "elements": ["div"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"],
+      "attributes": {
+        "data-kind": ["decor", "device", "plan"]
+      }
+    },
+    "tray": {
+      "elements": ["div"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "wall": {
+      "elements": ["path"],
+      "since": "1.59.0-beta.4",
+      "audience": ["styling", "test"]
+    },
+    "wall-column": {
+      "elements": ["path"],
+      "since": "1.60.2-beta.1",
+      "audience": ["styling", "test"]
+    },
+    "zigbee-scan-background": {
+      "elements": ["span"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zigbee-scan-cancel": {
+      "elements": ["button"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zigbee-scan-cancel-hint": {
+      "elements": ["span"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zigbee-scan-elapsed": {
+      "elements": ["span"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zigbee-scan-long-wait": {
+      "elements": ["span"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zigbee-scan-stage": {
+      "elements": ["span"],
+      "since": "1.80.0-beta.3",
+      "audience": ["test"]
+    },
+    "zoom-fit": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "zoom-in": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    },
+    "zoom-out": {
+      "elements": ["button"],
+      "since": "1.73.0-beta.7",
+      "audience": ["test"]
+    }
+  },
+  "rootAttributes": {
+    "data-hp-mode": {
+      "element": "ha-card",
+      "values": ["view", "plan", "devices", "decor"],
+      "since": "1.73.0-beta.7"
+    },
+    "data-hp-state": {
+      "element": "ha-card",
+      "values": ["booting", "ready"],
+      "since": "1.73.0-beta.7"
+    }
+  },
+  "retiredHooks": {
+    "room-draft": {
+      "elements": ["line"],
+      "since": "1.60.2-beta.1",
+      "retired": "1.73.0-beta.1",
+      "reason": "Unfinished room contours were replaced by ordinary partitions in issue #478."
+    }
+  },
+  "internalPrefixes": [
+    "hidden-wall-",
+    "iso-",
+    "plan-snap-",
+    "resize-",
+    "zigbee-topology-"
+  ],
+  "internalExactValues": [
+    "archive-summary",
+    "backup-recovery",
+    "opening-orphan",
+    "vacuum-route-missing-group"
+  ]
+}
