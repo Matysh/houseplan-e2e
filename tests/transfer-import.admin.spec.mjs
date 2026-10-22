@@ -82,6 +82,8 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
     expect(layout[id]).toMatchObject(plan.document.payload.layout[id]);
   }
   expect(byId(after.markers, 'e2e_gone_entity').binding).toBe('entity:light.e2e_gone_lamp');
+  expect(byId(after.markers, 'e2e_gone_device').binding).toBe('device:00000000000000000000000000e2e0ff');
+  expect(byId(after.spaces, 'smrwhw9la').rooms[0].area).toBe(expected.missingAreas[0]);
   const { enabled, ...radar } = byId(after.markers, 'e2e_radar_lost').radar;
   expect(enabled).toBe(false);
   const { enabled: wasEnabled, ...sourceRadar } = byId(source.markers, 'e2e_radar_lost').radar;

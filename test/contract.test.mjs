@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { CONTRACT, declares, hp, missingHooks, root } from '../tests/lib/contract.mjs';
+import { CONTRACT, declares, gate, hp, missingHooks, root, sinceOf } from '../tests/lib/contract.mjs';
 import { lintText } from '../scripts/contract-lint.mjs';
 import { sameTree, treeDigest } from '../scripts/tree-digest.mjs';
 
@@ -56,4 +56,19 @@ test('a build that reproduces the committed bundle is recognised byte for byte',
   assert.equal(sameTree(committed, make('renamed', { 'houseplan-card.js': 'a', 'assets/x-2.js': 'b' })), false);
   assert.equal(sameTree(committed, make('extra', { 'houseplan-card.js': 'a', 'assets/x-1.js': 'b', 'y.js': '' })), false);
   assert.deepEqual(treeDigest(join(dir, 'absent')), {});
+});
+
+test('a hook newer than the installed release skips; a hook its version should have fails', () => {
+  const installed = { hooks: { stage: { elements: ['svg'] } } };
+  assert.equal(sinceOf('stage'), CONTRACT.hooks.stage.since);
+  assert.equal(sinceOf('summary-metric@data-id'), CONTRACT.hooks['summary-metric'].attributeMetadata?.['data-id']?.since || CONTRACT.hooks['summary-metric'].since);
+  // 1.82.0 under test: the 1.83 hooks are newer — skip, never fail
+  assert.deepEqual(gate(['stage', 'summary-metric@data-id'], installed, '1.82.0'), { newer: ['summary-metric@data-id'], lost: [] });
+  // the same hook missing from 1.84.0: removed or renamed — fail
+  assert.deepEqual(gate(['summary-metric@data-id'], installed, '1.84.0'), { newer: [], lost: ['summary-metric@data-id'] });
+  // a prerelease of the version that introduced it counts as older
+  const since = sinceOf('summary-metric@data-id');
+  assert.deepEqual(gate(['summary-metric@data-id'], installed, `${since}-beta.1`).lost, []);
+  // an unknown product version: nothing is called a regression
+  assert.deepEqual(gate(['summary-metric@data-id'], installed, undefined), { newer: ['summary-metric@data-id'], lost: [] });
 });

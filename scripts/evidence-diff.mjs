@@ -7,7 +7,8 @@
  * diff, the largest difference first) and a short table for the job summary.
  *
  *   node scripts/evidence-diff.mjs --current=evidence-out --stable=evidence/stable \
- *     --out=artifacts/evidence [--summary=$GITHUB_STEP_SUMMARY] [--title="journeys · HA stable"]
+ *     --out=artifacts/evidence [--summary=$GITHUB_STEP_SUMMARY] [--title="journeys · HA stable"] \
+ *     [--artifact=<artifact name> --link=<run URL>]
  *
  * Not a gate and not an analysis: no thresholds, no masks, the exit code does
  * not depend on the differences. It is material for the owner's eyes, or for an
@@ -23,25 +24,13 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
+import { compareTags } from './tags.mjs';
 
 export const DIFF_COLOR = [255, 64, 160]; // pink
 export const GREY_ALPHA = 0.35; // how strongly the stable frame shows through
 const AA_SENTINEL = [1, 2, 3];
 
-/** House Plan release tags in version order: v1.82.0 < v1.83.0-beta.1 < v1.83.0. */
-export function compareTags(a, b) {
-  const parse = (tag) => {
-    const m = /^v?(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)\.?(\d+)?)?$/i.exec(tag);
-    if (!m) return null;
-    const pre = m[4] ? ({ beta: 1, rc: 2 }[m[4].toLowerCase()] ?? 0) : 3;
-    return [+m[1], +m[2], +m[3], pre, +(m[5] || 0)];
-  };
-  const x = parse(a);
-  const y = parse(b);
-  if (!x || !y) return String(a).localeCompare(String(b));
-  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
-  return 0;
-}
+export { compareTags };
 
 /** The tag directory under `stableRoot` that holds the last stable frames. */
 export function stableTag(stableRoot) {
@@ -172,7 +161,7 @@ ${rows}
 `;
 }
 
-export function summaryMarkdown(report, title = 'Evidence frames') {
+export function summaryMarkdown(report, title = 'Evidence frames', { artifact = '', link = '' } = {}) {
   const lines = [`### ${title}: frames against stable ${report.stable ? `\`${report.stable}\`` : '(no baseline yet)'}`, '',
     Object.entries(report.counts).map(([k, v]) => `${k}: **${v}**`).join(' · '), ''];
   const shown = report.frames.filter((f) => f.status !== 'same').slice(0, 25);
@@ -181,7 +170,8 @@ export function summaryMarkdown(report, title = 'Evidence frames') {
     for (const f of shown) lines.push(`| \`${f.frame}\` | ${f.status} | ${pct(f.ratio)}${f.diffPixels ? ` (${f.diffPixels})` : ''} |`);
     lines.push('');
   }
-  lines.push('Gallery: `index.html` in the evidence artifact (stable / this run / diff). Not a gate.', '');
+  const where = artifact ? (link ? `[\`${artifact}\`](${link})` : `\`${artifact}\``) : 'the evidence artifact';
+  lines.push(`Gallery: \`diff/index.html\` in ${where} (stable / this run / diff). Not a gate.`, '');
   return lines.join('\n');
 }
 
@@ -196,7 +186,7 @@ if (isMain) {
     stable: resolve(arg('stable', 'evidence/stable')),
     out: resolve(arg('out', 'artifacts/evidence')),
   });
-  const md = summaryMarkdown(report, arg('title', 'Evidence frames'));
+  const md = summaryMarkdown(report, arg('title', 'Evidence frames'), { artifact: arg('artifact', ''), link: arg('link', '') });
   const summary = arg('summary', process.env.GITHUB_STEP_SUMMARY || '');
   if (summary) appendFileSync(summary, `${md}\n`);
   console.log(md);

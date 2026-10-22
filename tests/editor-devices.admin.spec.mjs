@@ -93,6 +93,8 @@ test('a device is moved with undo and redo, renamed and copied, and the plan kee
 
 test('the Properties panel changes the size of the selected device', async ({ page }, testInfo) => {
   const host = await devicesEditor(page);
+  const widthOf = async (owner) => (await marker(owner, THERMO).boundingBox()).width;
+  const before = await widthOf(host);
   const centre = await centreOf(marker(host, THERMO));
   await page.mouse.click(centre.x, centre.y);
   const panel = host.locator(hp('properties-panel')).first();
@@ -109,6 +111,15 @@ test('the Properties panel changes the size of the selected device', async ({ pa
   }, { message: `size ${wanted}% stored` });
   expect(Number(markerOf(stored, THERMO).size)).toBeCloseTo(wanted / 100, 6);
   await expect(size).toHaveValue(String(wanted));
+
+  // after a reload the marker is drawn at its new size and the panel says so
+  await page.keyboard.press('Escape');
+  const fresh = await devicesEditor(page);
+  expect(await widthOf(fresh) / before).toBeCloseTo(wanted / old, 1);
+  const again = await centreOf(marker(fresh, THERMO));
+  await page.mouse.click(again.x, again.y);
+  await expect(field(fresh.locator(hp('properties-panel')).first(), 'properties-size')).toHaveValue(String(wanted));
+  await evidence(testInfo, page, 'properties-after-reload');
 });
 
 test('two devices pulled together by the magnets form one outlined group', async ({ page }, testInfo) => {

@@ -58,6 +58,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # the unit suite reads PNGs and ZIPs (pngjs, pixelmatch)
+      - run: npm ci
       - name: Проверки выбора версий и матрицы
         run: node --test test/*.test.mjs
       - id: plan
@@ -145,7 +148,9 @@ jobs:
           mkdir -p evidence-artifact
           cp -r evidence-out evidence-artifact/raw 2>/dev/null || true
           node scripts/evidence-diff.mjs --current=evidence-out --stable=evidence/stable \
-            --out=evidence-artifact/diff --title="${{ matrix.suite }} · HA ${{ matrix.ha }}"
+            --out=evidence-artifact/diff --title="${{ matrix.suite }} · HA ${{ matrix.ha }}" \
+            --artifact="evidence-${{ github.run_number }}-${{ matrix.suite }}-ha-${{ matrix.ha }}" \
+            --link="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts"
 
       - name: Артефакты (отчёт, трейсы, скриншоты, логи)
         if: always()
@@ -189,6 +194,9 @@ jobs:
     name: Эталон кадров последнего стабильного
     needs: [plan, e2e]
     if: github.ref == 'refs/heads/main' && needs.plan.outputs.stable_tag != '' && needs.e2e.result == 'success'
+    # not a gate: houseplan-card's release gate reads the run's conclusion, and
+    # a failed baseline commit must not withhold a release
+    continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
       contents: write

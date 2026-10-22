@@ -102,6 +102,9 @@ test('a room deleted with its walls kept is created again in the same walls', as
   expect(recreated.openings).toHaveLength(before.openings.length);
   expect((recreated.partitions || []).length).toBe((before.partitions || []).length);
   expect((recreated.walls || []).length).toBe((before.walls || []).length);
+  // the wall model itself: the same segments, none doubled under the new room
+  const segments = (space) => (space.wall_segments || []).map((w) => [w.a, w.b].map((p) => p.map((v) => v.toFixed(6)).join(',')).sort().join('|')).sort();
+  expect(segments(recreated)).toEqual(segments(before));
   await leaveEditor(host);
   await page.reload();
   await expectPlanDrawn(page, card(page));
@@ -137,6 +140,14 @@ test('a room is resized by dragging its wall', async ({ page }, testInfo) => {
   const newMax = Math.max(...roomNamed(spaceOf(resized, YARD), 'Yard').poly.map(([x]) => x));
   expect(newMax * U).toBeCloseTo(maxX * U + 6 * step, 3);
   await evidence(testInfo, page, 'resize-after');
+
+  // after a reload the room is drawn to its new edge
+  await leaveEditor(host);
+  const fresh = await openPlan(page, { space: YARD });
+  const box = await fresh.locator(hp('room', { id: yard.id })).first().boundingBox();
+  const edgeAt = await toClient(fresh, newMax * U, 0);
+  expect(Math.abs(box.x + box.width - edgeAt.x)).toBeLessThan(4);
+  await evidence(testInfo, page, 'resize-after-reload');
 });
 
 test('a wall node is dragged to a new point', async ({ page }, testInfo) => {
@@ -167,6 +178,17 @@ test('a wall node is dragged to a new point', async ({ page }, testInfo) => {
   const wall = spaceOf(moved, YARD).partitions[0];
   expect([wall.a, wall.b].some(([x, y]) => Math.abs(x * U - a.x) < 1e-3 && Math.abs(y * U - a.y) < 1e-3)).toBe(true);
   await evidence(testInfo, page, 'node-after');
+
+  // after a reload the wall's end is at the new point, not at the old one
+  await leaveEditor(host);
+  const fresh = await openPlan(page, { space: YARD });
+  await enterEditor(fresh, 'plan');
+  await useTool(fresh, 'select');
+  await settle(fresh);
+  await expect(fresh.locator(hp('wall-node', { node: nodeKey(to) })).first()).toBeVisible();
+  await expect(fresh.locator(hp('wall-node', { node: nodeKey(b) }))).toHaveCount(0);
+  await expect(fresh.locator(hp('wall-node', { node: nodeKey(a) })).first()).toBeVisible();
+  await evidence(testInfo, page, 'node-after-reload');
 });
 
 test('a zero-thickness wall is drawn and kept as an axis without a body', async ({ page }, testInfo) => {
@@ -184,7 +206,18 @@ test('a zero-thickness wall is drawn and kept as an axis without a body', async 
   const config = await waitForConfig((c) => (spaceOf(c, YARD).partitions || []).length === 1, { message: 'zero wall saved' });
   const wall = spaceOf(config, YARD).partitions[0];
   expect(wall.cm).toBe(0);
-  await expect(host.locator(hp('partition', { id: wall.id }))).toHaveCount(1);
+  // an axis without a body: the editor draws it as a line, a thick wall as a path
+  const axis = (owner) => owner.locator(`line${hp('partition', { id: wall.id })}`);
+  const body = (owner) => owner.locator(`path${hp('partition', { id: wall.id })}`);
+  await expect(axis(host)).toHaveCount(1);
+  await expect(body(host)).toHaveCount(0);
   await leaveEditor(host);
   await evidence(testInfo, page, 'zero-wall-view');
+
+  const fresh = await openPlan(page, { space: YARD });
+  expect(spaceOf((await planConfig()).config, YARD).partitions[0]).toMatchObject({ id: wall.id, cm: 0 });
+  await evidence(testInfo, page, 'zero-wall-after-reload');
+  await enterEditor(fresh, 'plan');
+  await expect(axis(fresh)).toHaveCount(1);
+  await expect(body(fresh)).toHaveCount(0);
 });

@@ -15,6 +15,7 @@
  * the previous release's version (houseplan-card#1010).
  */
 import { existsSync, readFileSync } from 'node:fs';
+import { compareTags } from '../../scripts/tags.mjs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,15 +55,37 @@ export function missingHooks(specs, installed = installedContract()) {
   return specs.filter((spec) => !declares(installed, spec));
 }
 
+/** The version the vendored contract says a hook (or its attribute) first shipped in. */
+export function sinceOf(spec, contract = CONTRACT) {
+  const [name, attr] = spec.split('@');
+  const hook = contract?.hooks?.[name];
+  return (attr && hook?.attributeMetadata?.[attr]?.since) || hook?.since || null;
+}
+
 /**
- * Skip the current file/describe/test when the installed House Plan does not
- * declare every hook it relies on. Call at the top of a file or a describe.
+ * Hooks the installed product lacks, split by why: `newer` ones shipped after
+ * the installed version (an older release under test — skip), `lost` ones
+ * should be there by its version (removed or renamed — a regression, fail).
+ */
+export function gate(specs, installed = installedContract(), version = installedRecord()?.version) {
+  const missing = missingHooks(specs, installed);
+  const lost = version
+    ? missing.filter((spec) => { const since = sinceOf(spec); return since && compareTags(`v${version}`, `v${since}`) >= 0; })
+    : [];
+  return { newer: missing.filter((spec) => !lost.includes(spec)), lost };
+}
+
+/**
+ * Skip the current file/describe/test when the installed House Plan is older
+ * than a hook it relies on; fail loudly when a hook its version should have
+ * is gone. Call at the top of a file or a describe.
  */
 export function requireHooks(test, ...specs) {
-  const missing = missingHooks(specs);
   const record = installedRecord();
-  test.skip(missing.length > 0,
-    `House Plan ${record?.version ?? '?'} (${record?.installed ?? 'unknown ref'}) does not declare ${missing.join(', ')}`);
+  const { newer, lost } = gate(specs);
+  const product = `House Plan ${record?.version ?? '?'} (${record?.installed ?? 'unknown ref'})`;
+  if (lost.length) throw new Error(`${product} should declare ${lost.join(', ')} by its version, but its contract does not: a removed or renamed hook`);
+  test.skip(newer.length > 0, `${product} predates ${newer.join(', ')}`);
 }
 
 const attrName = (key) => (key.startsWith('data-') ? key : `data-${key}`);

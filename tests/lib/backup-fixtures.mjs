@@ -163,7 +163,7 @@ export function dirtyPlan(base) {
   // a decor picture whose file is not in the archive, and a backdrop on the internet
   const lostPicture = sha256(uniquePng('e2e lost picture'));
   ground.decor.push({ id: 'e2e-picture-lost', kind: 'image', asset_id: lostPicture, x: 0.6, y: 0.3, w: 0.05, h: 0.05 });
-  yard.plan_url = 'https://example.com/e2e-yard-backdrop.png';
+  yard.plan_url = 'https://e2e-yard-backdrop.invalid/plan.png'; // never resolves: no real host is contacted
   // geometry the import has no business changing
   const partition = ground.partitions[0];
   ground.partitions.push({ ...copy(partition), id: 'e2e-partition-twin' }); // lies exactly on the first
@@ -180,7 +180,7 @@ export function dirtyPlan(base) {
       missingAreas: ['e2e_gone_area'],
       recovery: { radar: ['e2e_radar_lost'], vacuum: ['e_vacuum_demo_robot'], controls: ['e2e_lamp_switch'], value: ['e2e_badge_lost'] },
       missingPictures: ['e2e-picture-lost'],
-      external: ['https://example.com/e2e-yard-backdrop.png'],
+      external: ['https://e2e-yard-backdrop.invalid/plan.png'],
       keptGeometry: { partitions: { f1: ['e2e-partition-twin', 'e2e-partition-offgrid'] }, rooms: { smrwhw9la: ['e2e-bowtie'] } },
       kitchen: kitchen.id,
     },

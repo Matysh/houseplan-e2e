@@ -110,6 +110,10 @@ export async function evidence(testInfo, page, name, { keepPointer = false } = {
   // a tooltip under a resting pointer is not part of the state being shown
   if (!keepPointer && !testInfo.project.use?.isMobile) await page.mouse.move(1, 1);
   await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
+  // finite transitions and animations (a toolbar fading in) run to their end;
+  // endless ones (alarm pulses) are stopped by the screenshot itself
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'
+    || !Number.isFinite(a.effect?.getComputedTiming?.().endTime)), null, { timeout: 3_000 }).catch(() => {});
   const body = await page.screenshot({ animations: 'disabled', caret: 'hide', scale: 'css' });
   const spec = basename(testInfo.file).replace(/\.spec\.mjs$/, '').replace(/\.(admin|viewer|mobile)$/, '');
   const target = resolve(EVIDENCE_DIR, testInfo.project.name, spec, `${file}.png`);

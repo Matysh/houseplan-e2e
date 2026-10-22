@@ -2,9 +2,9 @@
 // Job labels retain the requested target: houseplan-card's release gate uses
 // journeys/first-run names to identify its exact tag/SHA dispatch.
 
-import { compareTags } from './evidence-diff.mjs';
+import { compareTags, STABLE_TAG } from './tags.mjs';
 
-const STABLE_TAG = /^v\d+\.\d+\.\d+$/;
+const RELEASE_TRAILER = /^Release:[ \t]*(v\d+\.\d+\.\d+)[ \t]*$/gm;
 
 export function requireVersion(actual, expected) {
   if (expected != null && expected !== '' && actual !== expected) {
@@ -55,16 +55,19 @@ export async function planRun({ event = 'workflow_dispatch', targetRef = 'latest
   }
 
   // houseplan-card#1010: a green stable gate leaves its evidence frames as the
-  // new "last stable" baseline. The gate dispatches the candidate by SHA
-  // (#540); the stable tag already points at it. An explicit stable tag
-  // counts as well; moving aliases (latest/stable) and schedules never do.
+  // new "last stable" baseline. The release workflow (#540) dispatches the
+  // candidate by its exact SHA before the tag exists; the candidate declares
+  // its own stable tag in a `Release: vX.Y.Z` trailer, which the gate already
+  // requires to name exactly that tag, and its manifest carries that version.
+  // A stable tag already pointing at the SHA (published release, repair)
+  // counts too, and so does an explicit stable tag; moving aliases
+  // (latest/stable) and schedules never do. Best effort: the baseline is
+  // material to look at, so an API failure here leaves it unset instead of
+  // failing the run.
   let stableTag = '';
   if (event === 'workflow_dispatch') {
     if (STABLE_TAG.test(targetRef)) stableTag = targetRef;
-    else if (/^[a-f0-9]{40}$/i.test(target.ref) && ops.tags) {
-      const tags = (await ops.tags()).filter((t) => STABLE_TAG.test(t.name) && t.commit?.sha === target.ref);
-      stableTag = tags.map((t) => t.name).sort(compareTags).at(-1) ?? '';
-    }
+    else if (/^[a-f0-9]{40}$/i.test(target.ref)) stableTag = await candidateStableTag(target, ops);
   }
 
   const schedule = event === 'schedule';
@@ -88,6 +91,19 @@ export async function planRun({ event = 'workflow_dispatch', targetRef = 'latest
   return { matrix: { include }, upgrade: { source, target }, stableTag };
 }
 
+async function candidateStableTag(target, ops) {
+  try {
+    const declared = ops.message ? [...(await ops.message(target.ref)).matchAll(RELEASE_TRAILER)].map((m) => m[1]) : [];
+    if (declared.length === 1 && declared[0] === `v${target.version}`) return declared[0];
+    if (!ops.tags) return '';
+    const tags = (await ops.tags()).filter((t) => STABLE_TAG.test(t.name) && t.commit?.sha === target.ref);
+    return tags.map((t) => t.name).sort(compareTags).at(-1) ?? '';
+  } catch (error) {
+    console.warn(`stable baseline: candidate tag unknown (${error.message})`);
+    return '';
+  }
+}
+
 export function githubOps({ token = process.env.GITHUB_TOKEN, fetchImpl = fetch } = {}) {
   const base = 'https://api.github.com/repos/Matysh/houseplan-card';
   const headers = { 'User-Agent': 'houseplan-e2e', Accept: 'application/vnd.github+json',
@@ -109,6 +125,7 @@ export function githubOps({ token = process.env.GITHUB_TOKEN, fetchImpl = fetch 
       throw new Error('House Plan release catalog exceeds 2000 entries; cannot choose a reliable upgrade source');
     },
     commit: async (ref) => (await json(`commits/${encodeURIComponent(ref)}`)).sha,
+    message: async (sha) => (await json(`commits/${encodeURIComponent(sha)}`)).commit.message,
     tags: async () => {
       const all = [];
       for (let page = 1; page <= 10; page++) {

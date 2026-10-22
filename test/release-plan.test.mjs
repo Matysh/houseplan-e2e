@@ -403,3 +403,27 @@ test('a dispatched stable candidate SHA names its stable tag; aliases and schedu
   untagged.tags = async () => [];
   assert.equal((await planRun({ event: 'workflow_dispatch', targetRef: TARGET_SHA, upgradeFrom: 'v1.79.0' }, untagged)).stableTag, '');
 });
+
+test('the release gate dispatches the candidate before its tag exists: the Release trailer names the baseline', async () => {
+  const plan = async (message, version = '1.80.0', extra = {}) => {
+    const { ops } = fixture({ versions: { [TARGET_SHA]: version } });
+    ops.tags = async () => [];
+    ops.message = async (sha) => { assert.equal(sha, TARGET_SHA); return message; };
+    Object.assign(ops, extra);
+    return (await planRun({ event: 'workflow_dispatch', targetRef: TARGET_SHA, upgradeFrom: 'v1.79.0' }, ops)).stableTag;
+  };
+  const release = 'Release v1.80.0\n\nNotes.\n\nIssue: #1\nRelease: v1.80.0\n';
+  assert.equal(await plan(release), 'v1.80.0');
+  // a beta trailer, a trailer that disagrees with the manifest, two trailers, none
+  assert.equal(await plan('Release: v1.80.0-beta.2\n'), '');
+  assert.equal(await plan(release, '1.80.1'), '');
+  assert.equal(await plan('Release: v1.80.0\nRelease: v1.81.0\n'), '');
+  assert.equal(await plan('feat: something\n\nIssue: #9\n'), '');
+  // the baseline is not a gate: an API failure leaves it unset, the plan stands
+  const failing = await plan(release, '1.80.0', { message: async () => { throw new Error('HTTP 502'); } });
+  assert.equal(failing, '');
+  // the nightly dev snapshot is never a baseline, whatever its commit says
+  const { ops } = fixture({ versions: { [TARGET_SHA]: '1.80.0' } });
+  ops.message = async () => release;
+  assert.equal((await planRun({ event: 'schedule', targetRef: TARGET_SHA, upgradeFrom: 'v1.79.0' }, ops)).stableTag, '');
+});

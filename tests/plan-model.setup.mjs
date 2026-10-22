@@ -7,7 +7,7 @@
 // survives that first migrating edit with every room, opening and wall.
 import { test as setup, expect } from '@playwright/test';
 import { seedVariant } from './lib/ha-ctl.mjs';
-import { missingHooks } from './lib/contract.mjs';
+import { requireHooks } from './lib/contract.mjs';
 import { planConfig } from './lib/ha-ws.mjs';
 import { action, clickFloor, enterEditor, leaveEditor, openPlan, snap, useTool } from './lib/plan.mjs';
 import { USERS } from '../scripts/users.mjs';
@@ -21,7 +21,8 @@ const census = (config) => config.spaces.map((s) => ({
 
 setup('the seed plan reaches the current plan model through one undone edit', async ({ page }) => {
   setup.skip(seedVariant() !== 'house', 'only the house seed has a plan');
-  setup.skip(missingHooks(['stage@data-grid-step', 'action']).length > 0, 'the product under test has no editor hooks; nothing edits the plan');
+  // a product without the editor hooks has nothing that edits the plan: skipped, not failed
+  requireHooks(setup, 'stage@data-grid-step', 'action');
   const before = await planConfig();
   const host = await openPlan(page, { space: YARD });
   await enterEditor(host, 'plan');

@@ -91,6 +91,8 @@ test('without a stable baseline every frame is new', () => {
   assert.equal(report.stable, null);
   assert.deepEqual(report.counts, { size: 0, changed: 0, missing: 0, new: 1, same: 0 });
   assert.match(summaryMarkdown(report), /no baseline yet/);
+  assert.match(summaryMarkdown(report, 't', { artifact: 'evidence-7-journeys-ha-stable', link: 'https://x/runs/1#artifacts' }),
+    /Gallery: `diff\/index\.html` in \[`evidence-7-journeys-ha-stable`\]\(https:\/\/x\/runs\/1#artifacts\)/);
 });
 
 test('a green stable gate replaces the baseline with its own frames only', () => {
@@ -105,4 +107,8 @@ test('a green stable gate replaces the baseline with its own frames only', () =>
   assert.ok(existsSync(join(stable, 'v1.83.0', 'admin/plan/new.png')));
   assert.throws(() => promoteBaseline({ tag: 'v1.84.0-beta.1', from, root: stable }), /not a stable tag/);
   assert.throws(() => promoteBaseline({ tag: 'v1.84.0', from: join(root, 'empty'), root: stable }), /no evidence frames/);
+  // never backwards: an older stable gate leaves the newer baseline alone
+  assert.deepEqual(promoteBaseline({ tag: 'v1.82.1', from, root: stable }), { tag: 'v1.82.1', frames: 0, skipped: 'newer baseline v1.83.0' });
+  assert.ok(existsSync(join(stable, 'v1.83.0', 'admin/plan/new.png')));
+  assert.equal(existsSync(join(stable, 'v1.82.1')), false);
 });

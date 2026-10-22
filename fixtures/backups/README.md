@@ -63,7 +63,7 @@ This is the complex plan with stale references and awkward geometry.
 | control link `marker:e2e_gone_marker` | recovery `controls` («Removed control links: 1») | only the dead link is removed |
 | value badge derived from `marker:e2e_gone_marker` | recovery `value` («Disabled dependent values: 1») | badge `enabled: false`, `source: null` |
 | decor picture whose file is not in the archive | content `missing_preserved`, archive `missing` | kept as a placeholder to repair; the import needs the confirmation box |
-| Yard backdrop on `https://example.com/…` | content `external`, archive `external` | kept as a link |
+| Yard backdrop on `https://e2e-yard-backdrop.invalid/…` (a host that never resolves) | content `external`, archive `external` | kept as a link |
 | a partition lying exactly on another one, a partition with nodes off the 1/240 grid, a room whose outline crosses itself (with matching walls) | nothing (findings F127) | kept byte for byte: nothing is «optimized» without being asked |
 
 «Undo last full import» must then return the previous plan exactly

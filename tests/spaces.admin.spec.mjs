@@ -52,9 +52,7 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
   await confirm.locator(HP.dialogConfirm).first().click();
   await waitForConfig((c) => !c.spaces.some((s) => s.id === annex.id), { message: 'space deleted on the server' });
   await expect(host.locator(hp('space-tab', { space: annex.id }))).toHaveCount(0);
-  await expect(host.locator(hp('toast')).last()).toHaveAttribute('data-id', /.+/);
-  const toastKey = await host.locator(hp('toast')).last().getAttribute('data-id');
-  expect(toastKey).toMatch(/space/i);
+  await expect(host.locator(hp('toast', { id: 'toast.space_deleted' }))).toBeVisible();
   await evidence(testInfo, page, 'space-deleted');
 
   await page.reload();

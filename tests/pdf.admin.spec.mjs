@@ -2,7 +2,7 @@
 // and the dialog's switches change the file (houseplan-card#1010, row 19).
 import { test, expect } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';
-import { missingHooks } from './lib/contract.mjs';
+import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP, confirmIn } from './lib/hooks.mjs';
 import { field } from './lib/plan.mjs';
@@ -38,7 +38,7 @@ test('the current space downloads as a real PDF', async ({ page }, testInfo) => 
 });
 
 test('switching room names off in the dialog changes the PDF', async ({ page }, testInfo) => {
-  test.skip(missingHooks(['field']).length > 0, 'the product under test has no PDF field hooks');
+  requireHooks(test, 'field');
   await page.goto('/houseplan');
   const host = card(page);
   await expectPlanDrawn(page, host);

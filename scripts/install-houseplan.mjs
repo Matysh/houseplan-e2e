@@ -124,7 +124,10 @@ if (existsSync(ref) && existsSync(join(ref, 'custom_components', 'houseplan'))) 
   cpSync(root, target, { recursive: true });
   installed = `release ${release.tag_name}${release.prerelease ? ' (prerelease)' : ''}`;
   const r = await fetch(`https://raw.githubusercontent.com/${REPO}/${release.tag_name}/docs/data-hp-contract.json`);
+  // only a release older than the contract (#489) has none; any other answer
+  // (rate limit, outage) must not turn into "declares nothing, skip it all"
   if (r.ok) contract = await r.text();
+  else if (r.status !== 404) throw new Error(`${release.tag_name}: data-hp contract HTTP ${r.status}`);
 }
 rmSync(work, { recursive: true, force: true });
 const manifest = JSON.parse(readFileSync(join(target, 'manifest.json'), 'utf8'));
