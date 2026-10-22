@@ -8,6 +8,8 @@
 - id: demo_smoke_pulse
   alias: "Демо: дым каждые 10 минут на 30 секунд"
   description: "Показывает красную пульсацию тревоги на плане без участия зрителя"
+  # off in E2E: a pulse firing mid-run would show in the evidence frames
+  initial_state: false
   trigger:
     - platform: time_pattern
       minutes: "/10"

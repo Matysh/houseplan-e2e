@@ -3,7 +3,7 @@
 // first space; outlining rooms by real clicks waits for the grid hooks (#489).
 import { test, expect } from '@playwright/test';
 import { seedVariant } from '../lib/ha-ctl.mjs';
-import { card, editorTabs, evidence, spaceTabs } from '../lib/ha-page.mjs';
+import { card, editorTabs, evidence, spaceTabs, stageOf } from '../lib/ha-page.mjs';
 import { HP, confirmIn } from '../lib/hooks.mjs';
 
 test.skip(() => seedVariant() !== 'empty', 'needs the empty seed variant');
@@ -25,21 +25,15 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   }
   await expect(dialog).toBeVisible();
   await dialog.locator('input[type="text"]').first().fill('Ground floor');
-  // The redesigned dialog selects drawing instead of a separate "No image"
-  // action. Keep the old path for upgrade/older-stable E2E runs.
-  const drawWithoutImage = dialog.getByRole('radio', { name: /draw it myself/i });
-  if (await drawWithoutImage.count()) {
-    await drawWithoutImage.check();
-  } else {
-    await dialog.getByText(/no image/i).click();
-  }
+  // drawing instead of an image (the dialog redesigned in #600, 1.77.0)
+  await dialog.getByRole('radio', { name: /draw it myself/i }).check();
   await evidence(testInfo, page, 'first-space-dialog.png');
   await confirmIn(dialog).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await expect(spaceTabs(host)).toHaveCount(1);
   await expect(spaceTabs(host).first()).toContainText('Ground floor');
-  await expect(host.locator('.stage')).toBeVisible();
+  await expect(stageOf(host)).toBeVisible();
   await expect(editorTabs(host)).toHaveCount(3);
   await evidence(testInfo, page, 'first-space-created.png');
 

@@ -379,3 +379,27 @@ test('upgrade browser contract retains version/fingerprint oracles, restart and 
   assert.ok(upgrade.indexOf('expect(fpAfter).not.toBe(fpBefore)') < upgrade.indexOf('restartHa()'));
   assert.ok(upgrade.indexOf('restartHa()') < upgrade.indexOf('await page.reload()'));
 });
+
+// houseplan-card#1010: the stable gate's frames become the "last stable" baseline
+test('a dispatched stable candidate SHA names its stable tag; aliases and schedules do not', async () => {
+  const tags = async () => [
+    { name: 'v1.80.0-beta.1', commit: { sha: TARGET_SHA } },
+    { name: 'v1.80.0', commit: { sha: TARGET_SHA } },
+    { name: 'v1.79.0', commit: { sha: 'c'.repeat(40) } },
+  ];
+  const { ops } = fixture({ versions: { [TARGET_SHA]: '1.80.0' } });
+  ops.tags = tags;
+  const gate = await planRun({ event: 'workflow_dispatch', targetRef: TARGET_SHA, upgradeFrom: 'v1.79.0' }, ops);
+  assert.equal(gate.stableTag, 'v1.80.0');
+  const explicit = await planRun({ event: 'workflow_dispatch', targetRef: 'v1.79.0', upgradeFrom: 'v1.78.0' }, ops);
+  assert.equal(explicit.stableTag, 'v1.79.0');
+  const alias = await planRun({ event: 'workflow_dispatch', targetRef: 'latest' }, ops);
+  assert.equal(alias.stableTag, '');
+  const beta = await planRun({ event: 'workflow_dispatch', targetRef: 'v1.80.0-beta.1', upgradeFrom: 'v1.79.0' }, ops);
+  assert.equal(beta.stableTag, '');
+  const nightly = await planRun({ event: 'schedule', targetRef: 'latest' }, ops);
+  assert.equal(nightly.stableTag, '');
+  const untagged = fixture({ versions: { [TARGET_SHA]: '1.80.0' } }).ops;
+  untagged.tags = async () => [];
+  assert.equal((await planRun({ event: 'workflow_dispatch', targetRef: TARGET_SHA, upgradeFrom: 'v1.79.0' }, untagged)).stableTag, '');
+});

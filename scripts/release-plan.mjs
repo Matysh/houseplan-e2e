@@ -2,6 +2,10 @@
 // Job labels retain the requested target: houseplan-card's release gate uses
 // journeys/first-run names to identify its exact tag/SHA dispatch.
 
+import { compareTags } from './evidence-diff.mjs';
+
+const STABLE_TAG = /^v\d+\.\d+\.\d+$/;
+
 export function requireVersion(actual, expected) {
   if (expected != null && expected !== '' && actual !== expected) {
     throw new Error(`Installed House Plan version ${actual} differs from planned ${expected}`);
@@ -50,6 +54,19 @@ export async function planRun({ event = 'workflow_dispatch', targetRef = 'latest
     source = previous;
   }
 
+  // houseplan-card#1010: a green stable gate leaves its evidence frames as the
+  // new "last stable" baseline. The gate dispatches the candidate by SHA
+  // (#540); the stable tag already points at it. An explicit stable tag
+  // counts as well; moving aliases (latest/stable) and schedules never do.
+  let stableTag = '';
+  if (event === 'workflow_dispatch') {
+    if (STABLE_TAG.test(targetRef)) stableTag = targetRef;
+    else if (/^[a-f0-9]{40}$/i.test(target.ref) && ops.tags) {
+      const tags = (await ops.tags()).filter((t) => STABLE_TAG.test(t.name) && t.commit?.sha === target.ref);
+      stableTag = tags.map((t) => t.name).sort(compareTags).at(-1) ?? '';
+    }
+  }
+
   const schedule = event === 'schedule';
   const has = schedule ? ['stable', 'beta'] : [haVersion];
   const suites = [
@@ -68,7 +85,7 @@ export async function planRun({ event = 'workflow_dispatch', targetRef = 'latest
       install_version: dev.version, target_ref: dev.ref, target_version: dev.version,
       ha: 'stable', projects: '--project=admin --project=viewer --project=mobile' });
   }
-  return { matrix: { include }, upgrade: { source, target } };
+  return { matrix: { include }, upgrade: { source, target }, stableTag };
 }
 
 export function githubOps({ token = process.env.GITHUB_TOKEN, fetchImpl = fetch } = {}) {
@@ -92,6 +109,16 @@ export function githubOps({ token = process.env.GITHUB_TOKEN, fetchImpl = fetch 
       throw new Error('House Plan release catalog exceeds 2000 entries; cannot choose a reliable upgrade source');
     },
     commit: async (ref) => (await json(`commits/${encodeURIComponent(ref)}`)).sha,
+    tags: async () => {
+      const all = [];
+      for (let page = 1; page <= 10; page++) {
+        const batch = await json(`tags?per_page=100&page=${page}`);
+        if (!Array.isArray(batch)) throw new Error('Invalid House Plan tag list');
+        all.push(...batch);
+        if (batch.length < 100) break;
+      }
+      return all;
+    },
     version: async (ref) => (await json(
       `contents/custom_components/houseplan/manifest.json?ref=${encodeURIComponent(ref)}`,
       'application/vnd.github.raw+json')).version,

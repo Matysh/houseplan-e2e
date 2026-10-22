@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
-    "bcryptjs": "^3.0.2"
+    "bcryptjs": "^3.0.2",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0"
   }
 }

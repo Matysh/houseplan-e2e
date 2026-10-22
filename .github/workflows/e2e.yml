@@ -2,15 +2,23 @@
 # from the exact release asset HACS ships, two real users, a real browser.
 #
 # Three suites, each with its own Home Assistant:
-#   journeys  — the seeded house: sidebar page, dashboards, roles, phone, PDF, HA restart
+#   journeys  — the seeded house: sidebar page, dashboards, roles, phone, PDF, HA restart,
+#               every editor and settings dialog, backups (houseplan-card#1010)
 #   first-run — the same HA without any plan: the administrator's first contact
 #   upgrade   — an older House Plan open in a browser, then the update + restart
-#   journeys-dev — the journeys suite against the dev branch snapshot
+#   journeys-dev — the journeys suite against the dev branch snapshot (frontend built from it)
+#
+# Every scenario leaves evidence frames; each job diffs them against the frames
+# of the last stable release (evidence/stable/<tag>, committed by the
+# evidence-baseline job after a green stable gate). Material to look at, not a
+# gate: the diff never fails a job and never notifies.
 name: E2E на реальном Home Assistant
 
 on:
   push:
     branches: [main]
+    # the stable baseline commit of the evidence-baseline job is not a change to test
+    paths-ignore: ['evidence/**']
   workflow_dispatch:
     inputs:
       houseplan_ref:
@@ -44,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      stable_tag: ${{ steps.plan.outputs.stable_tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -75,6 +84,7 @@ jobs:
       HA_VERSION: ${{ matrix.ha }}
       HA_URL: http://127.0.0.1:8123
       E2E_RUN_DIR: ${{ github.workspace }}/run
+      E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence-out
       GITHUB_TOKEN: ${{ github.token }}
       TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
       TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
@@ -128,6 +138,15 @@ jobs:
             echo '```'; grep -iE "error|warning" artifacts/home-assistant.log 2>/dev/null | grep -iE "houseplan|custom_comp|frontend" | tail -n 30; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Кадры-улики и диффы к последнему стабильному (не гейт)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p evidence-artifact
+          cp -r evidence-out evidence-artifact/raw 2>/dev/null || true
+          node scripts/evidence-diff.mjs --current=evidence-out --stable=evidence/stable \
+            --out=evidence-artifact/diff --title="${{ matrix.suite }} · HA ${{ matrix.ha }}"
+
       - name: Артефакты (отчёт, трейсы, скриншоты, логи)
         if: always()
         uses: actions/upload-artifact@v4
@@ -140,6 +159,17 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+      # frames and diffs live longer than the report: raw/ is what the stable
+      # baseline is made of, diff/index.html is the gallery to open
+      - name: Артефакт кадров (90 дней)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ github.run_number }}-${{ matrix.suite }}-ha-${{ matrix.ha }}
+          path: evidence-artifact
+          retention-days: 90
+          if-no-files-found: ignore
+
       - name: Telegram при падении
         if: failure() && env.TG_BOT_TOKEN != '' && env.TG_CHAT_ID != ''
         run: |
@@ -150,3 +180,45 @@ jobs:
       - name: Остановить HA
         if: always()
         run: node scripts/ha.mjs down
+
+  # A green stable gate (houseplan-card#1010): its frames become the new "last
+  # stable" baseline in this repository. Only when every suite passed and the
+  # planner found the stable tag of the dispatched candidate.
+  evidence-baseline:
+    name: Эталон кадров последнего стабильного
+    needs: [plan, e2e]
+    if: needs.plan.outputs.stable_tag != '' && needs.e2e.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: evidence-${{ github.run_number }}-*-ha-stable
+          path: downloaded
+          merge-multiple: true
+      - name: evidence/stable/${{ needs.plan.outputs.stable_tag }}
+        env:
+          TAG: ${{ needs.plan.outputs.stable_tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node scripts/evidence-baseline.mjs --tag="$TAG" --from=downloaded/raw
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A evidence/stable
+          if git diff --cached --quiet; then echo "baseline unchanged"; exit 0; fi
+          git commit -q -m "evidence: stable baseline $TAG" -m "Frames of the green stable gate $RUN_URL (houseplan-card#1010)."
+          echo "### Stable baseline: \`evidence/stable/$TAG\` ($(git show --stat --format= HEAD | tail -n 1))" >> "$GITHUB_STEP_SUMMARY"
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase -q origin main
+          done
+          exit 1

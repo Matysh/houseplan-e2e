@@ -1,32 +1,45 @@
 /**
  * Selectors from the product's declared test contract (contract/
- * data-hp-contract.json, houseplan-card#489). Hooks declared `since`
- * 1.73.0-beta.7 keep a legacy fallback (class or role) until that version is
- * the oldest one the suites run against; the contract lint keeps every
- * data-hp value here honest.
+ * data-hp-contract.json, houseplan-card#489 and #1011). Every selector is
+ * built by `hp()` and checked against the contract when it is built; the
+ * legacy class/role fallbacks are gone — the oldest version any suite runs is
+ * the previous stable (≥ 1.81.0), long past 1.73.0-beta.7 where the hooks
+ * appeared. Hooks newer than the installed product are gated per scenario by
+ * `requireHooks` (tests/lib/contract.mjs).
  */
+import { hp, root } from './contract.mjs';
+
+export { hp, root };
+
 export const HP = {
-  ready: 'ha-card[data-hp-state="ready"]',
-  empty: '[data-hp="empty"], .empty',
-  createSpace: '[data-hp="create-space"], .empty button',
-  dialog: (kind) => (kind ? `[data-hp="dialog"][data-kind="${kind}"], hp-dialog` : '[data-hp="dialog"], hp-dialog'),
-  dialogConfirm: '[data-hp="dialog-confirm"]',
-  dialogCancel: '[data-hp="dialog-cancel"]',
-  pdf: '[data-hp="pdf"], .pdf-button',
-  settings: '[data-hp="settings"], .settings-button',
-  support: '[data-hp="support"], .support-button',
-  spaceAdd: '[data-hp="space-add"], .tabadd',
-  spaceTab: '[data-hp="space-tab"]',
-  panelMenu: '[data-hp="panel-menu"], .menu',
-  panelTitle: '[data-hp="panel-title"]',
-  toolbar: (kind) => `[data-hp="toolbar"][data-kind="${kind}"]`,
-  tool: (id) => `[data-hp="tool"][data-tool="${id}"]`,
-  toast: '[data-hp="toast"], .toast',
-  room: '[data-hp="room"]',
-  device: (entityId) => `[data-hp="device"][data-entity="${entityId}"]`,
-  editorTabs: '[data-editor-navigation]:not([data-editor-navigation="view"])',
-  editorClose: '[data-hp="editor-close"]',
+  ready: root('data-hp-state', 'ready'),
+  mode: (mode) => root('data-hp-mode', mode),
+  empty: hp('empty'),
+  createSpace: hp('create-space'),
+  dialog: (kind) => hp('dialog', kind ? { kind } : {}),
+  dialogConfirm: hp('dialog-confirm'),
+  dialogCancel: hp('dialog-cancel'),
+  pdf: hp('pdf'),
+  settings: hp('settings'),
+  support: hp('support'),
+  spaceAdd: hp('space-add'),
+  spaceTab: hp('space-tab'),
+  spaceSettings: hp('space-settings'),
+  panelMenu: hp('panel-menu'),
+  panelTitle: hp('panel-title'),
+  modeTab: (mode) => hp('mode-tab', { mode }),
+  toolbar: (kind) => hp('toolbar', { kind }),
+  tool: (id) => hp('tool', { tool: id }),
+  toast: hp('toast'),
+  room: hp('room'),
+  device: (entityId) => hp('device', entityId ? { entity: entityId } : {}),
+  editorTabs: hp('mode-tab'),
+  editorClose: hp('editor-close'),
+  field: (field, value) => hp('field', { field, value }),
+  action: (action, value) => hp('action', { action, value }),
 };
 
-/** Confirm button of a dialog: the declared hook, else the Save button. */
-export const confirmIn = (dialog) => dialog.locator(HP.dialogConfirm).or(dialog.getByRole('button', { name: /^save$/i })).first();
+/** Confirm button of a dialog: the declared hook. */
+export const confirmIn = (dialog) => dialog.locator(HP.dialogConfirm).first();
+/** Cancel/close button of a dialog: the declared hook. */
+export const cancelIn = (dialog) => dialog.locator(HP.dialogCancel).first();

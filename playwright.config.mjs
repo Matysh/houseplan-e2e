@@ -28,23 +28,26 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
   },
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.mjs/ },
+    { name: 'setup', testMatch: /auth\.setup\.mjs/ },
+    // the seed plan brought to the product's plan model once, so the editing
+    // journeys can put it back after themselves (tests/plan-model.setup.mjs)
+    { name: 'plan-model', testMatch: /plan-model\.setup\.mjs/, dependencies: ['setup'], retries: 0 },
     {
       name: 'admin',
       testMatch: /.*\.admin\.spec\.mjs/,
-      dependencies: ['setup'],
+      dependencies: ['setup', 'plan-model'],
       use: { ...devices['Desktop Chrome'], storageState: USERS.admin.storageState },
     },
     {
       name: 'viewer',
       testMatch: /.*\.viewer\.spec\.mjs/,
-      dependencies: ['setup'],
+      dependencies: ['setup', 'plan-model'],
       use: { ...devices['Desktop Chrome'], storageState: USERS.viewer.storageState },
     },
     {
       name: 'mobile',
       testMatch: /.*\.mobile\.spec\.mjs/,
-      dependencies: ['setup'],
+      dependencies: ['setup', 'plan-model'],
       use: { ...devices['Pixel 7'], storageState: USERS.admin.storageState },
     },
     // --- separate Home Assistant instances ---

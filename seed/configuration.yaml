@@ -1,6 +1,15 @@
 # House Plan E2E seed — derived from the public demo stand (anonymized real
 # house). An ephemeral Home Assistant boots from a copy of this folder for
 # every run; scripts/prepare-seed.mjs writes the auth provider and uuid.
+#
+# Live values are frozen (houseplan-card#1010): the evidence frames of every
+# run are diffed against the last stable release, so nothing on the plan may
+# drift with the clock. The stand's `5` cadences read a fixed
+# minute 5 here (doors closed, study occupied, motion idle, mid-range climate),
+# sun-elevation sensors read a fixed afternoon (outdoor 16.3 °C, 266/209 lx),
+# the 10-minute smoke demo is off, and the plan uses the static background
+# without sun rays. Journeys still change state on purpose — through HA
+# services, never through time.
 default_config:
 
 homeassistant:
@@ -140,23 +149,23 @@ template:
       - unique_id: fridge_door
         name: "Fridge Door"
         device_class: door
-        state: "{{ now().minute % 23 < 1 }}"
+        state: "{{ 5 % 23 < 1 }}"
       - unique_id: sauna_door
         name: "Sauna Door"
         device_class: door
-        state: "{{ now().minute % 37 < 1 }}"
+        state: "{{ 5 % 37 < 1 }}"
       - unique_id: presence_study
         name: "Presence Study"
         device_class: occupancy
-        state: "{{ now().minute % 20 < 13 }}"
+        state: "{{ 5 % 20 < 13 }}"
         attributes:
-          linkquality: "{{ 172 + now().minute % 12 }}"
+          linkquality: "{{ 172 + 5 % 12 }}"
       - unique_id: motion_study
         name: "Motion Study"
         device_class: motion
-        state: "{{ now().minute % 7 < 1 }}"
+        state: "{{ 5 % 7 < 1 }}"
         attributes:
-          linkquality: "{{ 128 + now().minute % 16 }}"
+          linkquality: "{{ 128 + 5 % 16 }}"
       - unique_id: lte_router
         name: "LTE Router Online"
         device_class: connectivity
@@ -166,226 +175,226 @@ template:
         name: "Ground Floor Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 24.6 + (now().minute % 10) / 10 }}"
+        state: "{{ 24.6 + (5 % 10) / 10 }}"
       - unique_id: ground_floor_humidity
         name: "Ground Floor Humidity"
         device_class: humidity
         unit_of_measurement: "%"
-        state: "{{ 41 + now().minute % 6 }}"
+        state: "{{ 41 + 5 % 6 }}"
       - unique_id: outdoor_temperature
         name: "Outdoor Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ (12.5 + ([0, state_attr('sun.sun','elevation') | float(0)] | max) / 5) | round(1) }}"
+        state: "{{ 16.3 }}"
       - unique_id: boiler_flow_temperature
         name: "Boiler Flow Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 54 + now().minute % 8 }}"
+        state: "{{ 54 + 5 % 8 }}"
       - unique_id: water_tank_level
         name: "Water Tank Level"
         unit_of_measurement: "%"
-        state: "{{ 62 + now().minute % 15 }}"
+        state: "{{ 62 + 5 % 15 }}"
       - unique_id: temp_living_temperature
         name: "Temperature Living"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 24.8 + (now().minute % 10) / 10 }}"
+        state: "{{ 24.8 + (5 % 10) / 10 }}"
         attributes:
-          linkquality: "{{ 196 + now().minute % 14 }}"
+          linkquality: "{{ 196 + 5 % 14 }}"
       - unique_id: temp_living_humidity
         name: "Humidity Living"
         device_class: humidity
         unit_of_measurement: "%"
-        state: "{{ 38 + now().minute % 7 }}"
+        state: "{{ 38 + 5 % 7 }}"
       - unique_id: temp_living_battery
         name: "Battery Living Sensor"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 84 + now().minute % 9 }}"
+        state: "{{ 84 + 5 % 9 }}"
       - unique_id: temp_guest_temperature
         name: "Temperature Guest"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 25.1 + (now().minute % 10) / 10 }}"
+        state: "{{ 25.1 + (5 % 10) / 10 }}"
         attributes:
-          linkquality: "{{ 150 + now().minute % 18 }}"
+          linkquality: "{{ 150 + 5 % 18 }}"
       - unique_id: temp_guest_humidity
         name: "Humidity Guest"
         device_class: humidity
         unit_of_measurement: "%"
-        state: "{{ 38 + now().minute % 7 }}"
+        state: "{{ 38 + 5 % 7 }}"
       - unique_id: temp_guest_battery
         name: "Battery Guest Sensor"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 84 + now().minute % 9 }}"
+        state: "{{ 84 + 5 % 9 }}"
       - unique_id: temp_bedroom_temperature
         name: "Temperature Bedroom"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 26.4 + (now().minute % 10) / 10 }}"
+        state: "{{ 26.4 + (5 % 10) / 10 }}"
         attributes:
-          linkquality: "{{ 88 + now().minute % 16 }}"
+          linkquality: "{{ 88 + 5 % 16 }}"
       - unique_id: temp_bedroom_humidity
         name: "Humidity Bedroom"
         device_class: humidity
         unit_of_measurement: "%"
-        state: "{{ 44 + now().minute % 7 }}"
+        state: "{{ 44 + 5 % 7 }}"
       - unique_id: temp_bedroom_battery
         name: "Battery Bedroom Sensor"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 84 + now().minute % 9 }}"
+        state: "{{ 84 + 5 % 9 }}"
       - unique_id: air_monitor_co2
         name: "Air Monitor CO2"
         device_class: carbon_dioxide
         unit_of_measurement: "ppm"
-        state: "{{ 620 + now().minute * 3 }}"
+        state: "{{ 620 + 5 * 3 }}"
       - unique_id: air_monitor_pm25
         name: "Air Monitor PM2.5"
         device_class: pm25
         unit_of_measurement: "µg/m³"
-        state: "{{ 4 + now().minute % 7 }}"
+        state: "{{ 4 + 5 % 7 }}"
       - unique_id: air_monitor_temperature
         name: "Air Monitor Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 24.2 + (now().minute % 8) / 10 }}"
+        state: "{{ 24.2 + (5 % 8) / 10 }}"
       - unique_id: air_monitor_humidity
         name: "Air Monitor Humidity"
         device_class: humidity
         unit_of_measurement: "%"
-        state: "{{ 39 + now().minute % 6 }}"
+        state: "{{ 39 + 5 % 6 }}"
       - unique_id: air_monitor_battery
         name: "Air Monitor Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 76 + now().minute % 5 }}"
+        state: "{{ 76 + 5 % 5 }}"
       - unique_id: air_monitor_2_co2
         name: "Air Monitor 2 CO2"
         device_class: carbon_dioxide
         unit_of_measurement: "ppm"
-        state: "{{ 540 + now().minute * 2 }}"
+        state: "{{ 540 + 5 * 2 }}"
       - unique_id: air_monitor_2_pm25
         name: "Air Monitor 2 PM2.5"
         device_class: pm25
         unit_of_measurement: "µg/m³"
-        state: "{{ 3 + now().minute % 5 }}"
+        state: "{{ 3 + 5 % 5 }}"
       - unique_id: air_monitor_2_battery
         name: "Air Monitor 2 Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 91 - now().minute % 6 }}"
+        state: "{{ 91 - 5 % 6 }}"
       - unique_id: washing_machine_status
         name: "Washing Machine Status"
-        state: "{% if is_state('input_boolean.washer_power','off') %}Standby{% else %}{{ ['Washing','Rinsing','Spinning','Done'][(now().minute // 15) % 4] }}{% endif %}"
+        state: "{% if is_state('input_boolean.washer_power','off') %}Standby{% else %}{{ ['Washing','Rinsing','Spinning','Done'][(5 // 15) % 4] }}{% endif %}"
       - unique_id: washing_machine_energy
         name: "Washing Machine Energy"
         device_class: energy
         unit_of_measurement: "kWh"
         state_class: total_increasing
-        state: "{{ (now().timetuple().tm_yday * 1.83 + now().hour * 0.12 + now().minute * 0.001) | round(2) }}"
+        state: "{{ 540.12 }}"
       - unique_id: dryer_status
         name: "Dryer Status"
-        state: "{% if is_state('input_boolean.dryer_power','off') %}Standby{% else %}{{ ['Drying','Cooling','Done'][(now().minute // 20) % 3] }}{% endif %}"
+        state: "{% if is_state('input_boolean.dryer_power','off') %}Standby{% else %}{{ ['Drying','Cooling','Done'][(5 // 20) % 3] }}{% endif %}"
       - unique_id: fridge_temperature
         name: "Fridge Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 3.4 + (now().minute % 6) / 10 }}"
+        state: "{{ 3.4 + (5 % 6) / 10 }}"
       - unique_id: kettle_temperature
         name: "Kettle Water Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 93 - now().minute % 20 if is_state('input_boolean.kettle_power','on') else 24 + now().minute % 3 }}"
+        state: "{{ 93 - 5 % 20 if is_state('input_boolean.kettle_power','on') else 24 + 5 % 3 }}"
       - unique_id: sauna_temperature
         name: "Sauna Temperature"
         device_class: temperature
         unit_of_measurement: "°C"
-        state: "{{ 76 + now().minute % 6 if is_state('input_boolean.sauna_power','on') else 24 + now().minute % 3 }}"
+        state: "{{ 76 + 5 % 6 if is_state('input_boolean.sauna_power','on') else 24 + 5 % 3 }}"
       - unique_id: smart_plug_power
         name: "Smart Plug Power"
         device_class: power
         unit_of_measurement: "W"
-        state: "{{ (38.5 + (now().minute % 10) * 2.1) | round(1) if is_state('input_boolean.plug_1','on') else 0.0 }}"
+        state: "{{ (38.5 + (5 % 10) * 2.1) | round(1) if is_state('input_boolean.plug_1','on') else 0.0 }}"
       - unique_id: smart_plug_voltage
         name: "Smart Plug Voltage"
         device_class: voltage
         unit_of_measurement: "V"
-        state: "{{ 228 + now().minute % 5 }}"
+        state: "{{ 228 + 5 % 5 }}"
       - unique_id: smart_plug_energy
         name: "Smart Plug Energy"
         device_class: energy
         unit_of_measurement: "kWh"
         state_class: total_increasing
-        state: "{{ (now().timetuple().tm_yday * 0.62 + now().hour * 0.026 + now().minute * 0.0004) | round(3) }}"
+        state: "{{ 182.902 }}"
       - unique_id: light_sensor_illuminance
         name: "Light Sensor Illuminance"
         device_class: illuminance
         unit_of_measurement: "lx"
-        state: "{{ ([0, (state_attr('sun.sun','elevation') | float(0)) * 14] | max) | round(0) }}"
+        state: "{{ 266 }}"
         attributes:
-          linkquality: "{{ 64 + now().minute % 12 }}"
+          linkquality: "{{ 64 + 5 % 12 }}"
       - unique_id: light_sensor_battery
         name: "Light Sensor Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 79 + now().minute % 6 }}"
+        state: "{{ 79 + 5 % 6 }}"
       - unique_id: motion_sensor_illuminance
         name: "Motion Sensor Illuminance"
         device_class: illuminance
         unit_of_measurement: "lx"
-        state: "{{ ([0, (state_attr('sun.sun','elevation') | float(0)) * 11] | max) | round(0) }}"
+        state: "{{ 209 }}"
       - unique_id: motion_sensor_battery
         name: "Motion Sensor Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 88 - now().minute % 7 }}"
+        state: "{{ 88 - 5 % 7 }}"
       - unique_id: presence_sensor_battery
         name: "Presence Sensor Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 95 - now().minute % 4 }}"
+        state: "{{ 95 - 5 % 4 }}"
       - unique_id: wall_switch_kitchen_battery
         name: "Wall Switch Kitchen Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 74 + now().minute % 5 }}"
+        state: "{{ 74 + 5 % 5 }}"
         attributes:
-          linkquality: "{{ 168 + now().minute % 12 }}"
+          linkquality: "{{ 168 + 5 % 12 }}"
       - unique_id: wall_switch_kids_a_battery
         name: "Wall Switch Kids A Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 69 + now().minute % 5 }}"
+        state: "{{ 69 + 5 % 5 }}"
         attributes:
-          linkquality: "{{ 112 + now().minute % 20 }}"
+          linkquality: "{{ 112 + 5 % 20 }}"
       - unique_id: curtain_left_battery
         name: "Curtain Left Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 66 + now().minute % 4 }}"
+        state: "{{ 66 + 5 % 4 }}"
       - unique_id: curtain_right_battery
         name: "Curtain Right Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 71 + now().minute % 4 }}"
+        state: "{{ 71 + 5 % 4 }}"
       - unique_id: front_door_lock_battery
         name: "Front Door Lock Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 81 + now().minute % 4 }}"
+        state: "{{ 81 + 5 % 4 }}"
       - unique_id: terrace_door_lock_battery
         name: "Terrace Door Lock Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 77 + now().minute % 4 }}"
+        state: "{{ 77 + 5 % 4 }}"
       - unique_id: storage_door_lock_battery
         name: "Storage Door Lock Battery"
         device_class: battery
         unit_of_measurement: "%"
-        state: "{{ 85 + now().minute % 4 }}"
+        state: "{{ 85 + 5 % 4 }}"
   # every lamp follows its room helper and toggles it back, so tapping any
   # lamp (or the group light) flips the whole room — same as a Z2M group
   - light:

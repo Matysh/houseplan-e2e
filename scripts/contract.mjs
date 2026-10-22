@@ -30,44 +30,22 @@ if (cmd === 'sync') {
   writeFileSync(FILE, text.endsWith('\n') ? text : `${text}\n`);
   console.log(`contract ← ${ref}`);
 } else if (cmd === 'lint') {
-  const contract = JSON.parse(readFileSync(FILE, 'utf8'));
-  const declared = new Set(Object.keys(contract.hooks));
-  const roots = contract.rootAttributes || {};
+  const { lintText } = await import('./contract-lint.mjs');
   const files = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir)) {
       const path = join(dir, name);
       if (statSync(path).isDirectory()) walk(path);
-      else if (/\.m?js$/.test(name)) files.push(path);
+      else if (/\.m?js$/.test(name) && path !== resolve(ROOT, 'tests/lib/contract.mjs')) files.push(path);
     }
   };
   walk(resolve(ROOT, 'tests'));
-  const problems = [];
-  for (const file of files) {
-    const text = readFileSync(file, 'utf8');
-    for (const m of text.matchAll(/data-hp="([a-z0-9-]+)"/g)) {
-      if (!declared.has(m[1])) problems.push(`${file}: data-hp="${m[1]}" is not declared`);
-    }
-    for (const m of text.matchAll(/(data-hp-[a-z]+)="([a-z0-9-]+)"/g)) {
-      const root = roots[m[1]];
-      if (!root) problems.push(`${file}: ${m[1]} is not a declared root attribute`);
-      else if (!root.values.includes(m[2])) problems.push(`${file}: ${m[1]}="${m[2]}" is not a declared value`);
-    }
-    for (const m of text.matchAll(/data-kind="([a-z0-9-]+)"/g)) {
-      const kinds = new Set([
-        ...(contract.hooks.dialog?.attributes?.['data-kind'] || []),
-        ...(contract.hooks.toolbar?.attributes?.['data-kind'] || []),
-        ...(contract.hooks.toast?.attributes?.['data-kind'] || []),
-        ...(contract.hooks.opening?.attributes?.['data-kind'] || []),
-        ...(contract.hooks.decor?.attributes?.['data-kind'] || []),
-      ]);
-      if (!kinds.has(m[1])) problems.push(`${file}: data-kind="${m[1]}" is not declared for any hook`);
-    }
-  }
+  const problems = files.flatMap((file) => lintText(readFileSync(file, 'utf8'), file));
   if (problems.length) {
     console.error(problems.join('\n'));
     process.exit(1);
   }
+  const contract = JSON.parse(readFileSync(FILE, 'utf8'));
   console.log(`hooks lint: ${files.length} files, all data-hp selectors declared (contract ${contract.schemaVersion})`);
 } else {
   console.error('usage: contract.mjs sync|lint');

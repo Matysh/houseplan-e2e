@@ -1,0 +1,59 @@
+// The journeys read the product only through its declared contract
+// (houseplan-card#489, #1011): selectors are validated when built, scenarios
+// are gated on what the installed product declares (houseplan-card#1010).
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { CONTRACT, declares, hp, missingHooks, root } from '../tests/lib/contract.mjs';
+import { lintText } from '../scripts/contract-lint.mjs';
+import { sameTree, treeDigest } from '../scripts/tree-digest.mjs';
+
+test('selectors are built from declared hooks, attributes and closed values only', () => {
+  assert.equal(hp('tool', { tool: 'draw' }), '[data-hp="tool"][data-tool="draw"]');
+  assert.equal(hp('device', { entity: 'light.a', 'hp-device-component': 'm1' }),
+    '[data-hp="device"][data-entity="light.a"][data-hp-device-component="m1"]');
+  assert.equal(hp('device', { 'hp-device-contact': true }), '[data-hp="device"][data-hp-device-contact]');
+  assert.equal(root('data-hp-mode', 'plan'), 'ha-card[data-hp-mode="plan"]');
+  assert.throws(() => hp('no-such-hook'), /not declared/);
+  assert.throws(() => hp('tool', { tool: 'teleport' }), /not a declared value/);
+  assert.throws(() => hp('stage', { 'grid-size': '5' }), /data-grid-size is not declared/);
+  assert.throws(() => root('data-hp-mode', 'edit'), /not declared/);
+});
+
+test('scenarios are gated on the installed product contract, not on its version', () => {
+  const installed = { hooks: { stage: { attributes: {} }, room: {} } };
+  assert.deepEqual(missingHooks(['stage', 'room'], installed), []);
+  assert.deepEqual(missingHooks(['stage@data-grid-step', 'wall-node'], installed), ['stage@data-grid-step', 'wall-node']);
+  assert.deepEqual(missingHooks(['stage@data-grid-step'], null), [], 'unknown product: nothing skipped');
+  assert.throws(() => missingHooks(['stage@data-nope'], installed), /not declared in the vendored contract/);
+  assert.equal(declares(CONTRACT, 'stage@data-grid-step'), true);
+});
+
+test('the lint judges literal selectors with the run-time builder', () => {
+  const good = `hp('tool', { tool: 'draw' }); HP.modeTab('plan'); requireHooks(test, 'stage@data-grid-step');
+    '[data-hp="room"]'; HP.mode('view');`;
+  assert.deepEqual(lintText(good), []);
+  const bad = `hp('tool', { tool: 'teleport' }); HP.dialog('nope'); '[data-hp="ghost"]';
+    requireHooks(test, 'stage@data-nope', 'phantom'); HP.mode('edit');`;
+  const problems = lintText(bad, 'x.mjs');
+  assert.equal(problems.length, 6, problems.join('\n'));
+});
+
+test('a build that reproduces the committed bundle is recognised byte for byte', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tree-'));
+  const make = (name, files) => {
+    for (const [rel, body] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, name, rel)), { recursive: true });
+      writeFileSync(join(dir, name, rel), body);
+    }
+    return treeDigest(join(dir, name));
+  };
+  const committed = make('committed', { 'houseplan-card.js': 'a', 'assets/x-1.js': 'b' });
+  assert.equal(sameTree(committed, make('same', { 'houseplan-card.js': 'a', 'assets/x-1.js': 'b' })), true);
+  assert.equal(sameTree(committed, make('changed', { 'houseplan-card.js': 'a', 'assets/x-1.js': 'c' })), false);
+  assert.equal(sameTree(committed, make('renamed', { 'houseplan-card.js': 'a', 'assets/x-2.js': 'b' })), false);
+  assert.equal(sameTree(committed, make('extra', { 'houseplan-card.js': 'a', 'assets/x-1.js': 'b', 'y.js': '' })), false);
+  assert.deepEqual(treeDigest(join(dir, 'absent')), {});
+});
