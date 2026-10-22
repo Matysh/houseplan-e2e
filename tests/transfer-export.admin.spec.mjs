@@ -50,7 +50,7 @@ test('a complex plan exports as a complete ZIP with its backdrop, pictures and Z
   expect(preview.bindings.missing).toBe(0);
   expect(preview.missing_areas).toEqual([]);
   expect(preview.confirmation_required).toBe(false);
-  expect(preview.content.every((row) => row.state === 'available')).toBe(true);
+  expect(preview.content.map((row) => [row.kind, row.state])).toEqual([['plan', 'available'], ['decor_asset', 'available']]);
   expect(preview.archive).toMatchObject({ complete: true, missing: [] });
   expect(preview.counts.stairs).toBe(2);
 
