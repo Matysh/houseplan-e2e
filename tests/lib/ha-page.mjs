@@ -101,11 +101,14 @@ export const EVIDENCE_DIR = resolve(ROOT, process.env.E2E_EVIDENCE_DIR || 'evide
  *
  * Frames are taken the same way every time so the diff shows the product, not
  * the camera: the viewport only, CSS animations stopped at their end state
- * (alarm pulses, fades), no caret, fonts loaded and two frames of layout.
+ * (alarm pulses, fades), no caret, the pointer parked in the corner (no hover
+ * tooltip), fonts loaded and two frames of layout.
  */
-export async function evidence(testInfo, page, name) {
+export async function evidence(testInfo, page, name, { keepPointer = false } = {}) {
   const file = name.replace(/\.png$/i, '');
   if (!/^[a-z0-9][a-z0-9-]*$/.test(file)) throw new Error(`evidence name "${name}": lower-case words and dashes`);
+  // a tooltip under a resting pointer is not part of the state being shown
+  if (!keepPointer && !testInfo.project.use?.isMobile) await page.mouse.move(1, 1);
   await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
   const body = await page.screenshot({ animations: 'disabled', caret: 'hide', scale: 'css' });
   const spec = basename(testInfo.file).replace(/\.spec\.mjs$/, '').replace(/\.(admin|viewer|mobile)$/, '');
