@@ -12,7 +12,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { requireHooks } from './lib/contract.mjs';
+import { repairsBackups, requireHooks } from './lib/contract.mjs';
 import { archive, complexPlan, CREATED_AT, dirtyPlan, oldJsonPlan, seedExport } from './lib/backup-fixtures.mjs';
 import { chooseBackup, footerCancel, openMaintenance, previewReply, revisions } from './lib/backup.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
@@ -49,6 +49,15 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
     .toEqual(expected.missingPictures.map((id) => `f1:${id}`));
   expect(preview.content.filter((row) => row.state === 'external').map((row) => row.url)).toEqual(expected.external);
   expect(preview.confirmation_required).toBe(true);
+  const ground = byId(plan.document.payload.config.spaces, 'f1');
+  if (expected.offWall) {
+    // houseplan-card#1033: the door off its wall is repaired, not a refusal
+    expect(preview.opening_repairs).toEqual({
+      rehosted: 0, detached: 1, legacy_detached: 0,
+      examples: [{ space_id: 'f1', space_title: ground.title, opening_id: 'e2e-off-wall', type: expected.offWall.type, result: 'detached' }],
+    });
+    expect(preview.warnings).toContain('openings_detached');
+  }
 
   // …and the dialog says it in words
   await expect(dialog).toContainText(`missing: ${expected.missingBindings}`);
@@ -60,6 +69,17 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   await expect(dialog).toContainText('Incomplete backup: some images are not included');
   await expect(dialog).toContainText('Custom images: 2 objects, 2 files; missing files: 1.');
   await expect(dialog).toContainText(`${expected.external[0]} · external link`);
+  if (expected.offWall) {
+    await expect(dialog).toContainText('Openings kept off walls: 1. They stay where they were and cut no wall');
+    await action(dialog, 'backup-openings-details').click();
+    await expect(dialog).toContainText(`${ground.title} — Door (e2e-off-wall)`);
+    await expect(dialog.locator('.backupconfirm')).toContainText('Openings that do not fit their walls will be kept off walls.');
+    // the list at the bottom of the frame: below it the staged file names
+    // of the archive change from run to run
+    await action(dialog, 'backup-openings-details').evaluate((summary) => summary.parentElement.scrollIntoView({ block: 'end' }));
+    await evidence(testInfo, page, 'import-dirty-openings');
+    await dialog.getByText('dirty-plan.zip').scrollIntoViewIfNeeded();
+  }
   const replace = dialog.locator(HP.dialogConfirm).first();
   await expect(replace).toBeDisabled();
   await field(dialog, 'backup-confirm-missing').check();
@@ -105,6 +125,12 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   }
   for (const [space, ids] of Object.entries(expected.keptGeometry.rooms)) {
     for (const id of ids) expect(byId(byId(after.spaces, space).rooms, id)).toEqual(byId(byId(source.spaces, space).rooms, id));
+  }
+  if (expected.offWall) {
+    // kept where it was, without a wall; nothing else about it changed
+    const { host, ...offWall } = expected.offWall;
+    expect(host).toBeTruthy();
+    expect(byId(byId(after.spaces, 'f1').openings, 'e2e-off-wall')).toEqual(offWall);
   }
 
   await page.reload();
@@ -199,6 +225,8 @@ function refusals(base) {
   const png = readFileSync(resolve(import.meta.dirname, '../fixtures/images/e2e-tile.png'));
   const zeroSize = complexPlan(base);
   byId(zeroSize.document.payload.config.spaces, 'f1').decor.push({ id: 'e2e-zero', kind: 'rect', x: 0.5, y: 0.5, w: 0, h: 0.1, color: '#000000', fill: false });
+  // a door off its wall: refused by products older than houseplan-card#1033,
+  // repaired by newer ones (the dirty ZIP above carries it then)
   const offWall = complexPlan(base);
   const ground = byId(offWall.document.payload.config.spaces, 'f1');
   ground.openings.push({ ...JSON.parse(JSON.stringify(ground.openings[0])), id: 'e2e-off-wall', x: 0.95, y: 0.95 });
@@ -210,7 +238,7 @@ function refusals(base) {
     ['JSON that is not a House Plan backup', 'other.json', 'application/json', Buffer.from('{"version":1,"items":[]}'), 'The selected file is not a House Plan backup.'],
     ['JSON over the 8 MiB limit', 'huge.json', 'application/json', Buffer.from(JSON.stringify(huge)), 'The backup exceeds the 8 MiB limit.'],
     ['a shape of zero width', 'zero-size.zip', 'application/zip', archive(zeroSize), 'The backup contains an invalid House Plan configuration.'],
-    ['an opening off its wall', 'off-wall.json', 'application/json', Buffer.from(JSON.stringify(offWall.document)), 'The backup contains an invalid House Plan configuration.'],
+    ...(repairsBackups() ? [] : [['an opening off its wall', 'off-wall.json', 'application/json', Buffer.from(JSON.stringify(offWall.document)), 'The backup contains an invalid House Plan configuration.']]),
   ];
 }
 

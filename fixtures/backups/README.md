@@ -29,8 +29,9 @@ The seed's three spaces, the seed robot vacuum with its calibration, plus:
 - a lamp that switches another lamp (`marker:` control link)
 - a Zigbee2MQTT network snapshot (coordinator and one router), with Zigbee
   links switched on
-- the first floor's backdrop (the seed SVG without its `<text>` labels, see
-  below), under its own file name so an import never overwrites the seed's file
+- the first floor's backdrop (the seed SVG with its room labels; see below
+  for older products), under its own file name so an import never overwrites
+  the seed's file
 
 Nothing is broken, so the import preview should report nothing:
 
@@ -44,10 +45,13 @@ Exporting it gives back the same plan, backdrop, picture and snapshot.
 Restoring that export and exporting again gives the same content: the
 export is idempotent.
 
-Why the backdrop has no labels: a full ZIP checks plan backdrops against the
-decor-picture SVG whitelist, which has no `<text>`. The seed's own
-`first-floor.svg` is therefore left out of the product's ZIP as «invalid»
-(findings F125).
+Backdrop labels: since houseplan-card#1033 a full ZIP packs backdrops under
+the backdrop upload rule, so the seed SVG travels with its `<text>` labels,
+byte for byte. Older products checked backdrops against the decor-picture
+SVG whitelist, which has no `<text>`, and left the seed's backdrop out as
+«invalid» (findings F125); against them the fixture uses the same SVG without
+its labels. The installed product's contract decides: it lists the action id
+`backup-openings-details` since #1033.
 
 ## «Грязный план» — `dirtyPlan()`, full ZIP
 
@@ -65,6 +69,7 @@ This is the complex plan with stale references and awkward geometry.
 | decor picture whose file is not in the archive | content `missing_preserved`, archive `missing` | kept as a placeholder to repair; the import needs the confirmation box |
 | Yard backdrop on `https://e2e-yard-backdrop.invalid/…` (a host that never resolves) | content `external`, archive `external` | kept as a link |
 | a partition lying exactly on another one, a partition with nodes off the 1/240 grid, a room whose outline crosses itself (with matching walls) | nothing (findings F127) | kept byte for byte: nothing is «optimized» without being asked |
+| a door moved far off its wall (`e2e-off-wall`, #1033 products only) | `opening_repairs.detached: 1` with the door in `examples` («Openings kept off walls: 1», under **Show openings**); the confirmation box names it | kept where it was without a wall; every other field unchanged |
 
 «Undo last full import» must then return the previous plan exactly
 (spaces, markers, layout).
@@ -122,4 +127,4 @@ revisions stay unchanged:
 | JSON that is not a House Plan export | `invalid_format` | The selected file is not a House Plan backup. |
 | JSON over 8 MiB | `too_large` | The backup exceeds the 8 MiB limit. |
 | a full ZIP with a rectangle of zero width | `invalid_config` | The backup contains an invalid House Plan configuration. |
-| a JSON with a door moved off its wall | `invalid_config` | (same) |
+| a JSON with a door moved off its wall (products before #1033; newer ones repair it, see the dirty plan) | `invalid_config` | (same) |

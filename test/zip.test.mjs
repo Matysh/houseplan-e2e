@@ -5,7 +5,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readZip, writeZip } from '../tests/lib/zip.mjs';
+import { readFileSync } from 'node:fs';
 import { archive, PLAN, TILE } from '../tests/lib/backup-fixtures.mjs';
+import { repairsBackups } from '../tests/lib/contract.mjs';
 
 const sha = (raw) => createHash('sha256').update(raw).digest('hex');
 
@@ -52,5 +54,9 @@ test('the archive manifest describes exactly the packed entries; missing and ext
   }
   assert.ok(entries[`images/${sha(TILE)}.png`].equals(TILE));
   assert.ok(entries[`images/${sha(PLAN)}.svg`].equals(PLAN));
-  assert.ok(!PLAN.toString('utf8').includes('<text'), 'the fixture backdrop carries no <text> (F125)');
+  // houseplan-card#1033 packs the seed backdrop as it ships, labels included;
+  // an older product needs it without its <text> (F125)
+  const seed = readFileSync(new URL('../seed/houseplan/plans/first-floor.svg', import.meta.url));
+  if (repairsBackups()) assert.ok(PLAN.equals(seed), 'the fixture backdrop is the seed SVG byte for byte');
+  else assert.ok(!PLAN.toString('utf8').includes('<text'), 'the fixture backdrop carries no <text> (F125)');
 });

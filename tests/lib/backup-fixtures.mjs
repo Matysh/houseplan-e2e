@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PNG } from 'pngjs';
+import { repairsBackups } from './contract.mjs';
 import { wsCall } from './ha-ws.mjs';
 import { writeZip } from './zip.mjs';
 
@@ -25,15 +26,17 @@ const json = (value) => Buffer.from(JSON.stringify(value), 'utf8');
 export const CREATED_AT = '2026-10-22T00:00:00.000000Z';
 
 /**
- * The first floor's backdrop, as the seed ships it but without its <text>
- * labels: a full ZIP packs plan backdrops through the decor-picture SVG
- * whitelist, which has no <text> (findings F125 — the seed's own backdrop is
- * left out of the product's ZIP as «invalid»). Under its own file name, so an
- * import never overwrites the seed's file the other journeys draw.
+ * The first floor's backdrop, under its own file name so an import never
+ * overwrites the seed's file the other journeys draw. A product that packs
+ * backdrops under the backdrop rule (houseplan-card#1033) gets the seed SVG as
+ * it ships, room labels included. An older one packed backdrops through the
+ * decor-picture whitelist, which has no <text> (findings F125), and gets the
+ * same SVG without its labels.
  */
 const PLAN_URL = '/api/houseplan/content/plans/_/e2e-first-floor.svg';
-export const PLAN = Buffer.from(readFileSync(resolve(ROOT, 'seed/houseplan/plans/first-floor.svg'), 'utf8')
-  .replace(/<text\b[^>]*>[\s\S]*?<\/text>\s*/g, ''), 'utf8');
+const SEED_PLAN = readFileSync(resolve(ROOT, 'seed/houseplan/plans/first-floor.svg'), 'utf8');
+export const PLAN = Buffer.from(repairsBackups() ? SEED_PLAN
+  : SEED_PLAN.replace(/<text\b[^>]*>[\s\S]*?<\/text>\s*/g, ''), 'utf8');
 export const TILE = readFileSync(resolve(ROOT, 'fixtures/images/e2e-tile.png'));
 
 /** A PNG no Home Assistant has seen: its asset id names a picture that is not there. */
@@ -173,6 +176,11 @@ export function dirtyPlan(base) {
   const bowTieWalls = bowTie.map((_, i) => `wall-e2ebowtie${i}`);
   yard.rooms.push({ id: 'e2e-bowtie', name: 'Bow tie', poly: bowTie, wall_ids: bowTieWalls });
   bowTie.forEach((point, i) => yard.wall_segments.push({ id: bowTieWalls[i], a: point, b: bowTie[(i + 1) % bowTie.length], cm: 0 }));
+  // a door moved far off its wall (houseplan-card#1033): imported without a
+  // wall, everything else about it kept; older products refuse such a file
+  const offWall = repairsBackups()
+    ? { ...copy(ground.openings[0]), id: 'e2e-off-wall', x: 0.95, y: 0.95 } : null;
+  if (offWall) ground.openings.push(offWall);
   return {
     ...plan,
     expected: {
@@ -182,6 +190,7 @@ export function dirtyPlan(base) {
       missingPictures: ['e2e-picture-lost'],
       external: ['https://e2e-yard-backdrop.invalid/plan.png'],
       keptGeometry: { partitions: { f1: ['e2e-partition-twin', 'e2e-partition-offgrid'] }, rooms: { smrwhw9la: ['e2e-bowtie'] } },
+      offWall,
       kitchen: kitchen.id,
     },
   };

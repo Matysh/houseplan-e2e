@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { CONTRACT, declares, gate, hp, missingHooks, root, sinceOf } from '../tests/lib/contract.mjs';
+import { CONTRACT, declares, declaresValue, gate, hp, missingHooks, repairsBackups, root, sinceOf } from '../tests/lib/contract.mjs';
 import { lintText } from '../scripts/contract-lint.mjs';
 import { sameTree, treeDigest } from '../scripts/tree-digest.mjs';
 
@@ -29,6 +29,16 @@ test('scenarios are gated on the installed product contract, not on its version'
   assert.deepEqual(missingHooks(['stage@data-grid-step'], null), [], 'unknown product: nothing skipped');
   assert.throws(() => missingHooks(['stage@data-nope'], installed), /not declared in the vendored contract/);
   assert.equal(declares(CONTRACT, 'stage@data-grid-step'), true);
+});
+
+test('a behaviour change is gated on a value the installed contract lists (houseplan-card#1033)', () => {
+  const listing = (values) => ({ hooks: { action: { attributes: { 'data-action': values } } } });
+  assert.equal(declaresValue(listing(['backup-import-details']), 'action@data-action', 'backup-import-details'), true);
+  assert.equal(declaresValue(listing(['backup-import-details']), 'action@data-action', 'backup-openings-details'), false);
+  assert.equal(declaresValue({ hooks: {} }, 'action@data-action', 'backup-openings-details'), false);
+  assert.equal(repairsBackups(listing(['backup-import-details', 'backup-openings-details'])), true);
+  assert.equal(repairsBackups(listing(['backup-import-details'])), false, 'an older product refuses');
+  assert.equal(repairsBackups(null), true, 'unknown product: the newest');
 });
 
 test('the lint judges literal selectors with the run-time builder', () => {

@@ -46,6 +46,27 @@ export function declares(contract, spec) {
   return !attr || !!(hook.attributes?.[attr] || hook.attributeMetadata?.[attr]);
 }
 
+/** Does `contract` list `value` among the values of `hook@attr` (an action id, say)? */
+export function declaresValue(contract, spec, value) {
+  const [name, attr] = spec.split('@');
+  const values = contract?.hooks?.[name]?.attributes?.[attr];
+  return Array.isArray(values) && values.includes(value);
+}
+
+/**
+ * houseplan-card#1033: the installed product repairs an opening off its wall
+ * on import (and lists the repaired ones under `backup-openings-details`), and
+ * packs backdrops under the backdrop rule — an SVG with `<text>` travels in
+ * the full ZIP. One product change brings both, so its declared action id
+ * gates both. Unknown installed contract (a foreign HA_URL): the newest.
+ */
+export function repairsBackups(installed = installedContract()) {
+  if (!declaresValue(CONTRACT, 'action@data-action', 'backup-openings-details')) {
+    throw new Error('backup-openings-details is not declared in the vendored contract');
+  }
+  return !installed || declaresValue(installed, 'action@data-action', 'backup-openings-details');
+}
+
 /** Specs (`hook` or `hook@data-attr`) the installed product does not declare. */
 export function missingHooks(specs, installed = installedContract()) {
   for (const spec of specs) {
