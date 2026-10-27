@@ -60,7 +60,7 @@ test('a confirmed Save refusal leaves server truth intact and does not poison su
  // The next independent native intent follows the rejected write without
  // resetting a queue, reloading the page, or issuing a successful Save first.
  await enterEditor(host,'devices');
- const magnets=host.locator(HP.tool('device-magnets')).first();if(await magnets.getAttribute('aria-pressed')==='true')await magnets.click();
+ const magnets=host.locator(HP.tool('device-magnets')).first();if(await magnets.getAttribute('aria-pressed')==='true' && await magnets.isEnabled())await magnets.click();
  for(let i=0;i<3;i++)await host.locator(hp('zoom-in')).first().click();await settle(host);
  const point=await centreOf(marker(host,SOURCE));await page.mouse.click(point.x,point.y,{button:'right'});
  await host.locator(hp('device-copy')).first().click();
