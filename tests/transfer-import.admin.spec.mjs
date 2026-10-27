@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 import { repairsBackups, requireHooks } from './lib/contract.mjs';
 import { archive, complexPlan, CREATED_AT, dirtyPlan, oldJsonPlan, seedExport } from './lib/backup-fixtures.mjs';
 import { chooseBackup, footerCancel, openMaintenance, previewReply, revisions } from './lib/backup.mjs';
-import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
+import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
 import { planConfig, planLayout, wsCall } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { action, field, selectSpace } from './lib/plan.mjs';
@@ -214,7 +214,7 @@ test('a space exported as JSON comes back as a new space, devices already on the
   // skipped: no second marker for a binding that is already on the plan
   const bindings = after.markers.filter((m) => m.binding !== 'virtual').map((m) => m.binding);
   expect(new Set(bindings).size).toBe(bindings.length);
-  await expect(host.locator(hp('space-tab', { space: added[0].id }))).toBeVisible();
+  await expect(spaceEntry(host, added[0].id)).toHaveCount(1);
   await selectSpace(host, added[0].id);
   await evidence(testInfo, page, 'import-space-added');
 });

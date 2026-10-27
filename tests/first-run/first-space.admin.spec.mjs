@@ -3,7 +3,7 @@
 // first space; outlining rooms by real clicks waits for the grid hooks (#489).
 import { test, expect } from '@playwright/test';
 import { seedVariant } from '../lib/ha-ctl.mjs';
-import { card, editorTabs, evidence, spaceTabs, stageOf } from '../lib/ha-page.mjs';
+import { card, editorTabs, evidence, spaceEntries, stageOf } from '../lib/ha-page.mjs';
 import { HP, confirmIn } from '../lib/hooks.mjs';
 
 test.skip(() => seedVariant() !== 'empty', 'needs the empty seed variant');
@@ -35,14 +35,14 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   await confirmIn(dialog).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
-  await expect(spaceTabs(host)).toHaveCount(1);
-  await expect(spaceTabs(host).first()).toContainText('Ground floor');
+  await expect(spaceEntries(host)).toHaveCount(1);
+  await expect(spaceEntries(host).first()).toContainText('Ground floor');
   await expect(stageOf(host)).toBeVisible();
   await expect(editorTabs(host)).toHaveCount(3);
   await evidence(testInfo, page, 'first-space-created.png');
 
   // the space lives on the server, not in this tab
   await page.reload();
-  await expect(spaceTabs(page.locator('houseplan-card').first())).toHaveCount(1, { timeout: 60_000 });
-  await expect(spaceTabs(page.locator('houseplan-card').first()).first()).toContainText('Ground floor');
+  await expect(spaceEntries(page.locator('houseplan-card').first())).toHaveCount(1, { timeout: 60_000 });
+  await expect(spaceEntries(page.locator('houseplan-card').first()).first()).toContainText('Ground floor');
 });

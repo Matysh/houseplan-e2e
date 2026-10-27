@@ -22,10 +22,40 @@ export async function openPlan(page, { space } = {}) {
 
 export const spaceTab = (host, spaceId) => host.locator(hp('space-tab', { space: spaceId })).first();
 
+/**
+ * The space the header shows as current: the compact select's value
+ * (houseplan-card#997) or the tab marked `aria-current="page"`; null while
+ * neither is drawn.
+ */
+export async function currentSpace(host) {
+  const value = host.locator(hp('space-select-value')).first();
+  if (await value.count()) return value.inputValue();
+  const tab = host.locator(`${hp('space-tab')}[aria-current="page"]`).first();
+  return (await tab.count()) ? tab.getAttribute('data-space') : null;
+}
+
+/**
+ * Switch spaces the way an administrator does, through whichever navigation
+ * the header shows (see `spaceEntries`): the space's tab, or the compact
+ * select's own trigger and then its option in the menu the trigger controls.
+ * The select's element loads on demand, so the tabs can give way to it in the
+ * middle of a step; a step the swap overtook is simply tried again.
+ */
 export async function selectSpace(host, spaceId) {
-  const tab = spaceTab(host, spaceId);
-  if ((await tab.getAttribute('aria-current')) !== 'page') await tab.click();
-  await expect(tab).toHaveAttribute('aria-current', 'page');
+  const select = host.locator(hp('space-select')).first();
+  await expect(async () => {
+    if ((await currentSpace(host)) === spaceId) return;
+    if (await select.isVisible()) {
+      const trigger = select.locator(hp('select-trigger')).first();
+      // a retry finds the menu still open: a second click would close it
+      if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click({ timeout: 5_000 });
+      const menu = host.page().locator(`${hp('select-menu')}[id="${await trigger.getAttribute('aria-controls')}"]`);
+      await menu.locator(hp('select-option', { id: spaceId })).first().click({ timeout: 5_000 });
+    } else {
+      await spaceTab(host, spaceId).click({ timeout: 5_000 });
+    }
+    await expect.poll(() => currentSpace(host), { timeout: 5_000 }).toBe(spaceId);
+  }).toPass({ timeout: 30_000 });
   await settle(host);
 }
 

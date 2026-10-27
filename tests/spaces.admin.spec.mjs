@@ -1,13 +1,14 @@
 // Spaces on a real Home Assistant (houseplan-card#1010, row 17): an
 // administrator adds a space drawn by hand, then deletes it from its settings.
-// Oracles: the spaces the integration stores, the tabs after a reload, the
+// Oracles: the spaces the integration stores, the header's space navigation
+// after a reload (tabs, or the compact select of houseplan-card#997), the
 // toast that names the outcome by its i18n key.
 import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
-import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
+import { card, evidence, expectPlanDrawn, spaceEntries, spaceEntry } from './lib/ha-page.mjs';
 import { planConfig, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { field, settle } from './lib/plan.mjs';
+import { field, selectSpace, settle } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
 requireHooks(test, 'space-tab@data-space', 'space-delete', 'field', 'toast@data-id');
@@ -38,10 +39,12 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
 
   await page.reload();
   host = card(page);
-  await expect(host.locator(hp('space-tab', { space: annex.id }))).toContainText('E2E Annex', { timeout: 60_000 });
-  await expect(host.locator(HP.spaceTab)).toHaveCount(before.length + 1);
+  await expect(spaceEntry(host, annex.id)).toContainText('E2E Annex', { timeout: 60_000 });
+  await expect(spaceEntries(host)).toHaveCount(before.length + 1);
 
-  // delete from its own settings; an empty space needs no device decision
+  // delete from its own settings; an empty space needs no device decision —
+  // the compact header (#997) has one gear, for the current space
+  await selectSpace(host, annex.id);
   await host.locator(hp('space-settings', { id: annex.id })).first().click();
   const settings = host.locator(HP.dialog('space')).first();
   await expect(settings).toBeVisible();
@@ -51,12 +54,12 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
   await evidence(testInfo, page, 'space-delete-confirm');
   await confirm.locator(HP.dialogConfirm).first().click();
   await waitForConfig((c) => !c.spaces.some((s) => s.id === annex.id), { message: 'space deleted on the server' });
-  await expect(host.locator(hp('space-tab', { space: annex.id }))).toHaveCount(0);
+  await expect(spaceEntry(host, annex.id)).toHaveCount(0);
   await expect(host.locator(hp('toast', { id: 'toast.space_deleted' }))).toBeVisible();
   await evidence(testInfo, page, 'space-deleted');
 
   await page.reload();
   host = card(page);
   await expectPlanDrawn(page, host);
-  await expect(host.locator(HP.spaceTab)).toHaveCount(before.length);
+  await expect(spaceEntries(host)).toHaveCount(before.length);
 });

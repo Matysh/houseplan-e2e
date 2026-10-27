@@ -79,6 +79,18 @@ export function stageOf(host) {
 
 export const deviceMarker = (host, entityId) => host.locator(HP.device(entityId)).first();
 export const spaceTabs = (host) => host.locator(HP.spaceTab);
+/**
+ * The spaces the header offers, in whichever form it settled on
+ * (houseplan-card#997, 1.83.0): a tab per space on a header wider than
+ * 1024 px, the options of one compact select (`space-select-value`, its values
+ * are space ids, its labels their titles) at 1024 px or narrower — and the
+ * journeys' 1280 px window with HA's sidebar open is exactly that. The two
+ * forms never show together; tabs drawn for a moment before the select's
+ * element has loaded count the same spaces.
+ */
+export const spaceEntries = (host) => host.locator(`${HP.spaceTab}, ${hp('space-select-value')} option`);
+export const spaceEntry = (host, spaceId) => host.locator(
+  `${hp('space-tab', { space: spaceId })}, ${hp('space-select-value')} option[value="${spaceId}"]`);
 /** The three editor mode tabs. */
 export const editorTabs = (host) => host.locator(HP.editorTabs);
 

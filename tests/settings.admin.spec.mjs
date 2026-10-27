@@ -4,7 +4,7 @@
 // is what the integration stores and what the dialog shows after a reload.
 import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
-import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
+import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { centreOf, enterEditor, field, openPlan, settle, toFloor } from './lib/plan.mjs';
@@ -81,12 +81,12 @@ test('Space settings: a renamed space keeps its new name', async ({ page }, test
   await dialog.locator(HP.dialogConfirm).first().click();
   await expect(dialog).toBeHidden();
   await waitForConfig((c) => spaceOf(c, GROUND).title === 'Ground Floor E2E', { message: 'space title stored' });
-  await expect(host.locator(hp('space-tab', { space: GROUND }))).toContainText('Ground Floor E2E');
+  await expect(spaceEntry(host, GROUND)).toContainText('Ground Floor E2E');
 
   await page.reload();
   const fresh = card(page);
   await expectPlanDrawn(page, fresh);
-  await expect(fresh.locator(hp('space-tab', { space: GROUND }))).toContainText('Ground Floor E2E');
+  await expect(spaceEntry(fresh, GROUND)).toContainText('Ground Floor E2E');
   await evidence(testInfo, page, 'space-after-reload');
 });
 
