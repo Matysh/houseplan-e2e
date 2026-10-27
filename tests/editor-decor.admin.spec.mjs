@@ -4,7 +4,7 @@
 // integration stores, the uploaded file served back, and the plan after a
 // page reload — in View, where these objects are what a household sees.
 import { test, expect } from '@playwright/test';
-import { requireHooks } from './lib/contract.mjs';
+import { drawsLinesByClicks, requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
@@ -48,7 +48,14 @@ test('a rectangle, an oval and a line are drawn and kept', async ({ page }, test
     await useTool(host, tool);
     const a = await snap(host, ...from);
     const b = await snap(host, ...to);
-    await dragFloor(page, host, a, b);
+    if (tool === 'line' && drawsLinesByClicks()) {
+      // houseplan-card#1046: two clicks store one segment, Esc ends the chain
+      await clickFloor(page, host, a.x, a.y);
+      await clickFloor(page, host, b.x, b.y);
+      await page.keyboard.press('Escape');
+    } else {
+      await dragFloor(page, host, a, b);
+    }
   }
   const config = await waitForConfig((c) => ['rect', 'ellipse', 'line'].every((k) => added(c, YARD, before, k).length === 1),
     { message: 'three shapes stored' });

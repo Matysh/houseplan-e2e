@@ -67,6 +67,22 @@ export function repairsBackups(installed = installedContract()) {
   return !installed || declaresValue(installed, 'action@data-action', 'backup-openings-details');
 }
 
+/**
+ * houseplan-card#1046, released in v1.83.0-beta.2: a decorative Line is drawn
+ * by clean clicks, like a Walls chain — the first click anchors it, the next
+ * stores one segment, Esc ends the chain; a drag draws nothing any more. The
+ * product declares no hook or value for the gesture, so this one gate reads
+ * the version string. It holds where the contract rule above warns against
+ * it: every `dev` snapshot since that release carries 1.83.0-beta.2 or later,
+ * and a 1.82.x hotfix candidate keeps the drag. Unknown product (a foreign
+ * HA_URL): the newest.
+ */
+export const LINE_BY_CLICKS = 'v1.83.0-beta.2';
+
+export function drawsLinesByClicks(version = installedRecord()?.version) {
+  return !version || compareTags(`v${version}`, LINE_BY_CLICKS) >= 0;
+}
+
 /** Specs (`hook` or `hook@data-attr`) the installed product does not declare. */
 export function missingHooks(specs, installed = installedContract()) {
   for (const spec of specs) {

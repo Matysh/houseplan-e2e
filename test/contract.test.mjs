@@ -6,7 +6,9 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { CONTRACT, declares, declaresValue, gate, hp, missingHooks, repairsBackups, root, sinceOf } from '../tests/lib/contract.mjs';
+import {
+  CONTRACT, declares, declaresValue, drawsLinesByClicks, gate, hp, missingHooks, repairsBackups, root, sinceOf,
+} from '../tests/lib/contract.mjs';
 import { lintText } from '../scripts/contract-lint.mjs';
 import { sameTree, treeDigest } from '../scripts/tree-digest.mjs';
 
@@ -39,6 +41,17 @@ test('a behaviour change is gated on a value the installed contract lists (house
   assert.equal(repairsBackups(listing(['backup-import-details', 'backup-openings-details'])), true);
   assert.equal(repairsBackups(listing(['backup-import-details'])), false, 'an older product refuses');
   assert.equal(repairsBackups(null), true, 'unknown product: the newest');
+});
+
+test('a gesture the contract cannot declare is gated on the version (houseplan-card#1046)', () => {
+  assert.equal(drawsLinesByClicks('1.83.0-beta.2'), true, 'the release that brought it');
+  assert.equal(drawsLinesByClicks('1.83.0-beta.3'), true);
+  assert.equal(drawsLinesByClicks('1.83.0'), true);
+  assert.equal(drawsLinesByClicks('1.84.0-beta.1'), true);
+  assert.equal(drawsLinesByClicks('1.83.0-beta.1'), false, 'the beta before it still drags');
+  assert.equal(drawsLinesByClicks('1.82.0'), false, 'the stable before it');
+  assert.equal(drawsLinesByClicks('1.82.1'), false, 'a hotfix candidate of that stable');
+  assert.equal(drawsLinesByClicks(undefined), true, 'unknown product: the newest');
 });
 
 test('the lint judges literal selectors with the run-time builder', () => {
