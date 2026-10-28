@@ -37,6 +37,7 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
   expect(await sameHost.evaluate(element => element.isConnected)).toBe(true);
   const afterDelete = await planConfig(), allocated = profileNamespace(afterDelete.config).next_id;
   expect(allocated).toBeGreaterThan(fixture.id);
+  fixture.ownProfile(allocated); // Own only the exact ID this native draft will allocate.
 
   ({ dialog } = await profileSettings(adminPage));
   await dialog.locator(hp('external-screen-add')).click();
