@@ -19,7 +19,7 @@ export const profileNamespace = config => config.settings?.external_screens;
 export const profileOf = (config, id) => profileNamespace(config)?.screens.find(row => row.id === id);
 
 export class ProfileFixture {
-  constructor() { this.contexts = []; this.seed = null; this.viewer = null; this.mutated = false; }
+  constructor() { this.contexts = []; this.seed = null; this.viewer = null; this.mutated = false; this.createdIds = new Set(); }
   async setup() {
     const saved = await planConfig();
     expect(saved.external_screens_api, 'actual HA backend supports stored profiles').toBe(1);
@@ -31,6 +31,7 @@ export class ProfileFixture {
     const config = structuredClone(this.seed), id = previous.next_id;
     expect(Number.isSafeInteger(id) && id < Number.MAX_SAFE_INTEGER - 2, 'fixture has two fresh IDs available').toBe(true);
     this.id = id; this.localId = id + 1;
+    this.createdIds.add(id); this.createdIds.add(id + 1);
     this.profile = { ...screenDefaults(id), space: 'f2', rotation: 90, summary: 'show',
       hidden_devices: 'show', icon_scale: 1.75, font_scale: 1.5, controls: false };
     config.settings.external_screens = { ...previous, next_id: id + 2,
@@ -56,6 +57,7 @@ export class ProfileFixture {
     }
     expect(this.anchors, 'two separated real marker anchors on f2').toBeTruthy();
   }
+  ownProfile(id) { this.createdIds.add(id); }
   async readOnlyViewer() {
     const users = await wsCall({ type: 'config/auth/list' });
     const user = users.find(row => row.username === USERS.viewer.username);
@@ -99,12 +101,16 @@ export class ProfileFixture {
           const now = profileNamespace(current.config);
           const next_id = Math.max(original?.next_id || 1, now?.next_id || 1);
           const config = structuredClone(this.seed);
-          config.settings.external_screens = { ...(original || { version: 1, screens: [] }), next_id };
+          const originalIds = new Set((original?.screens || []).map(row => row.id));
+          const unowned = (now?.screens || []).filter(row => !this.createdIds.has(row.id) && !originalIds.has(row.id));
+          const screens = [...(original?.screens || []), ...unowned];
+          config.settings.external_screens = { ...(original || { version: 1 }), next_id, screens };
           try {
             await wsCall({ type: 'houseplan/config/set', expected_rev: current.rev, config });
             const restored = (await planConfig()).config;
             expect(withoutProfiles(restored)).toEqual(withoutProfiles(this.seed));
-            expect(profileNamespace(restored).screens).toEqual(original?.screens || []);
+            expect(profileNamespace(restored).screens).toEqual(screens);
+            expect(profileNamespace(restored).screens.some(row => this.createdIds.has(row.id))).toBe(false);
             expect(profileNamespace(restored).next_id).toBeGreaterThanOrEqual(next_id);
             break;
           } catch (error) {
@@ -112,7 +118,11 @@ export class ProfileFixture {
           }
         }
       } finally {
-        if (this.viewer) await wsCall({ type: 'config/auth/update', user_id: this.viewer.id, group_ids: this.viewer.groups });
+        if (this.viewer) {
+          await wsCall({ type: 'config/auth/update', user_id: this.viewer.id, group_ids: this.viewer.groups });
+          const restored = (await wsCall({ type: 'config/auth/list' })).find(user => user.id === this.viewer.id);
+          expect(restored.group_ids).toEqual(this.viewer.groups);
+        }
       }
     }
   }
