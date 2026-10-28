@@ -256,18 +256,17 @@ test('held old reads cannot replace newer events, and a real connection handoff 
   const afterRace = await painted(page);
   const connectionA = wire.connections, connectionB = connectionA + 1;
   wire.holdReads(undefined, connectionB);
-  wire.holdEvents(['houseplan_layout_updated'], connectionB);
   expect(await handoffStaticConnection(page)).toEqual({ cards: 2, authenticated: true });
   await wire.heldReads(2);
   expect(wire.connections).toBe(connectionB);
   const highWater = (await planLayout()).rev + 100;
   await firePlanEvent('houseplan_layout_updated', { rev: highWater });
   await expect.poll(() => wire.events.some(e => e.connection === connectionA && e.rev === highWater)).toBe(true);
-  await wire.heldEvents();
-  // This actual bus notification is deliberately stale input on old A only;
-  // B's copy is discarded at the transport seam, never applied as current.
+  // B subscribes only after its config/layout replies finish. This real bus
+  // event therefore reaches the still-subscribed A while B reads are held.
+  // No B event is invented, suppressed, or delivered as current.
+  expect(wire.events.some(e => e.connection === connectionB && e.rev === highWater)).toBe(false);
   await attachReceipt(testInfo, wire, 'old-A-event-while-B-replies-held.json');
-  wire.releaseEvents({ discard: true });
   wire.releaseReads();
   await wire.settle(page);
   expectSamePaint(await painted(page), afterRace);
