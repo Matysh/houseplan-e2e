@@ -1,0 +1,100 @@
+/** #1103: public DOM + real HA websocket seams, no private product state. */
+import {expect} from '@playwright/test';
+import {installedRecord,requireHooks} from './contract.mjs';
+import {compareTags} from '../../scripts/tags.mjs';
+import {connect,planConfig,snapshotPlan,importDocument} from './ha-ws.mjs';
+import {card,expectPlanDrawn,navigateInApp} from './ha-page.mjs';
+import {HP,hp} from './hooks.mjs';
+import {stage,settle} from './plan.mjs';
+export {card,stage,settle,navigateInApp};
+
+export function requirePanelBeta4(test) {
+  const version=installedRecord()?.version;
+  test.skip(!!version&&compareTags(`v${version.replace(/^v/,'')}`,'v1.83.0-beta.4')<0,
+    '#1103/#1120 require installed beta4 or later; SKIP is not acceptance');
+  // Unknown/foreign HA runs newest expectations, as the repository contract requires.
+  requireHooks(test,'stage','room','mode-tab','dialog','settings-section','field');
+}
+export function restorePanelPlan(test) {
+  let snapshot;
+  test.beforeEach(async()=>{snapshot=await snapshotPlan();});
+  // Full import restores the source namespace/counter too; an ordinary old writer
+  // omitting external_screens intentionally cannot erase it (#1113).
+  test.afterEach(async()=>{if(snapshot)await importDocument(snapshot.document);});
+}
+export async function writeConfig(change) {
+  const ws=await connect('admin');
+  try {const before=await ws.call({type:'houseplan/config/get'});const config=structuredClone(before.config);
+    change(config);await ws.call({type:'houseplan/config/set',config,expected_rev:before.rev});return (await ws.call({type:'houseplan/config/get'})).config;
+  }finally{ws.close();}
+}
+export async function orderedFixture() {
+  return writeConfig(config=>{
+    expect(config.spaces.length,'seed must expose three real floors').toBeGreaterThanOrEqual(3);
+    const first=config.spaces.slice(0,3).reverse();
+    first.forEach((space,i)=>{space.title=['Zeta E2E','Alpha E2E','Middle E2E'][i];});
+    config.spaces=[...first,...config.spaces.slice(3)];
+    expect(new Set(first.map(s=>JSON.stringify((s.rooms??[]).map(r=>r.id).sort()))).size,
+      'three seed floors need distinguishable public painted room IDs').toBe(3);
+    expect(first.every(s=>s.rooms?.length),'floor witnesses must be nonempty').toBe(true);
+  });
+}
+export async function expectFloor(host,space) {
+  const expected=space.rooms.map(room=>room.id).sort();
+  expect(expected.length,'floor oracle must have real geometry').toBeGreaterThan(0);
+  await expect.poll(()=>host.locator(hp('room')).evaluateAll(nodes=>nodes.map(el=>el.dataset.id).sort()),
+    {message:`painted floor ${space.id}`}).toEqual(expected);
+}
+export async function openKiosk(page,url,space) {
+  await page.goto(url);const host=card(page);await expectPlanDrawn(page,host);await expectFloor(host,space);await expectKiosk(host);return host;
+}
+export async function expectKiosk(host) {
+  await expect(host.locator(HP.mode('view'))).toBeVisible();
+  for(const selector of [HP.editorTabs,HP.settings,HP.spaceAdd,hp('space-tab'),hp('space-select'),HP.panelMenu])
+    await expect(host.locator(selector)).toHaveCount(0);
+  // #1120 supersedes #1103's former retained HA/panel outer appbar oracle.
+  await expect(host.page().locator('houseplan-panel').locator(HP.panelTitle)).toHaveCount(0);
+}
+export const camera=host=>stage(host).evaluate(svg=>{
+  const m=svg.getScreenCTM();return {viewBox:svg.getAttribute('viewBox'),matrix:[m.a,m.b,m.c,m.d,m.e,m.f]};
+});
+export function observeApplicationIo(page) {
+  const sent=[];let navigations=0;
+  page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigations++;});
+  page.on('websocket',socket=>socket.on('framesent',({payload})=>{
+    let decoded;try{decoded=JSON.parse(String(payload));}catch{return;}
+    for(const msg of Array.isArray(decoded)?decoded:[decoded])if(msg.type?.startsWith('houseplan/'))sent.push({type:msg.type});
+  }));
+  return {snapshot:()=>({navigations,configGet:sent.filter(m=>m.type==='houseplan/config/get').length,
+    layoutGet:sent.filter(m=>m.type==='houseplan/layout/get').length,
+    writes:sent.filter(m=>/\/(set|patch|copy|delete|apply)$/.test(m.type)).length})};
+}
+export async function touch(page,frames) {
+  const session=await page.context().newCDPSession(page);
+  try {for(let i=0;i<frames.length;i++){
+    const points=frames[i].map((p,id)=>({x:p.x,y:p.y,id:id+1,radiusX:1,radiusY:1,force:1}));
+    await session.send('Input.dispatchTouchEvent',{type:i===0?'touchStart':points.length?'touchMove':'touchEnd',touchPoints:points});
+    await page.waitForTimeout(35);
+  }}finally{await session.detach();}
+}
+export async function swipe(page,host,direction=-1) {
+  const box=await stage(host).boundingBox(),x=box.x+box.width*.6,y=box.y+box.height*.75;
+  await touch(page,[[{x,y}],[{x:x+direction*50,y}],[{x:x+direction*110,y}],[]]);await settle(host);
+}
+/** Hold only the actual HA config/get response; auth, other replies and events pass unchanged. */
+export async function holdFirstConfigGet(page) {
+  let captureResolve,releaseReply,requestId;const reached=new Promise(r=>{captureResolve=r;});
+  await page.routeWebSocket('**/api/websocket',socket=>{
+    const server=socket.connectToServer();
+    socket.onMessage(raw=>{let msg;try{msg=JSON.parse(String(raw));}catch{server.send(raw);return;}
+      if(msg.type==='houseplan/config/get'&&requestId===undefined)requestId=msg.id;server.send(raw);});
+    server.onMessage(raw=>{let decoded;try{decoded=JSON.parse(String(raw));}catch{socket.send(raw);return;}
+      const batch=Array.isArray(decoded),rows=batch?decoded:[decoded],pass=[];
+      for(const msg of rows)if(msg.type==='result'&&msg.id===requestId&&!releaseReply){
+        releaseReply=()=>socket.send(JSON.stringify(batch?[msg]:msg));captureResolve();
+      }else pass.push(msg);
+      if(pass.length===rows.length)socket.send(raw);else if(pass.length)socket.send(JSON.stringify(batch?pass:pass[0]));
+    });
+  });
+  return {reached,release(){expect(releaseReply,'real HA response must reach the proxy').toBeTruthy();releaseReply();}};
+}
