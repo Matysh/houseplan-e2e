@@ -8,8 +8,9 @@ import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
+import { enterEditor } from './lib/plan.mjs';
 
-requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab');
+requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab', 'mode-tab@data-mode', 'editor-close', 'properties-panel');
 
 async function browserSidebarPreference(page) {
   await page.goto('/profile/browser');
@@ -124,4 +125,58 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await page.setViewportSize({ width: 1920, height: 1000 });
     await setHiddenPreference(page, original);
   }
+});
+
+test('editor close glyph stays centered in full and compact modes with real HA icons', async ({ page }, testInfo) => {
+  test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
+  test.setTimeout(180_000);
+  const receipts = [];
+  for (const modeName of ['plan', 'devices', 'decor']) {
+    await page.setViewportSize({ width: 2560, height: 1000 });
+    const { host } = await ordinaryPanel(page);
+    await enterEditor(host, modeName);
+    const mode = host.locator(HP.modeTab(modeName));
+    const group = mode.locator('..');
+    const close = group.locator(HP.editorClose);
+    for (const [width, presentation] of [[2560, 'full'], [1280, 'compact']]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expect(host.locator('[data-hp="properties-panel"]')).toBeVisible();
+      await expect(close).toBeVisible();
+      // These are test inputs, not product breakpoints. Observe the actual
+      // captions so each case really exercises the promised presentation.
+      await expect.poll(() => mode.evaluate(el => el.innerText.trim().length > 0))
+        .toBe(presentation === 'full');
+      const icon = close.locator('ha-icon');
+      await expect(icon).toHaveAttribute('icon', 'mdi:close');
+      const path = icon.locator('path').first();
+      await expect.poll(() => path.getAttribute('d')).toBeTruthy();
+      let observed;
+      await expect.poll(async () => {
+        const button = await close.boundingBox(), tab = await mode.boundingBox();
+        const painted = await path.evaluate(node => {
+          const bounds = node.getBBox(), matrix = node.getScreenCTM();
+          if (!matrix || !(bounds.width > 0 && bounds.height > 0)) return null;
+          const center = new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+            .matrixTransform(matrix);
+          return { x: center.x, y: center.y };
+        });
+        if (!button || !tab || !painted) return Number.POSITIVE_INFINITY;
+        observed = { mode: modeName, width, presentation, button, tab, painted };
+        return Math.max(Math.abs(painted.x - button.x - button.width / 2),
+          Math.abs(painted.y - button.y - button.height / 2),
+          Math.abs(button.y + button.height / 2 - tab.y - tab.height / 2));
+      }, { message: 'painted SVG and close target share the active editor center' }).toBeLessThanOrEqual(0.5);
+      expect(observed.button.width).toBeCloseTo(24, 1);
+      expect(observed.button.height).toBeCloseTo(24, 1);
+      receipts.push(observed);
+      await testInfo.attach(`close-${modeName}-${presentation}`, {
+        body: await group.screenshot(), contentType: 'image/png',
+      });
+    }
+    await close.click();
+    await expect(host.locator(HP.mode('view'))).toBeVisible();
+  }
+  await testInfo.attach('real-ha-close-centres', {
+    body: JSON.stringify(receipts, null, 2), contentType: 'application/json',
+  });
 });
