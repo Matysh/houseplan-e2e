@@ -73,6 +73,20 @@ export async function leaveEditor(host) {
 
 export const stage = (host) => host.locator(hp('stage')).first();
 
+/** Native zoom buttons are deliberately absent in a compact #1120 header. */
+export async function zoomInVisible(host, clicks = 3) {
+  const zoom = host.locator(hp('zoom-in')).first();
+  await expect(zoom).toBeVisible();
+  await expect(zoom).toBeEnabled();
+  await expect.poll(async () => {
+    const owner = await host.boundingBox(), button = await zoom.boundingBox();
+    return !!owner && !!button && button.x >= owner.x && button.y >= owner.y
+      && button.x + button.width <= owner.x + owner.width + 1
+      && button.y + button.height <= owner.y + owner.height + 1;
+  }, { message: 'native zoom target stays inside the desktop fixture' }).toBe(true);
+  for (let i = 0; i < clicks; i++) await zoom.click();
+}
+
 /** Let the camera transition and the next two frames finish. */
 export async function settle(host) {
   await stage(host).evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 350)));

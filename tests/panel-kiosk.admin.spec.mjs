@@ -39,7 +39,8 @@ test('1103-4 malformed positions show all floors; fixed position resists hash an
   ]){
     await navigateInApp(page,url);await expectKiosk(host);
     const before=await host.locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());
-    await swipe(page,host);await expect.poll(()=>host.locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort())).not.toEqual(before);
+    const target=await swipe(page,host);await expectFloor(host,target);
+    expect(await host.locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort())).not.toEqual(before);
   }
 });
 
@@ -117,7 +118,7 @@ test('1103-8 add/remove changes an out-of-range URL between all floors and a rea
   await swipe(page,card(page));await expect(card(page).locator(hp('device',{id:'e2e-kiosk-floor-witness'}))).toBeVisible();
   await writeConfig(c=>{c.spaces=c.spaces.filter(s=>s.id!=='e2e-kiosk-added');c.markers=c.markers.filter(m=>m.id!=='e2e-kiosk-floor-witness');});
   await expect(card(page).locator(hp('device',{id:'e2e-kiosk-floor-witness'}))).toHaveCount(0);
-  const before=await card(page).locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());await swipe(page,card(page));
+  const before=await card(page).locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());const target=await swipe(page,card(page));await expectFloor(card(page),target);
   await expect.poll(()=>card(page).locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort())).not.toEqual(before);
 });
 
@@ -135,10 +136,16 @@ test('1103-10 dirty device draft Keep retains input/URL; Discard enters exactly 
 
 test('1103-10 late real Save reply cannot act on the replacement HA panel',async({page})=>{
   const config=await orderedFixture(),hold=await holdConfigReply(page),markerId='lg_sensor.ground_floor_temperature';
-  await page.goto('/houseplan');const host=card(page);await expectPlanDrawn(page,host);await selectSpace(host,'f1');await enterEditor(host,'devices');
+  // Establish real HA history before opening a busy modal. Its overlay
+  // correctly blocks sidebar pointer input while the real ACK is held.
+  await page.goto('/house-plan');await expectPlanDrawn(page);
+  await page.locator('ha-sidebar a[href="/houseplan"]').first().click();
+  const host=card(page);await expectPlanDrawn(page,host);const old=await host.elementHandle();await selectSpace(host,'f1');await enterEditor(host,'devices');
   await host.locator(hp('device',{id:markerId})).dblclick();const dialog=host.locator(HP.dialog('marker')).first();await field(dialog,'marker-name').fill('Stored before late ACK');
   const reached=hold.arm();await dialog.locator(HP.dialogConfirm).first().click();expect((await reached).reply.success).toBe(true);
-  await page.locator('ha-sidebar a[href="/house-plan"]').first().click();await page.locator('ha-sidebar a[href="/houseplan"]').first().click();
+  await page.goBack();await expect(page).toHaveURL(/\/house-plan/);
+  await expect.poll(()=>old.evaluate(el=>el.isConnected)).toBe(false);
+  await page.locator('ha-sidebar a[href="/houseplan"]').first().click();
   await expectPlanDrawn(page);await navigateInApp(page,'/houseplan/kiosk/2');await expectFloor(card(page),config.spaces[1]);const count=hold.writes.length;
   hold.release();await settle(card(page));await expectFloor(card(page),config.spaces[1]);await expectKiosk(card(page));expect(hold.writes.length).toBe(count);
   expect((await planConfig()).config.markers.find(m=>m.id===markerId)?.name).toBe('Stored before late ACK');

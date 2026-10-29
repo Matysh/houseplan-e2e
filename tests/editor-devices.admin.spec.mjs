@@ -10,7 +10,7 @@ import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, planLayout, waitForConfig, waitForLayout } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import {
-  centreOf, dragClient, enterEditor, field, leaveEditor, openPlan, settle, snap, toClient, toFloor,
+  centreOf, dragClient, enterEditor, field, leaveEditor, openPlan, settle, snap, toClient, toFloor, zoomInVisible,
 } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
@@ -28,9 +28,12 @@ const markerOf = (config, id) => config.markers.find((m) => m.id === id);
 
 /** Devices editor, zoomed in so a marker is a comfortable mouse target. */
 async function devicesEditor(page) {
+  // Desktop editing journey: keep the native zoom controls exposed even with
+  // the real HA sidebar and Properties panel consuming header space (#1120).
+  await page.setViewportSize({ width: 1800, height: 1000 });
   const host = await openPlan(page, { space: 'f1' });
   await enterEditor(host, 'devices');
-  for (let i = 0; i < 3; i++) await host.locator(hp('zoom-in')).first().click();
+  await zoomInVisible(host);
   await settle(host);
   return host;
 }

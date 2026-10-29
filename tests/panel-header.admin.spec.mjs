@@ -20,7 +20,11 @@ async function browserSidebarPreference(page) {
 }
 async function setHiddenPreference(page, hidden) {
   const control = await browserSidebarPreference(page);
-  if (await control.isChecked() !== hidden) await control.click();
+  await expect(control).toBeEnabled();
+  // HA's native switch paints its thumb over the internal input. Click the
+  // custom-element host: its label activates that input through real pointer
+  // input. Keep the semantic input as the checked-state oracle (no force).
+  if (await control.isChecked() !== hidden) await page.locator('ha-force-narrow-row ha-switch').click();
   if (hidden) await expect(control).toBeChecked();
   else await expect(control).not.toBeChecked();
 }
@@ -48,6 +52,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
   // switch restores only the hidden boolean (auto and docked both read false);
   // closing the context discards browser preferences without changing saved auth.
   const original = await (await browserSidebarPreference(page)).isChecked();
+  let failed = false;
   try {
     await setHiddenPreference(page, false);
     const { panel, host, menu } = await ordinaryPanel(page);
@@ -121,9 +126,16 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await expectPlanDrawn(page, lovelace);
     await expect(lovelace.locator(HP.panelMenu)).toHaveCount(0);
     await evidence(testInfo, page, 'lovelace-has-no-houseplan-menu');
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    await page.setViewportSize({ width: 1920, height: 1000 });
-    await setHiddenPreference(page, original);
+    // A failed/timed-out test discards its whole BrowserContext. Do not mask
+    // the original failure with cleanup against an already closed page.
+    if (!failed && !page.isClosed()) {
+      await page.setViewportSize({ width: 1920, height: 1000 });
+      await setHiddenPreference(page, original);
+    }
   }
 });
 
