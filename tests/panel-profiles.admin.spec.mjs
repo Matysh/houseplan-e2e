@@ -25,7 +25,12 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expect(host.locator(hp('summary-toggle'))).toHaveCount(0);
   await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
-  await expect(host.locator(hp('mode-tab'))).toHaveCount(0);
+  // Admin mode buttons remain beneath the CSS-hidden kiosk header.
+  // Assert user-visible/editor accessibility, rather than DOM removal.
+  const hiddenModes = host.locator(hp('mode-tab'));
+  await expect(hiddenModes).toHaveCount(3);
+  for (const mode of await hiddenModes.all()) await expect(mode).toBeHidden();
+  await expect(host.getByRole('button', { name: /^(Plan|Device|Background) editor$/ })).toHaveCount(0);
   await expectSizes(page, host, 175, 150);
   expect(new URL(page.url()).searchParams.get('hpprofile')).toBe(String(fixture.id));
   await evidence(testInfo, page, 'cold-server-profile');
@@ -44,7 +49,14 @@ test('a native admin Save reaches a real read-only screen live with zero extra c
   // General settings materializes ordinary defaults on its first save. Do
   // that before opening the viewer so the measured edit is truly profile-only.
   let { dialog } = await profileSettings(page);
-  await saveProfileSettings(dialog, adminWire);
+  const prepareSave = dialog.locator(HP.dialogConfirm).first();
+  if (await prepareSave.isEnabled()) await saveProfileSettings(dialog, adminWire);
+  else {
+    await expect(prepareSave).toBeDisabled();
+    await expect(dialog.getByText('All changes saved', { exact: true })).toBeVisible();
+    await dialog.locator(HP.dialogCancel).first().click();
+    await expect(dialog).toBeHidden();
+  }
   await adminWire.settle();
   const context = await fixture.context(browser, 'viewer'), viewerPage = await context.newPage();
   const viewerWire = await profileWire(viewerPage), viewerHost = await openProfile(viewerPage, fixture.id);
