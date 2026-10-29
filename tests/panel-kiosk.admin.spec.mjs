@@ -53,6 +53,7 @@ test('1103-5 SPA, Back/Forward and foreign query preserve the mounted card, came
   await page.goBack();await expect(page).toHaveURL(/\/kiosk\/2\?foreign=/);await expectFloor(host,config.spaces[1]);
   await page.goForward();await expect(page).toHaveURL(/hpspace=2/);await expectFloor(host,config.spaces[1]);
   await navigateInApp(page,'/houseplan');await expect(host.locator(HP.editorTabs)).toHaveCount(3);
+  for(const editor of await host.locator(HP.editorTabs).all())await expect(editor).toBeVisible();
   const after=io.snapshot();expect(after.configGet).toBe(before.configGet);expect(after.layoutGet).toBe(before.layoutGet);expect(after.writes).toBe(before.writes);expect(after.navigations).toBe(before.navigations);
 });
 

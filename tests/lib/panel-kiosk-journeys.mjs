@@ -50,8 +50,12 @@ export async function openKiosk(page,url,space) {
 }
 export async function expectKiosk(host) {
   await expect(host.locator(HP.mode('view'))).toBeVisible();
-  for(const selector of [HP.editorTabs,HP.settings,HP.spaceAdd,hp('space-tab'),hp('space-select'),HP.panelMenu])
-    await expect(host.locator(selector)).toHaveCount(0);
+  for(const selector of [HP.editorTabs,HP.settings,HP.spaceAdd,hp('space-tab'),hp('space-select'),HP.panelMenu]){
+    // Kiosk hides the existing header as a whole. Its retained DOM is not
+    // an exposed control;1120 may also omit it completely.
+    for(const control of await host.locator(selector).all())await expect(control).toBeHidden();
+  }
+  await expect(host.getByRole('button').and(host.locator(HP.editorTabs))).toHaveCount(0);
   // #1120 supersedes #1103's former retained HA/panel outer appbar oracle.
   await expect(host.page().locator('houseplan-panel').locator(HP.panelTitle)).toHaveCount(0);
 }

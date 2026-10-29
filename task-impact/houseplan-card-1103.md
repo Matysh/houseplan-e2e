@@ -66,3 +66,16 @@ expectations. SKIP не принимается за PASS. Это не gate по�
 четыре #1113 profile journeys принадлежат отдельной companion change.
 Перед финальным run root синхронизирует accepted product DOM contract и точный
 candidate; локальная syntax/lint/list проверка не утверждает real-HA acceptance.
+
+
+### Header oracle correction from real-HA preflight
+
+The early profile run40790193176 proves that admin mode-tab buttons remain
+under the display:none kiosk header; its screenshot shows no exposed header.
+The shared kiosk helper now asserts every present header control is hidden
+and there are zero native accessible editor buttons. It also permits1120 to
+omit the header. Ordinary main-page exit positively requires all three editor
+buttons visible. Viewer ACL-render-nothing counts, real unauthorized config/set,
+server revision/no-write, empty-plan creation absence and painted-floor/camera
+assertions remain unchanged. This is an oracle correction, not a product change
+or real-HA PASS. Corrected kiosk beta4 behavior is still UNVERIFIED until CI.
