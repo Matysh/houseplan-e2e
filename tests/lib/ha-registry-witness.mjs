@@ -25,12 +25,20 @@ export function installHaRegistryWitness() {
     }
     return result;
   };
+  const staticCtorChain = ctor => {
+    const result = [];
+    for (let n = 0; ctor && n < 8; n++, ctor = Object.getPrototypeOf(ctor)) {
+      result.push({ constructor: id(ctor), name: typeof ctor === 'function' ? ctor.name : null });
+    }
+    return result;
+  };
   const registryState = registry => registry ? {
     object: id(registry), prototype: id(Object.getPrototypeOf(registry)),
     define: id(registry.define), get: id(registry.get), upgrade: id(registry.upgrade),
     whenDefined: id(registry.whenDefined),
     hpDialog: safe(() => id(registry.get('hp-dialog'))),
     hpDialogChain: safe(() => ctorChain(registry.get('hp-dialog'))),
+    hpDialogStaticChain: safe(() => staticCtorChain(registry.get('hp-dialog'))),
     houseplanCard: safe(() => id(registry.get('houseplan-card'))),
     homeAssistant: safe(() => id(registry.get('home-assistant'))),
     haIcon: safe(() => id(registry.get('ha-icon'))),
@@ -56,7 +64,7 @@ export function installHaRegistryWitness() {
       const key = String(id(registry)) + ':' + String(id(registry.whenDefined));
       if (!watched.has(key)) {
         watched.add(key);
-        safe(() => registry.whenDefined('hp-dialog').then(ctor => sample('hp-dialog-whenDefined:' + key, {definitionConstructor:id(ctor),definitionChain:ctorChain(ctor)}), error => sample('hp-dialog-whenDefined-rejected:' + key, {errorName:error?.name || 'Error'})));
+        safe(() => registry.whenDefined('hp-dialog').then(ctor => sample('hp-dialog-whenDefined:' + key, {definitionConstructor:id(ctor),definitionChain:ctorChain(ctor),definitionStaticChain:staticCtorChain(ctor)}), error => sample('hp-dialog-whenDefined-rejected:' + key, {errorName:error?.name || 'Error'})));
       }
     }
   };
