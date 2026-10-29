@@ -122,6 +122,9 @@ jobs:
           node scripts/ha.mjs up --version="$HA_VERSION" --dir="$PWD/run"
           node scripts/ha.mjs wait --timeout=480
 
+      - name: Фактическая версия HA и установленный frontend
+        run: node scripts/ha-public-version.mjs
+
       - name: "Сценарии: ${{ matrix.suite }}"
         run: npx playwright test ${{ matrix.projects }}
 
