@@ -1,7 +1,7 @@
 /** #1103: public DOM + real HA websocket seams, no private product state. */
 import {expect} from '@playwright/test';
-import {installedRecord,requireHooks} from './contract.mjs';
-import {compareTags} from '../../scripts/tags.mjs';
+import {requireHooks} from './contract.mjs';
+import {hasBeta4PanelContract} from './panel-release-contract.mjs';
 import {connect,planConfig,snapshotPlan,importDocument} from './ha-ws.mjs';
 import {card,expectPlanDrawn,navigateInApp} from './ha-page.mjs';
 import {HP,hp} from './hooks.mjs';
@@ -10,9 +10,8 @@ import {expectPanelShell} from './panel-shell.mjs';
 export {card,stage,settle,navigateInApp};
 
 export function requirePanelBeta4(test) {
-  const version=installedRecord()?.version;
-  test.skip(!!version&&compareTags(`v${version.replace(/^v/,'')}`,'v1.83.0-beta.4')<0,
-    '#1103/#1120 require installed beta4 or later; SKIP is not acceptance');
+  test.skip(!hasBeta4PanelContract(),
+    '#1103/#1120 require the installed panel contract; SKIP is not acceptance');
   // Unknown/foreign HA runs newest expectations, as the repository contract requires.
   requireHooks(test,'stage','room','mode-tab','dialog','settings-section','field');
 }

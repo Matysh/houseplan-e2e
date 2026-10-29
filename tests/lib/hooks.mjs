@@ -7,7 +7,7 @@
  * appeared. Hooks newer than the installed product are gated per scenario by
  * `requireHooks` (tests/lib/contract.mjs).
  */
-import { hp, root } from './contract.mjs';
+import { hp, root, historicalHp } from './contract.mjs';
 
 export { hp, root };
 
@@ -26,7 +26,7 @@ export const HP = {
   spaceTab: hp('space-tab'),
   spaceSettings: hp('space-settings'),
   panelMenu: hp('panel-menu'),
-  panelTitle: hp('panel-title'),
+  panelTitle: historicalHp('panel-title'),
   modeTab: (mode) => hp('mode-tab', { mode }),
   toolbar: (kind) => hp('toolbar', { kind }),
   tool: (id) => hp('tool', { tool: id }),

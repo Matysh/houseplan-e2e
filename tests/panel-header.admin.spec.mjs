@@ -9,7 +9,7 @@ import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 
-requireHooks(test, 'panel-menu', 'panel-title', 'stage', 'space-select', 'space-tab');
+requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab');
 
 async function browserSidebarPreference(page) {
   await page.goto('/profile/browser');
@@ -40,7 +40,7 @@ async function menuTarget(menu) {
 const sidebarEntry = page => page.locator('ha-sidebar a[href="/houseplan"]');
 
 test('the native HA menu follows width and the real sidebar preference, and stays outside Lovelace', async ({ page }, testInfo) => {
-  test.skip(!hasBeta4PanelContract(), 'the released beta.3 header predates #1120; a skip is not beta.4 proof');
+  test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1920, height: 1000 });
   // Playwright gives this test its own disposable BrowserContext. The native

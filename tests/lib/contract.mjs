@@ -146,6 +146,17 @@ const attrName = (key) => (key.startsWith('data-') ? key : `data-${key}`);
  */
 const IDENTITY = new Set(['data-id', 'data-kind', 'data-entity', 'data-area']);
 
+/** Historical selector for explicit absence checks and older-product branches.
+ * Ordinary hp()/requireHooks() stay strict: retirement is not a live hook. */
+export function historicalHp(name, contract = CONTRACT) {
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('invalid historical hook name');
+  const retired = contract.retiredHooks?.[name];
+  if (!contract.hooks?.[name] && !(typeof retired?.retired === 'string' && retired.retired)) {
+    throw new Error(`historical hook ${name} is not declared or retired in the contract`);
+  }
+  return `[data-hp="${name}"]`;
+}
+
 /**
  * `[data-hp="name"][data-…="…"]`, checked against the contract when the
  * selector is built: an undeclared hook, attribute or closed-enum value throws

@@ -4,7 +4,7 @@
  * shorthands, `requireHooks(test, …)` — is run through the same builder the
  * tests use at run time (tests/lib/contract.mjs), before any HA is started.
  */
-import { CONTRACT, hp, root } from '../tests/lib/contract.mjs';
+import { CONTRACT, hp, root, historicalHp } from '../tests/lib/contract.mjs';
 
 const SHORTHANDS = {
   tool: ['tool', 'tool'], modeTab: ['mode-tab', 'mode'], toolbar: ['toolbar', 'kind'],
@@ -35,6 +35,9 @@ export function lintText(text, file = '<text>', contract = CONTRACT) {
   }
   for (const m of text.matchAll(/\bhp\(\s*'([a-z0-9-]+)'\s*(?:,\s*\{([^}]*)\})?/g)) {
     check(`hp('${m[1]}')`, () => hp(m[1], literalAttrs(m[2])));
+  }
+  for (const m of text.matchAll(/\bhistoricalHp\(\s*'([a-z0-9-]+)'/g)) {
+    check(`historicalHp('${m[1]}')`, () => historicalHp(m[1], contract));
   }
   for (const m of text.matchAll(/\bHP\.(tool|modeTab|toolbar|dialog|field|action)\(\s*'([^']+)'/g)) {
     const [hook, attr] = SHORTHANDS[m[1]];
