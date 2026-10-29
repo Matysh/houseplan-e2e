@@ -31,3 +31,38 @@ fixture в `tests/lib/static-sync.mjs`; четыре обычных fixture/priv
 старому A и отсутствие выдуманной доставки B. Это не автоматический reconnect
 фронтенда HA. Финальный кандидат/CI URL и фактические результаты будут записаны
 после выполнения, до публикации беты.
+
+
+## Exact beta.4 real-HA attempt and fixture correction (2026-10-29)
+
+Primary run https://github.com/Matysh/houseplan-e2e/actions/runs/40914798383
+used product9ac47094bfa6b70f31db6490b53101248c81c90a, companionc2a209170ab22739c2db8d8e5a1d7bb7ecd8b0a6,
+HA2026.10.4 and runtimedb22631f8dffce327662c122343d4c921f036b08d153a1b63c45a9e9ddaeb125.
+All five Static scenarios executed: native five-drags PASS; the other four FAIL
+at the shared fixture writePosition readback, first/retry both. The actual server
+canonicalized x0.38166666666666665 to0.381666667; the fixture demanded the raw
+binary fraction. Full journeys outcome70PASS/5FAIL/0skip/0flaky also includes
+one independent bootstrap-selector failure, recorded with #1125. Original RED
+and artifact12916247130 (SHA25677c5fff1a344d20c3612e2cfa7bf28bc61d111cccc5696726116cbda08a213da)
+are preserved; this attempt is not relabelled successful.
+
+The existing product protocol is explicit in coordinate_canonicalization.py:
+COORDINATE_DECIMALS=9; canonicalize_lattice_coordinate preserves exact near-node
+k/240 values, otherwise canonicalizes an off-grid scalar to nine decimals.
+canonicalize_layout_geometry applies only to x/y and preserves metadata.
+The shared pure backend fixture and its4801-node parity test protect that contract.
+The fixture now chooses already-canonical three-decimal x/y inputs before the
+real write. Any near1/240 node at this precision is a .025 multiple and retains
+its exact representation; no backend canonicalizer is duplicated. The original
+complete toEqual on the unmodified actual readback is unchanged.
+Rev/ACK, all fields, shared GET counts, event order, old-read refusal, values and
+connection handoff oracles are unchanged; no tolerance or timing limit increased.
+
+Pure external cross-runtime verification covers every three-decimal input in
+[0,1], all existing test offsets, metadata preservation and rejection of a wrong
+tenth-decimal readback. The original failing binary-fraction input is retained
+as the negative explanation, not a new tolerance. Joint `npm run test:unit`
+passed58/58, `npm run contract:lint` passed47files, and
+`npx playwright test --list` discovered78tests/31files. A fresh complete real-HA
+run on the final candidate remains pending until the companion is published.
+No server behavior or product source was changed by this repair.

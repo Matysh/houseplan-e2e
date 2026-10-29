@@ -86,7 +86,11 @@ async function writePosition(id = SOURCE, offset = .02) {
   const [config, layout] = await Promise.all([planConfig(), planLayout()]);
   const old = layout.layout[id];
   if (!old) throw new Error(`seed marker ${id} has no stored layout`);
-  const position = { ...old, x: old.x + offset, y: old.y + offset / 2 };
+  // Static sync tests transport/revisions, not sub-nanometre float storage.
+  // Send already-canonical 3-decimal coordinates (#224/#431/#440); any near
+  // 1/240 node at this precision is an exact .025 multiple. Readback stays exact.
+  const position = { ...old,
+    x: Number((old.x + offset).toFixed(3)), y: Number((old.y + offset / 2).toFixed(3)) };
   const ack = await wsCall({ type: 'houseplan/layout/set', expected_rev: layout.rev,
     expected_config_rev: config.rev, layout: { ...layout.layout, [id]: position } });
   expect(Number.isSafeInteger(ack.rev)).toBe(true);

@@ -46,7 +46,8 @@ e2e-106-journeys-ha-stable ID12896771680, SHA256
 Новый tests/ha-bootstrap.admin.spec.mjs повторяет холодный/повторный вход,
 задерживает только исходный HA app request и обычными действиями открывает
 Settings/Maintenance и предпросмотр настоящего ZIP. Constructor errors
-запрещены; Cancel закрывает обе формы, config/layout и ревизии остаются прежними.
+запрещены; Cancel закрывает предпросмотр, штатный крестик закрывает Settings,
+config/layout и ревизии остаются прежними.
 Контроль положительного изменения масштаба/камеры из #1120 не затронут.
 
 Этот case впервые исполняется на beta.4: известная beta.3 и старше получают
@@ -58,3 +59,34 @@ version/установленного frontend, без auth/config.
 Перед публикацией обязателен полный прогон точного конечного beta.4 кандидата
 с исполнением этого case и всех пяти #1112 static cases. Его результат
 фиксируется в задачах и release evidence; source-positive выше его не заменяет.
+
+## Первая полная beta.4 проверка и исправление фикстуры
+
+[Полный HA40914798383](https://github.com/Matysh/houseplan-e2e/actions/runs/40914798383)
+на source9ac47094bfa6b70f31db6490b53101248c81c90a и companionc2a2091:
+journeys70PASS/5FAIL/0skip/0flaky; first-run4/4PASS, upgrade3/3PASS.
+Фактический HA2026.10.4, frontenddb22631f8dffce327662c122343d4c921f036b08d153a1b63c45a9e9ddaeb125.
+
+Новый bootstrap case в обеих попытках дошёл до настоящего ZIP-предпросмотра,
+проверил его содержимое и закрыл Cancel. Затем ошибочно искал текст Cancel
+у кнопки закрытия родительских Settings и исчерпал90s. Это не положительный
+результат всего case: второй вход и конечные проверки ещё не исполнялись.
+Остальные четыре отказа относятся к Static и отдельно записаны в #1112.
+
+Продуктовый src/hp-dialog.ts799–801 объявляет `data-hp="dialog-cancel"` у
+крестика с aria-label Close и иконкой; general-settings-dialog.ts99–100
+использует этот hp-dialog и обычный hp-close. У крестика нет текста Cancel.
+Исправлена только фикстура закрытия: тот же публичный hook, `.first().click()`
+вместо фильтра по отсутствующему тексту. Это соответствует уже имеющемуся
+`cancelIn()` в tests/lib/hooks.mjs. Задержка настоящего app600ms, два входа,
+реальный ZIP, запрет Illegal constructor и полное равенство config/layout/rev
+сохранены; skip/timeout/бюджеты не менялись.
+
+Финальный полный HA на точном source08b154115ff815062cfc0221f39f7e53545dbe45
+после публикации исправленного companion пока PENDING; первоначальный RED
+и его артефакт12916247130 с SHA256
+77c5fff1a344d20c3612e2cfa7bf28bc61d111cccc5696726116cbda08a213da сохранены.
+
+Совместные проверки исправленных фикстур: `npm run test:unit`58/58PASS,
+`npm run contract:lint`47filesPASS, `npx playwright test --list`78tests/31files.
+Эти проверки не исполняют настоящий HA и не заменяют предстоящий полный прогон.

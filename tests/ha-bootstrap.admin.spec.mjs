@@ -35,7 +35,7 @@ test('settings and import dialogs survive a late genuine HA bootstrap on cold an
     await evidence(info, page, `late-bootstrap-${entry}-dialog`);
     await footerCancel(dialog).click();
     await expect(dialog).toBeHidden();
-    await settings.locator(HP.dialogCancel).filter({ hasText: /cancel/i }).last().click();
+    await settings.locator(HP.dialogCancel).first().click();
     await expect(settings).toBeHidden();
   }
   expect(requests, 'both real document entries exercised the genuine delayed app resource').toHaveLength(2);
