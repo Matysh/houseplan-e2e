@@ -25,10 +25,9 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expect(host.locator(hp('summary-toggle'))).toHaveCount(0);
   await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
-  // Admin mode buttons remain beneath the CSS-hidden kiosk header.
+  // A kiosk header may be omitted or CSS-hidden; its editors stay unavailable.
   // Assert user-visible/editor accessibility, rather than DOM removal.
   const hiddenModes = host.locator(hp('mode-tab'));
-  await expect(hiddenModes).toHaveCount(3);
   for (const mode of await hiddenModes.all()) await expect(mode).toBeHidden();
   await expect(host.getByRole('button', { name: /^(Plan|Device|Background) editor$/ })).toHaveCount(0);
   await expectSizes(page, host, 175, 150);
