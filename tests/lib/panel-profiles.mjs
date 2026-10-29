@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import { USERS, HA_URL } from '../../scripts/users.mjs';
 import { hp, HP } from './hooks.mjs';
 import { card, expectPlanDrawn } from './ha-page.mjs';
-import { centreOf, settle, stage } from './plan.mjs';
-import { planConfig, planLayout, wsCall } from './ha-ws.mjs';
+import { settle, stage } from './plan.mjs';
+import { planConfig, wsCall } from './ha-ws.mjs';
 
 export const PROFILE_HOOKS = ['external-screen-add', 'external-screen-edit', 'external-screen-delete',
   'external-screen-ok', 'settings-section', 'field', 'dialog', 'select-trigger', 'select-menu',
@@ -45,17 +45,7 @@ export class ProfileFixture {
     const current = await planConfig();
     expect(profileOf(current.config, id)).toEqual(this.profile);
     this.rooms = Object.fromEntries(current.config.spaces.map(space => [space.id, space.rooms.map(room => room.id).sort()]));
-    const layout = (await planLayout()).layout;
-    const candidates = current.config.markers.filter(marker => marker.space === 'f2' && marker.id !== HIDDEN_MARKER
-      && !marker.hidden && layout[marker.id]);
-    this.anchors = null;
-    for (const a of candidates) for (const b of candidates) {
-      if (a.id !== b.id && Math.hypot(layout[a.id].x - layout[b.id].x, layout[a.id].y - layout[b.id].y) > .15) {
-        this.anchors = [a.id, b.id]; break;
-      }
-      if (this.anchors) break;
-    }
-    expect(this.anchors, 'two separated real marker anchors on f2').toBeTruthy();
+
   }
   ownProfile(id) { this.createdIds.add(id); }
   async readOnlyViewer() {
@@ -272,13 +262,21 @@ export async function setLocalSizes(page, host, icon, text) {
   }
   await dialog.locator(HP.dialogCancel).first().click(); await expect(dialog).toBeHidden();
 }
-/** Visible orientation only, using two declared marker boxes; no production
- * rotation property or duplicate floor/projection implementation. */
-export async function markerDirection(host, ids) {
+/** Direction of the visible floor plane, measured through a declared ROOM
+ * shape's native SVG matrix. No private rotation or copied geometry formula. */
+export async function planDirection(host, roomId) {
   await settle(host);
-  const a = await centreOf(host.locator(hp('device', { id: ids[0] })).first());
-  const b = await centreOf(host.locator(hp('device', { id: ids[1] })).first());
-  return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  const room = host.locator(hp('room', { id: roomId })).first();
+  await expect(room).toBeVisible();
+  const vector = await room.evaluate(shape => {
+    const matrix = shape.getScreenCTM();
+    if (!matrix) throw new Error('visible room has no screen matrix');
+    const origin = new DOMPoint(0, 0).matrixTransform(matrix);
+    const axis = new DOMPoint(1, 0).matrixTransform(matrix);
+    return { x: axis.x - origin.x, y: axis.y - origin.y };
+  });
+  expect(Math.hypot(vector.x, vector.y), 'visible room has a nonzero floor axis').toBeGreaterThan(0);
+  return Math.atan2(vector.y, vector.x) * 180 / Math.PI;
 }
 export function expectQuarterTurn(before, after, degrees = 90) {
   const delta = ((after - before) % 360 + 360) % 360;
@@ -287,6 +285,18 @@ export function expectQuarterTurn(before, after, degrees = 90) {
 export function withoutProfiles(config) {
   const result = structuredClone(config); delete result.settings.external_screens; return result;
 }
+/** Diagnostic JSON paths only. Config values never enter this receipt. */
+export function changedPaths(before, after, path = '') {
+  if (Object.is(before, after)) return [];
+  if (before === null || after === null || typeof before !== 'object' || typeof after !== 'object'
+    || Array.isArray(before) !== Array.isArray(after)) return [path || '/'];
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+  return keys.flatMap(key => {
+    const next = `${path}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`;
+    return !(key in before) || !(key in after) ? [next] : changedPaths(before[key], after[key], next);
+  });
+}
+
 export async function attachProfileReceipt(testInfo, name, wire) {
   await testInfo.attach(name, { body: JSON.stringify(wire.receipt, null, 2), contentType: 'application/json' });
 }
