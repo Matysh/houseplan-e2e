@@ -7,6 +7,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
+import { expectPanelShell } from './lib/panel-shell.mjs';
 
 requireHooks(test, 'panel-menu', 'panel-title', 'stage', 'space-select', 'space-tab');
 
@@ -26,7 +27,7 @@ async function ordinaryPanel(page) {
   await page.goto('/houseplan');
   const panel = page.locator('houseplan-panel'), host = panel.locator('houseplan-card');
   await expectPlanDrawn(page, host);
-  await expect(panel.locator(HP.panelTitle)).toHaveCount(0);
+  await expectPanelShell(panel, host);
   return { panel, host, menu: host.locator(HP.panelMenu).first() };
 }
 async function menuTarget(menu) {

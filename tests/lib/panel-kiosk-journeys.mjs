@@ -6,6 +6,7 @@ import {connect,planConfig,snapshotPlan,importDocument} from './ha-ws.mjs';
 import {card,expectPlanDrawn,navigateInApp} from './ha-page.mjs';
 import {HP,hp} from './hooks.mjs';
 import {stage,settle} from './plan.mjs';
+import {expectPanelShell} from './panel-shell.mjs';
 export {card,stage,settle,navigateInApp};
 
 export function requirePanelBeta4(test) {
@@ -57,7 +58,11 @@ export async function expectKiosk(host) {
   }
   await expect(host.getByRole('button').and(host.locator(HP.editorTabs))).toHaveCount(0);
   // #1120 supersedes #1103's former retained HA/panel outer appbar oracle.
-  await expect(host.page().locator('houseplan-panel').locator(HP.panelTitle)).toHaveCount(0);
+  const panel=host.page().locator('houseplan-panel');
+  if(await panel.count()) {
+    await expectPanelShell(panel,host);
+    for(const menu of await panel.locator(HP.panelMenu).all())await expect(menu).toBeHidden();
+  }
 }
 export const camera=host=>stage(host).evaluate(svg=>{
   const m=svg.getScreenCTM();return {viewBox:svg.getAttribute('viewBox'),matrix:[m.a,m.b,m.c,m.d,m.e,m.f]};

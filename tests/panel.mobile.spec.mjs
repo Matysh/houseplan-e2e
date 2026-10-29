@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
 import { expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP } from './lib/hooks.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
+import { expectPanelShell } from './lib/panel-shell.mjs';
 
 test('sidebar page on a phone draws the plan and opens the drawer', async ({ page }) => {
   await page.goto('/houseplan');
@@ -21,7 +22,7 @@ test('sidebar page on a phone draws the plan and opens the drawer', async ({ pag
   if (hasBeta4PanelContract()) {
     // The menu belongs to the card; an outer title no longer reserves 56px.
     await expect(panel.locator('houseplan-card').locator(HP.panelMenu)).toHaveCount(1);
-    await expect(panel.locator(HP.panelTitle)).toHaveCount(0);
+    await expectPanelShell(panel, panel.locator('houseplan-card'));
     const target = await menu.boundingBox();
     expect(target.width).toBeGreaterThanOrEqual(44);
     expect(target.height).toBeGreaterThanOrEqual(44);

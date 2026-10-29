@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test';
 import { callService, waitForState } from './lib/ha-api.mjs';
 import { requireHooks } from './lib/contract.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
+import { expectPanelShell } from './lib/panel-shell.mjs';
 import { card, deviceMarker, editorTabs, expectPlanDrawn, spaceEntries, spaceTabs } from './lib/ha-page.mjs';
 import { hp } from './lib/hooks.mjs';
 
@@ -30,6 +31,7 @@ test.describe('House Plan sidebar panel', () => {
     // duplicates the product title
     await expect(editorTabs(host)).toHaveCount(3);
     await expect(panel.locator('[role="heading"]')).toHaveCount(hasBeta4PanelContract() ? 0 : 1);
+    if (hasBeta4PanelContract()) await expectPanelShell(panel, host);
   });
 
   test('lists the spaces in one select on this window and as tabs on a wide one', async ({ page }) => {
