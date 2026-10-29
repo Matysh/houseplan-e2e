@@ -20,9 +20,35 @@ import { planConfig, planLayout, wsCall } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { action, field, selectSpace } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
+import { installHaRegistryWitness } from './lib/ha-registry-witness.mjs';
 
 requireHooks(test, 'action', 'field', 'settings-section', 'toast@data-id');
 restoreSeedAfterEach(test);
+
+// Diagnostic branch only (#1125). Default execution has no instrumentation.
+// The observer reads public identities; it never patches HA registration.
+const registryObservations = new WeakMap();
+test.beforeEach(async ({ page }) => {
+  if (process.env.HP_HA_REGISTRY_WITNESS !== '1') return;
+  const receipt = { samples: [], illegalConstructors: [] };
+  registryObservations.set(page, receipt);
+  page.on('console', message => {
+    const prefix = '[HP_HA_REGISTRY_WITNESS] ', value = message.text();
+    if (value.startsWith(prefix) && receipt.samples.length < 256) {
+      try { receipt.samples.push(JSON.parse(value.slice(prefix.length))); } catch { /* malformed diagnostic is not evidence */ }
+    }
+  });
+  page.on('pageerror', error => {
+    if (error.message.includes('Illegal constructor')) receipt.illegalConstructors.push({ name: error.name, message: error.message });
+  });
+  await page.addInitScript(installHaRegistryWitness);
+});
+test.afterEach(async ({ page }, info) => {
+  const receipt = registryObservations.get(page);
+  if (!receipt) return;
+  await info.attach('ha-registry-passive-witness', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' });
+  expect(receipt.illegalConstructors, 'a recovered retry cannot erase a real constructor error').toHaveLength(0);
+});
 
 const toast = (host, id) => host.locator(hp('toast', { id }));
 const byId = (list, id) => list.find((item) => item.id === id);

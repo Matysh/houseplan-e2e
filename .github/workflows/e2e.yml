@@ -34,7 +34,11 @@ on:
         required: false
         default: stable
       journeys_test:
-        description: "Diagnostic branch only: empty means FULL; optional tests/panel-kiosk.mobile.spec.mjs"
+        description: "Diagnostic branch only: empty means FULL; optional mobile kiosk or transfer-import spec"
+        required: false
+        default: ""
+      registry_witness:
+        description: "Diagnostic branch only: passive public HA constructor identities, no patches"
         required: false
         default: ""
   schedule:
@@ -96,6 +100,7 @@ jobs:
       # Diagnostic branch only: keep ordinary test failures local to Actions.
       TG_BOT_TOKEN: ''
       TG_CHAT_ID: ''
+      HP_HA_REGISTRY_WITNESS: ${{ inputs.registry_witness == 'true' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -137,7 +142,7 @@ jobs:
           set -euo pipefail
           if [ "${{ matrix.suite }}" = journeys ] && [ -n "$FOCUSED_TEST" ]; then
             case "$FOCUSED_TEST" in
-              tests/panel-kiosk.mobile.spec.mjs) ;;
+              tests/panel-kiosk.mobile.spec.mjs|tests/transfer-import.admin.spec.mjs) ;;
               *) echo "Unsupported diagnostic selector"; exit 2 ;;
             esac
             echo "TARGETED DIAGNOSTIC ONLY: $FOCUSED_TEST; not full journeys proof"
