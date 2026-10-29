@@ -33,6 +33,10 @@ on:
         description: "Тег образа ghcr.io/home-assistant/home-assistant"
         required: false
         default: stable
+      journeys_test:
+        description: "Diagnostic branch only: empty means FULL; optional tests/panel-kiosk.mobile.spec.mjs"
+        required: false
+        default: ""
   schedule:
     - cron: "0 3 * * *"   # ночью: свежая бета House Plan на stable и beta HA
 
@@ -127,7 +131,20 @@ jobs:
         run: node scripts/ha-public-version.mjs
 
       - name: "Сценарии: ${{ matrix.suite }}"
-        run: npx playwright test ${{ matrix.projects }}
+        env:
+          FOCUSED_TEST: ${{ inputs.journeys_test }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.suite }}" = journeys ] && [ -n "$FOCUSED_TEST" ]; then
+            case "$FOCUSED_TEST" in
+              tests/panel-kiosk.mobile.spec.mjs) ;;
+              *) echo "Unsupported diagnostic selector"; exit 2 ;;
+            esac
+            echo "TARGETED DIAGNOSTIC ONLY: $FOCUSED_TEST; not full journeys proof"
+            npx playwright test "$FOCUSED_TEST" ${{ matrix.projects }}
+          else
+            npx playwright test ${{ matrix.projects }}
+          fi
 
       - name: Логи HA
         if: always()
