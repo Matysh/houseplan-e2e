@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test';
 import { expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP } from './lib/hooks.mjs';
+import { hasOverflowPanelHeader } from './lib/panel-release-contract.mjs';
 
 test('sidebar page on a phone draws the plan and opens the drawer', async ({ page }) => {
   await page.goto('/houseplan');
@@ -16,6 +17,17 @@ test('sidebar page on a phone draws the plan and opens the drawer', async ({ pag
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 
-  await panel.locator(HP.panelMenu).first().tap();
+  const menu = panel.locator(HP.panelMenu).first();
+  if (hasOverflowPanelHeader()) {
+    // The menu belongs to the card; an outer title no longer reserves 56px.
+    await expect(panel.locator('houseplan-card').locator(HP.panelMenu)).toHaveCount(1);
+    await expect(panel.locator(HP.panelTitle)).toHaveCount(0);
+    const target = await menu.boundingBox();
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('ha-sidebar a[href="/houseplan"]')).not.toBeInViewport();
+  }
+  await menu.tap();
   await expect(page.locator('ha-sidebar')).toBeVisible();
+  if (hasOverflowPanelHeader()) await expect(page.locator('ha-sidebar a[href="/houseplan"]')).toBeInViewport({ ratio: 0.9 });
 });

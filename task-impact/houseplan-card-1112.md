@@ -15,3 +15,19 @@ A real HA dashboard run should prove:
 Implementation and execution of companion E2E stay in the next beta preparation, not this source task. No HA harness/test code was changed here.
 
 Accepted: source43ee3364ea4e58668279a2faf68254c4afc1f63a; devccc62ef113c53f6de4c97e3b09ca7c1b56be9a81. CODE r1 GREEN H0/M0: https://github.com/Matysh/houseplan-card/issues/1112#issuecomment-6466727640 . Auto-merge:6466735777; exact CI40670479506 SUCCESS. Native7/7 was independently re-executed by the reviewer on final SHA.
+
+## Подготовка реализации перед beta.4 — 29.10.2026
+
+Пять путешествий подготовлены в `tests/static-sync.admin.spec.mjs`, transport/HA
+fixture в `tests/lib/static-sync.mjs`; четыре обычных fixture/privacy/gate unit —
+в `test/static-sync.test.mjs`. Локальные syntax/contract-lint/unit4/4 и обнаружение
+пяти Playwright тестов прошли. Это **не PASS настоящего HA/браузера**: исполнение
+ожидает точного beta.4 кандидата в GitHub Actions. На beta.3 сценарии честно
+пропускаются; такой skip не является доказательством новой функциональности.
+
+Пятый сценарий — публичная передача того же owned host с A на отдельное реально
+аутентифицированное соединение B. Ответы HA остаются настоящими; пока GET B
+удержаны, B ещё не подписан на события, поэтому проверяется реальная доставка
+старому A и отсутствие выдуманной доставки B. Это не автоматический reconnect
+фронтенда HA. Финальный кандидат/CI URL и фактические результаты будут записаны
+после выполнения, до публикации беты.

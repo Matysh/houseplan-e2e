@@ -5,6 +5,7 @@
 import { test, expect } from '@playwright/test';
 import { callService, waitForState } from './lib/ha-api.mjs';
 import { requireHooks } from './lib/contract.mjs';
+import { hasOverflowPanelHeader } from './lib/panel-release-contract.mjs';
 import { card, deviceMarker, editorTabs, expectPlanDrawn, spaceEntries, spaceTabs } from './lib/ha-page.mjs';
 import { hp } from './lib/hooks.mjs';
 
@@ -20,8 +21,7 @@ test.describe('House Plan sidebar panel', () => {
     const host = panel.locator('houseplan-card');
     const stage = await expectPlanDrawn(page, host);
     const viewport = page.viewportSize();
-    // full page: the stage takes the viewport minus the two headers, not a
-    // dashboard column and not 0 px
+    // The panel owns a usable full-height plan rather than a dashboard column.
     expect(stage.height).toBeGreaterThan(viewport.height * 0.6);
     expect(stage.width).toBeGreaterThan(viewport.width * 0.6);
 
@@ -29,25 +29,25 @@ test.describe('House Plan sidebar panel', () => {
     // an administrator gets the three editors; nothing else in the page
     // duplicates the product title
     await expect(editorTabs(host)).toHaveCount(3);
-    await expect(panel.locator('[role="heading"]')).toHaveCount(1);
+    await expect(panel.locator('[role="heading"]')).toHaveCount(hasOverflowPanelHeader() ? 0 : 1);
   });
 
   test('lists the spaces in one select on this window and as tabs on a wide one', async ({ page }) => {
     requireHooks(test, 'space-select', 'space-select-value', 'space-tab@data-space');
+    if (hasOverflowPanelHeader()) await page.setViewportSize({ width: 640, height: 900 });
     await page.goto('/houseplan');
     const host = card(page);
     await expectPlanDrawn(page, host);
-    // houseplan-card#997: a header 1024 px wide or narrower — 1280 px minus
-    // HA's open sidebar — offers the spaces in one compact select
+    // #1120 uses content overflow. These dimensions exercise both forms with
+    // the same roster; they are test inputs rather than product breakpoints.
     await expect(host.locator(hp('space-select')).first()).toBeVisible();
     await expect(spaceTabs(host)).toHaveCount(0);
     const options = host.locator(`${hp('space-select-value')} option`);
     await expect.poll(() => options.count()).toBeGreaterThanOrEqual(3);
     const listed = await options.evaluateAll((all) => all.map((o) => o.value));
 
-    // wider than 1024 px the ordinary tabs come back: the same spaces, in the
-    // same order, and no select
-    await page.setViewportSize({ width: 1600, height: 900 });
+    // With enough room ordinary tabs return in the same order.
+    await page.setViewportSize({ width: hasOverflowPanelHeader() ? 1920 : 1600, height: 900 });
     await expect(spaceTabs(host)).toHaveCount(listed.length);
     expect(await spaceTabs(host).evaluateAll((all) => all.map((t) => t.dataset.space))).toEqual(listed);
     await expect(host.locator(hp('space-select'))).toHaveCount(0);
