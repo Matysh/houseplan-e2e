@@ -7,7 +7,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
-import { expectPanelShell } from './lib/panel-shell.mjs';
+import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 
 requireHooks(test, 'panel-menu', 'panel-title', 'stage', 'space-select', 'space-tab');
 
@@ -60,7 +60,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await expectPlanDrawn(page, host);
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await menu.click();
-    await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+    await expectNativeDrawerEntry(page);
     await page.keyboard.press('Escape');
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await evidence(testInfo, page, 'native-ha-narrow-menu');
@@ -86,14 +86,14 @@ test('the native HA menu follows width and the real sidebar preference, and stay
       await expect(sidebarEntry(page)).not.toBeInViewport();
       expect(await host.evaluate((el, previous) => el === previous, mounted)).toBe(true);
       await menu.click();
-      await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+      await expectNativeDrawerEntry(page);
       await page.keyboard.press('Escape');
       await expect(sidebarEntry(page)).not.toBeInViewport();
       await panel.evaluate(el => el.dispatchEvent(new CustomEvent('hass-dock-sidebar', {
         detail: { dock: 'auto' }, bubbles: true, composed: true,
       })));
       await expect(menu).toBeHidden();
-      await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+      await expectNativeDrawerEntry(page);
       expect(await host.evaluate((el, previous) => el === previous, mounted)).toBe(true);
       expect(page.url()).toBe(beforeUrl);
       expect(navigations).toBe(0);
@@ -110,7 +110,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     const firstSpace = await spaceEntries(hidden.host).first().boundingBox();
     expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(firstSpace.x + 1);
     await hidden.menu.click();
-    await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+    await expectNativeDrawerEntry(page);
     await page.keyboard.press('Escape');
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await evidence(testInfo, page, 'native-ha-wide-hidden-sidebar-menu');

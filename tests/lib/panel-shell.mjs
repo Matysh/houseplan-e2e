@@ -19,3 +19,12 @@ export async function expectPanelShell(panel, host) {
   }, { message: 'card fills the panel height without an outer appbar reserve' })
     .toBeLessThanOrEqual(1);
 }
+
+/** The custom panel entry can be below the fold in HA's own scrollable menu. */
+export async function expectNativeDrawerEntry(page) {
+  const entry = page.locator('ha-sidebar a[href="/houseplan"]');
+  // A native scroll makes the oracle independent of sidebar ordering. It does
+  // not click/focus the entry or send a menu event; the drawer must already open.
+  await entry.scrollIntoViewIfNeeded();
+  await expect(entry).toBeInViewport({ ratio: 0.9 });
+}

@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 import { expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP } from './lib/hooks.mjs';
 import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
-import { expectPanelShell } from './lib/panel-shell.mjs';
+import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 
 test('sidebar page on a phone draws the plan and opens the drawer', async ({ page }) => {
   await page.goto('/houseplan');
@@ -30,5 +30,5 @@ test('sidebar page on a phone draws the plan and opens the drawer', async ({ pag
   }
   await menu.tap();
   await expect(page.locator('ha-sidebar')).toBeVisible();
-  if (hasBeta4PanelContract()) await expect(page.locator('ha-sidebar a[href="/houseplan"]')).toBeInViewport({ ratio: 0.9 });
+  if (hasBeta4PanelContract()) await expectNativeDrawerEntry(page);
 });
