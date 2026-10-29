@@ -30,7 +30,9 @@ restoreSeedAfterEach(test);
 const registryObservations = new WeakMap();
 test.beforeEach(async ({ page }) => {
   if (process.env.HP_HA_REGISTRY_WITNESS !== '1') return;
-  const receipt = { samples: [], illegalConstructors: [] };
+  const delayMs = Number(process.env.HP_HA_BOOTSTRAP_DELAY_MS || 0);
+  expect([0, 600], 'bounded diagnostic timing input').toContain(delayMs);
+  const receipt = { samples: [], illegalConstructors: [], delayMs, observedAppRequests: 0 };
   registryObservations.set(page, receipt);
   page.on('console', message => {
     const prefix = '[HP_HA_REGISTRY_WITNESS] ', value = message.text();
@@ -42,11 +44,20 @@ test.beforeEach(async ({ page }) => {
     if (error.message.includes('Illegal constructor')) receipt.illegalConstructors.push({ name: error.name, message: error.message });
   });
   await page.addInitScript(installHaRegistryWitness);
+  // Exact genuine HA2026.10.4 resource identified in the original failure.
+  // Route registration disables browser caching in both0/600 timing inputs;
+  // continue fetches the original server response with no body replacement.
+  await page.route('**/frontend_latest/app.d6c28fc2e48aeea4.js', async route => {
+    receipt.observedAppRequests++;
+    if (delayMs) await new Promise(resolve => setTimeout(resolve, delayMs));
+    await route.continue();
+  });
 });
 test.afterEach(async ({ page }, info) => {
   const receipt = registryObservations.get(page);
   if (!receipt) return;
   await info.attach('ha-registry-passive-witness', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' });
+  expect(receipt.observedAppRequests, 'the exact genuine bootstrap route was exercised').toBeGreaterThan(0);
   expect(receipt.illegalConstructors, 'a recovered retry cannot erase a real constructor error').toHaveLength(0);
 });
 

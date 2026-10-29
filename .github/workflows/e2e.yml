@@ -41,6 +41,10 @@ on:
         description: "Diagnostic branch only: passive public HA constructor identities, no patches"
         required: false
         default: ""
+      bootstrap_delay_ms:
+        description: "Diagnostic branch only: empty or 600; delay genuine observed HA app request without changing bytes"
+        required: false
+        default: ""
   schedule:
     - cron: "0 3 * * *"   # ночью: свежая бета House Plan на stable и beta HA
 
@@ -101,6 +105,7 @@ jobs:
       TG_BOT_TOKEN: ''
       TG_CHAT_ID: ''
       HP_HA_REGISTRY_WITNESS: ${{ inputs.registry_witness == 'true' && '1' || '' }}
+      HP_HA_BOOTSTRAP_DELAY_MS: ${{ inputs.bootstrap_delay_ms }}
     steps:
       - uses: actions/checkout@v4
 
