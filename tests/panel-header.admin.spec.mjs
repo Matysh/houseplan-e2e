@@ -49,7 +49,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
   const original = await (await browserSidebarPreference(page)).isChecked();
   try {
     await setHiddenPreference(page, false);
-    const { host, menu } = await ordinaryPanel(page);
+    const { panel, host, menu } = await ordinaryPanel(page);
     // Wide auto/docked HA keeps its own sidebar; House Plan adds no duplicate.
     await expect(menu).toBeHidden();
 
@@ -68,6 +68,40 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await page.setViewportSize({ width: 1920, height: 1000 });
     await expect(menu).toBeHidden();
     await expectPlanDrawn(page, host);
+
+    // Separate lifecycle witness through HA's public event port. The native
+    // switch lives on another page; this is deliberately not called a UI click.
+    // HA's real sidebar-mixin receives the same event and updates its provider.
+    // Sources: frontend/20260930.5 src/state/sidebar-mixin.ts and
+    // src/panels/profile/ha-force-narrow-row.ts (also present in 20240605.0).
+    const mounted = await host.elementHandle(), beforeUrl = page.url();
+    let navigations = 0;
+    const onNavigation = frame => { if (frame === page.mainFrame()) navigations++; };
+    page.on('framenavigated', onNavigation);
+    try {
+      await panel.evaluate(el => el.dispatchEvent(new CustomEvent('hass-dock-sidebar', {
+        detail: { dock: 'always_hidden' }, bubbles: true, composed: true,
+      })));
+      await menuTarget(menu);
+      await expect(sidebarEntry(page)).not.toBeInViewport();
+      expect(await host.evaluate((el, previous) => el === previous, mounted)).toBe(true);
+      await menu.click();
+      await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+      await page.keyboard.press('Escape');
+      await expect(sidebarEntry(page)).not.toBeInViewport();
+      await panel.evaluate(el => el.dispatchEvent(new CustomEvent('hass-dock-sidebar', {
+        detail: { dock: 'auto' }, bubbles: true, composed: true,
+      })));
+      await expect(menu).toBeHidden();
+      await expect(sidebarEntry(page)).toBeInViewport({ ratio: 0.9 });
+      expect(await host.evaluate((el, previous) => el === previous, mounted)).toBe(true);
+      expect(page.url()).toBe(beforeUrl);
+      expect(navigations).toBe(0);
+      await expectPanelShell(panel, host);
+    } finally {
+      page.off('framenavigated', onNavigation);
+      await mounted.dispose();
+    }
 
     // HA's ordinary switch emits its native hass-dock-sidebar event and stores
     // the browser preference itself. A cold panel must honor it as well.
