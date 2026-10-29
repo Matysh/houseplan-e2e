@@ -6,7 +6,6 @@ import { compareTags } from '../scripts/tags.mjs';
 import { archive, dirtyPlan, seedExport } from './lib/backup-fixtures.mjs';
 import { chooseBackup, footerCancel, openMaintenance } from './lib/backup.mjs';
 import { planConfig, planLayout } from './lib/ha-ws.mjs';
-import { HP } from './lib/hooks.mjs';
 import { evidence } from './lib/ha-page.mjs';
 
 requireHooks(test, 'action', 'dialog', 'settings-section');
@@ -30,12 +29,12 @@ test('settings and import dialogs survive a late genuine HA bootstrap on cold an
     const { host, settings } = await openMaintenance(page);
     const dialog = await chooseBackup(page, host, settings,
       { name: 'bootstrap-preview.zip', mimeType: 'application/zip', buffer: zip });
+    await expect(settings).toBeHidden();
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('The plan will be restored with repairs');
     await evidence(info, page, `late-bootstrap-${entry}-dialog`);
     await footerCancel(dialog).click();
     await expect(dialog).toBeHidden();
-    await settings.locator(HP.dialogCancel).first().click();
     await expect(settings).toBeHidden();
   }
   expect(requests, 'both real document entries exercised the genuine delayed app resource').toHaveLength(2);

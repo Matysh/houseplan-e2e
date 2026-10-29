@@ -12,6 +12,7 @@ requireHooks(test, 'device', 'room', 'mode-tab', 'stage@data-grid-step', 'device
 const SOURCE = 'lg_sensor.ground_floor_temperature', VIRTUAL = 'v_demo_tv';
 const marker = (host, id = SOURCE) => host.locator(hp('device', { id })).first();
 const statics = page => page.locator('houseplan-space-card');
+const ownedStatics = page => page.locator('#e2e-static-sync-host-handoff > houseplan-space-card');
 let seed, dashboard;
 
 test.beforeEach(async () => {
@@ -48,9 +49,9 @@ async function openPair(page, wire, view = 'pair') {
  * projection/contact geometry: the oracle is the same card after cold reload,
  * checked alongside independent native HA layout readback.
  */
-async function painted(page, id = SOURCE) {
+async function painted(page, id = SOURCE, hosts = statics(page)) {
   const positions = [];
-  for (const host of await statics(page).all()) {
+  for (const host of await hosts.all()) {
     const frame = await host.boundingBox(), point = await centreOf(marker(host, id));
     positions.push({ x: point.x - frame.x, y: point.y - frame.y });
   }
@@ -63,23 +64,33 @@ function expectSamePaint(actual, expected) {
     expect(Math.abs(point.y - expected[i].y)).toBeLessThan(1);
   });
 }
-async function expectMoved(page, before, id = SOURCE) {
-  await expect.poll(async () => (await painted(page, id)).every((p, i) =>
-    Math.hypot(p.x - before[i].x, p.y - before[i].y) > 1), {
+async function expectMoved(page, before, id = SOURCE, hosts = statics(page)) {
+  await expect.poll(async () => {
+    const actual = await painted(page, id, hosts);
+    return actual.length === before.length && actual.every((p, i) =>
+      Math.hypot(p.x - before[i].x, p.y - before[i].y) > 1);
+  }, {
     message: 'both real static cards painted the new stored position',
   }).toBe(true);
 }
-async function assertReloadOracle(page, wire, position, id = SOURCE) {
+async function assertReloadOracle(page, wire, position, id = SOURCE, owned = false) {
   expect((await planLayout()).layout[id]).toEqual(position);
-  const live = await painted(page, id);
+  const hosts = owned ? ownedStatics(page) : statics(page);
+  const live = await painted(page, id, hosts);
   await page.reload();
   await openPairReady(page, wire);
-  expectSamePaint(await painted(page, id), live);
+  if (owned) {
+    // Compare the same fixture-owned body mount on both sides of reload,
+    // rather than its inherited frame against a native Lovelace mount.
+    expect(await ownStaticHosts(page)).toEqual({ cards: 2, connectionUnchanged: true });
+    await openPairReady(page, wire, hosts);
+  }
+  expectSamePaint(await painted(page, id, hosts), live);
   expect((await planLayout()).layout[id]).toEqual(position);
 }
-async function openPairReady(page, wire) {
-  await expect(statics(page)).toHaveCount(2);
-  for (const host of await statics(page).all()) await expect(marker(host)).toBeVisible();
+async function openPairReady(page, wire, hosts = statics(page)) {
+  await expect(hosts).toHaveCount(2);
+  for (const host of await hosts.all()) await expect(marker(host)).toBeVisible();
   await wire.settle(page);
 }
 async function writePosition(id = SOURCE, offset = .02) {
@@ -256,11 +267,13 @@ test('held old reads cannot replace newer events, and a real connection handoff 
   expect(wire.counts().config).toBeGreaterThanOrEqual(3);
   for (const host of await statics(page).all()) await expect(host.getByText(raceTitle, { exact: true })).toBeVisible();
   expect(await ownStaticHosts(page)).toEqual({ cards: 2, connectionUnchanged: true });
-  await openPairReady(page, wire);
-  const afterRace = await painted(page);
+  const owned = ownedStatics(page);
+  await openPairReady(page, wire, owned);
+  const afterRace = await painted(page, SOURCE, owned);
   const connectionA = wire.connections, connectionB = connectionA + 1;
   wire.holdReads(undefined, connectionB);
-  expect(await handoffStaticConnection(page)).toEqual({ cards: 2, authenticated: true });
+  await expect(owned).toHaveCount(2);
+  expect(await handoffStaticConnection(owned)).toEqual({ cards: 2, authenticated: true });
   await wire.heldReads(2);
   expect(wire.connections).toBe(connectionB);
   const highWater = (await planLayout()).rev + 100;
@@ -273,15 +286,15 @@ test('held old reads cannot replace newer events, and a real connection handoff 
   await attachReceipt(testInfo, wire, 'old-A-event-while-B-replies-held.json');
   wire.releaseReads();
   await wire.settle(page);
-  expectSamePaint(await painted(page), afterRace);
+  expectSamePaint(await painted(page, SOURCE, owned), afterRace);
   await attachReceipt(testInfo, wire, 'B-current-low-revision-adopted.json');
   wire.reset();
   const low = await writePosition(SOURCE, .025);
   expect(low.rev).toBeLessThan(highWater);
-  await expectMoved(page, afterRace);
+  await expectMoved(page, afterRace, SOURCE, owned);
   await wire.settle(page);
   expect(wire.counts(connectionB)).toEqual({ config: 0, layout: 1 });
   await evidence(testInfo, page, 'real-connection-handoff-lower-revision');
   await attachReceipt(testInfo, wire);
-  await assertReloadOracle(page, wire, low.position);
+  await assertReloadOracle(page, wire, low.position, SOURCE, true);
 });

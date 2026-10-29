@@ -46,7 +46,7 @@ e2e-106-journeys-ha-stable ID12896771680, SHA256
 Новый tests/ha-bootstrap.admin.spec.mjs повторяет холодный/повторный вход,
 задерживает только исходный HA app request и обычными действиями открывает
 Settings/Maintenance и предпросмотр настоящего ZIP. Constructor errors
-запрещены; Cancel закрывает предпросмотр, штатный крестик закрывает Settings,
+запрещены; открытие импорта закрывает Settings, Cancel закрывает предпросмотр,
 config/layout и ревизии остаются прежними.
 Контроль положительного изменения масштаба/камеры из #1120 не затронут.
 
@@ -90,3 +90,24 @@ journeys70PASS/5FAIL/0skip/0flaky; first-run4/4PASS, upgrade3/3PASS.
 Совместные проверки исправленных фикстур: `npm run test:unit`58/58PASS,
 `npm run contract:lint`47filesPASS, `npx playwright test --list`78tests/31files.
 Эти проверки не исполняют настоящий HA и не заменяют предстоящий полный прогон.
+
+## Уточнение жизненного цикла Settings после повторной полной проверки
+
+[Полный HA40918985876](https://github.com/Matysh/houseplan-e2e/actions/runs/40918985876)
+на source08b154115ff815062cfc0221f39f7e53545dbe45/companion2ed6d1c:
+journeys73PASS/2FAIL. Текстовый фильтр был снят, но bootstrap снова исчерпал90s
+на дополнительном клике по уже отсутствующим Settings. Предыдущее объяснение
+про видимый родительский крестик было неполным: кнопка существует у самого
+компонента, однако родительских Settings в этот момент уже нет.
+
+Прямая причина в исходном жизненном цикле: general-settings-dialog.ts264–268
+вызывает leaveFor/import, а houseplan-editor-runtime.ts9303–9308 перед
+открытием preview присваивает `_settingsDialog = null`. После Cancel
+импорта Settings автоматически не возвращаются. Продукт здесь не менялся.
+
+Фикстура теперь явно проверяет, что Settings скрыты после появления preview
+и остаются скрыты после Cancel; лишний клик удалён. Реальный Settings до этого
+обязательно виден в openMaintenance; сам preview, оба холодных входа, два
+настоящих задержанных app-запроса, отсутствие Illegal constructor и полное
+равенство config/layout/rev по-прежнему обязательны. Этот исправленный полный
+case пока PENDING; оба прежних RED остаются сохранёнными.

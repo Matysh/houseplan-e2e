@@ -66,3 +66,11 @@ passed58/58, `npm run contract:lint` passed47files, and
 `npx playwright test --list` discovered78tests/31files. A fresh complete real-HA
 run on the final candidate remains pending until the companion is published.
 No server behavior or product source was changed by this repair.
+
+
+### Final-candidate HA mount-context correction (2026-10-29)
+
+- Primary run [40918985876](https://github.com/Matysh/houseplan-e2e/actions/runs/40918985876), product `08b154115ff815062cfc0221f39f7e53545dbe45`, companion `2ed6d1c336ab26681d49f1a2148a4bb1c068d789`: all five Static cases executed; four passed. The handoff case failed twice. The first attempt observed four hosts instead of two; retry reached the cold-reload comparison and differed vertically by 6.59375 px. Both REDs remain preserved.
+- Artifact `12918018515`, SHA-256 `4181a63527d73dab45515afde5ffbe1b0ba32f68398f0d4359dfcf291a5d3631`: full reconstructed Playwright snapshots show two body-owned hosts at t=591365.163, followed at t=594130.911 by the same owned pair plus two remounted native HUI-CARD hosts. The global locator incorrectly included both groups. The retry compared body-owned fixed hosts against native Lovelace hosts after reload; viewed PNGs show stage top y=92 versus y=99. Exact inherited computed line-height was not recorded, so it is not claimed as the proven cause.
+- Correction: the handoff and its subsequent observations explicitly target exactly two fixture-owned hosts; the cold oracle recreates the same body-owned mount before comparing. Native pre-race setup and the other four scenarios retain their original default locators. No visibility filtering, deduplication, copied CSS, fabricated store state, tolerance or timeout changes. Full backend position equality, revision/read-count/event-order assertions, genuine second authenticated connection, old-A/high-water rejection and <1 px paint checks remain. Page teardown disposes the owned mount and connections.
+- Status: fixture correction prepared; full real-HA execution on the new companion commit is pending. This record does not relabel the failed run as passing.

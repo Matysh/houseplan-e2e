@@ -171,9 +171,11 @@ export async function ownStaticHosts(page) {
  * claim to exercise HA frontend's automatic reconnect implementation. The owned
  * replacement hosts prevent Lovelace from assigning its old authority back.
  */
-export async function handoffStaticConnection(page) {
-  return page.locator('houseplan-space-card').first().evaluate(async first => {
-    const original = first.hass, auth = original.auth || original.connection?.options?.auth;
+export async function handoffStaticConnection(hosts) {
+  return hosts.evaluateAll(async all => {
+    if (all.length !== 2 || all.some(host => host.parentElement?.id !== 'e2e-static-sync-host-handoff'))
+      throw new Error('connection handoff requires exactly the fixture-owned static pair');
+    const original = all[0].hass, auth = original.auth || original.connection?.options?.auth;
     if (!auth?.accessToken) throw new Error('HA page did not expose its authenticated connection authority');
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/websocket`);
     const pending = new Map(), callbacks = new Map();
@@ -208,12 +210,6 @@ export async function handoffStaticConnection(page) {
       },
     };
     window.__staticSyncHostHandoff = { socket, connection, original };
-    const all = [];
-    const walk = root => { for (const el of root.querySelectorAll('*')) {
-      if (el.localName === 'houseplan-space-card') all.push(el);
-      if (el.shadowRoot) walk(el.shadowRoot);
-    } };
-    walk(document);
     for (const host of all) host.hass = { ...original, connection, callWS: async message => (await call(message)).result };
     return { cards: all.length, authenticated: true };
   });
