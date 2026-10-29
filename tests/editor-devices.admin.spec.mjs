@@ -13,6 +13,7 @@ import {
   centreOf, dragClient, enterEditor, field, leaveEditor, openPlan, settle, snap, toClient, toFloor,
 } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
+import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
 
 requireHooks(test, 'stage@data-grid-step', 'mode-tab', 'field', 'action', 'device-history', 'device-copy',
   'device@data-hp-device-component', 'device-contact-contour', 'properties-panel');
@@ -92,7 +93,11 @@ test('a device is moved with undo and redo, renamed and copied, and the plan kee
 });
 
 test('the Properties panel changes the size of the selected device', async ({ page }, testInfo) => {
+  // This journey exercises editing and persistence in the desktop Properties
+  // panel. HA reserves space for its sidebar, so make that premise explicit.
+  await page.setViewportSize({ width: 1800, height: 1000 });
   const host = await devicesEditor(page);
+  await expect.poll(async () => (await host.boundingBox()).width).toBeGreaterThan(1120);
   const widthOf = async (owner) => (await marker(owner, THERMO).boundingBox()).width;
   const before = await widthOf(host);
   const centre = await centreOf(marker(host, THERMO));
@@ -149,4 +154,49 @@ test('two devices pulled together by the magnets form one outlined group', async
   await expect(marker(fresh, LAMP_B)).toHaveAttribute('data-hp-device-component', owner);
   await expect(marker(fresh, LAMP_A)).toHaveAttribute('data-hp-device-component', owner);
   await evidence(testInfo, page, 'magnets-after-reload');
+});
+
+// #1119 UI010 uses the actual ha-card width, including HA's real host layout.
+// Window width alone is not the contract: the sidebar may reserve some of it.
+test('Properties follows the real card width at 1023, 1024 and 1025 without losing selection', async ({ page }, testInfo) => {
+  test.skip(!hasBeta4PanelContract(), 'the 1024px Properties boundary first ships in beta.4; a skip is not proof');
+  test.setTimeout(150_000);
+  const originalViewport = page.viewportSize();
+  try {
+    await page.setViewportSize({ width: 1800, height: 1000 });
+    const host = await devicesEditor(page), owner = host.locator('ha-card').first();
+    const selected = marker(host, THERMO), point = await centreOf(selected);
+    await page.mouse.click(point.x, point.y);
+    const panel = host.locator(hp('properties-panel')).first();
+    const size = field(panel, 'properties-size');
+    await expect(size).toBeEditable();
+    const originalSize = await size.inputValue();
+    const [beforeConfig, beforeLayout] = await Promise.all([planConfig(), planLayout()]);
+    for (const [index, target] of [1023, 1024, 1025, 1024, 1025].entries()) {
+      // Calibrate by an observable box. No CSS, component properties, private
+      // ResizeObserver state, or HA sidebar settings are injected.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const actual = (await owner.boundingBox()).width;
+        if (actual === target) break;
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: Math.round(viewport.width + target - actual), height: viewport.height });
+        await settle(host);
+      }
+      await expect.poll(async () => (await owner.boundingBox()).width).toBe(target);
+      await expect(selected).toHaveAttribute('data-selected', 'true');
+      if (target <= 1024) await expect(panel).toBeHidden();
+      else {
+        await expect(size).toBeEditable();
+        await expect(size).toHaveValue(originalSize);
+      }
+      if (index < 3) await evidence(testInfo, page, `properties-card-${target}`);
+    }
+    const [afterConfig, afterLayout] = await Promise.all([planConfig(), planLayout()]);
+    expect(afterConfig.config).toEqual(beforeConfig.config);
+    expect(afterConfig.rev).toBe(beforeConfig.rev);
+    expect(afterLayout.layout).toEqual(beforeLayout.layout);
+    expect(afterLayout.rev).toBe(beforeLayout.rev);
+  } finally {
+    await page.setViewportSize(originalViewport);
+  }
 });

@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test';
 import { callService, waitForState } from './lib/ha-api.mjs';
 import { requireHooks } from './lib/contract.mjs';
-import { hasOverflowPanelHeader } from './lib/panel-release-contract.mjs';
+import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
 import { card, deviceMarker, editorTabs, expectPlanDrawn, spaceEntries, spaceTabs } from './lib/ha-page.mjs';
 import { hp } from './lib/hooks.mjs';
 
@@ -29,12 +29,12 @@ test.describe('House Plan sidebar panel', () => {
     // an administrator gets the three editors; nothing else in the page
     // duplicates the product title
     await expect(editorTabs(host)).toHaveCount(3);
-    await expect(panel.locator('[role="heading"]')).toHaveCount(hasOverflowPanelHeader() ? 0 : 1);
+    await expect(panel.locator('[role="heading"]')).toHaveCount(hasBeta4PanelContract() ? 0 : 1);
   });
 
   test('lists the spaces in one select on this window and as tabs on a wide one', async ({ page }) => {
     requireHooks(test, 'space-select', 'space-select-value', 'space-tab@data-space');
-    if (hasOverflowPanelHeader()) await page.setViewportSize({ width: 640, height: 900 });
+    if (hasBeta4PanelContract()) await page.setViewportSize({ width: 640, height: 900 });
     await page.goto('/houseplan');
     const host = card(page);
     await expectPlanDrawn(page, host);
@@ -47,7 +47,7 @@ test.describe('House Plan sidebar panel', () => {
     const listed = await options.evaluateAll((all) => all.map((o) => o.value));
 
     // With enough room ordinary tabs return in the same order.
-    await page.setViewportSize({ width: hasOverflowPanelHeader() ? 1920 : 1600, height: 900 });
+    await page.setViewportSize({ width: hasBeta4PanelContract() ? 1920 : 1600, height: 900 });
     await expect(spaceTabs(host)).toHaveCount(listed.length);
     expect(await spaceTabs(host).evaluateAll((all) => all.map((t) => t.dataset.space))).toEqual(listed);
     await expect(host.locator(hp('space-select'))).toHaveCount(0);
