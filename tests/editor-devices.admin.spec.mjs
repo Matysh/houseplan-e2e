@@ -184,7 +184,7 @@ test('Properties follows the real card width at 1023, 1024 and 1025 without losi
       }
       await expect.poll(async () => (await owner.boundingBox()).width).toBe(target);
       await expect(selected).toHaveAttribute('data-selected', 'true');
-      if (target <= 1024) await expect(panel).toBeHidden();
+      if (target < 1024) await expect(panel).toBeHidden();
       else {
         await expect(size).toBeEditable();
         await expect(size).toHaveValue(originalSize);
