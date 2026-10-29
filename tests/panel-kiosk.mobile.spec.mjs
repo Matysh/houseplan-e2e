@@ -6,7 +6,7 @@ test.beforeEach(()=>requirePanelBeta4(test));restorePanelPlan(test);test.setTime
 
 test('1103-6 mobile all/fixed native swipe, pinch, pan, double tap, local sizes and orientation',async({page},info)=>{
   const config=await orderedFixture();await page.goto('/houseplan/kiosk');let host=card(page);await expectPlanDrawn(page,host);await expectKiosk(host);
-  const before=await host.locator(HP.room).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());await swipe(page,host);
+  const before=await host.locator(HP.room).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());const target=await swipe(page,host);await expectFloor(host,target);
   await expect.poll(()=>host.locator(HP.room).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort())).not.toEqual(before);
   await navigateInApp(page,'/houseplan/kiosk/2');await expectFloor(host,config.spaces[1]);await swipe(page,host);await expectFloor(host,config.spaces[1]);
   const box=await stage(host).boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2,fit=await camera(host);

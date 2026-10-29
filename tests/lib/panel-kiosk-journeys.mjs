@@ -68,7 +68,13 @@ export const camera=host=>stage(host).evaluate(svg=>{
 });
 export function observeApplicationIo(page) {
   const sent=[];let navigations=0;
-  page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigations++;});
+  // framenavigated also fires for pushState/Back within the same document.
+  // Count actual main-document requests so the SPA oracle rejects reloads
+  // without mistaking the intentional URL transition for one.
+  page.on('request',request=>{
+    if(request.isNavigationRequest() && request.resourceType()==='document'
+      && request.frame()===page.mainFrame())navigations++;
+  });
   page.on('websocket',socket=>socket.on('framesent',({payload})=>{
     let decoded;try{decoded=JSON.parse(String(payload));}catch{return;}
     for(const msg of Array.isArray(decoded)?decoded:[decoded])if(msg.type?.startsWith('houseplan/'))sent.push({type:msg.type});
@@ -85,9 +91,21 @@ export async function touch(page,frames) {
     await page.waitForTimeout(35);
   }}finally{await session.detach();}
 }
-export async function swipe(page,host,direction=-1) {
-  const box=await stage(host).boundingBox(),x=box.x+box.width*.6,y=box.y+box.height*.75;
+export async function swipe(page,host) {
+  const {config}=await planConfig();
+  const painted=await host.locator(hp('room')).evaluateAll(nodes=>nodes.map(n=>n.dataset.id).sort());
+  const matches=config.spaces.map((space,index)=>({space,index})).filter(({space})=>
+    JSON.stringify(space.rooms.map(room=>room.id).sort())===JSON.stringify(painted));
+  expect(painted.length,'edge swipe needs a painted floor').toBeGreaterThan(0);
+  expect(matches,'public painted rooms identify exactly one server floor').toHaveLength(1);
+  const index=matches[0].index;
+  expect(config.spaces.length,'edge swipe needs a real neighbour').toBeGreaterThan(1);
+  // The accepted gesture starts within 48px of an edge and initially moves
+  // inward. At the last floor use the previous edge, not a dead next edge.
+  const next=index<config.spaces.length-1,direction=next?-1:1;
+  const box=await stage(host).boundingBox(),x=next?box.x+box.width-20:box.x+20,y=box.y+box.height*.75;
   await touch(page,[[{x,y}],[{x:x+direction*50,y}],[{x:x+direction*110,y}],[]]);await settle(host);
+  return config.spaces[index+(next?1:-1)];
 }
 /** Hold only the actual HA config/get response; auth, other replies and events pass unchanged. */
 export async function holdFirstConfigGet(page) {

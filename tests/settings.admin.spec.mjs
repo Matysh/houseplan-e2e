@@ -7,7 +7,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { centreOf, enterEditor, field, openPlan, settle, toFloor } from './lib/plan.mjs';
+import { centreOf, enterEditor, field, openPlan, settle, toFloor, zoomInVisible } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
 requireHooks(test, 'field', 'settings-section', 'mode-tab', 'stage@data-grid-step');
@@ -113,9 +113,10 @@ test('Room settings: a renamed room shows its new name on the plan', async ({ pa
 });
 
 test('Device on the plan: a new display is saved and shown again', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1800, height: 1000 });
   const host = await openPlan(page, { space: GROUND });
   await enterEditor(host, 'devices');
-  for (let i = 0; i < 3; i++) await host.locator(hp('zoom-in')).first().click();
+  await zoomInVisible(host);
   await settle(host);
   const centre = await centreOf(host.locator(hp('device', { id: THERMO })).first());
   await page.mouse.dblclick(centre.x, centre.y);
@@ -136,7 +137,7 @@ test('Device on the plan: a new display is saved and shown again', async ({ page
   const fresh = card(page);
   await expectPlanDrawn(page, fresh);
   await enterEditor(fresh, 'devices');
-  for (let i = 0; i < 3; i++) await fresh.locator(hp('zoom-in')).first().click();
+  await zoomInVisible(fresh);
   await settle(fresh);
   const again = await centreOf(fresh.locator(hp('device', { id: THERMO })).first());
   await page.mouse.dblclick(again.x, again.y);

@@ -4,7 +4,7 @@ import {test,expect} from '@playwright/test';
 import {requireHooks} from './lib/contract.mjs';
 import {HP,hp} from './lib/hooks.mjs';
 import {card,evidence,expectPlanDrawn,deviceMarker} from './lib/ha-page.mjs';
-import {openPlan,field,enterEditor,leaveEditor,selectSpace,centreOf,dragClient,toFloor,toClient,snap,settle} from './lib/plan.mjs';
+import {openPlan,field,enterEditor,leaveEditor,selectSpace,centreOf,dragClient,toFloor,toClient,snap,settle,zoomInVisible} from './lib/plan.mjs';
 import {planConfig,planLayout,spaceOf,waitForConfig,waitForLayout} from './lib/ha-ws.mjs';
 import {callService,getState,waitForState} from './lib/ha-api.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
@@ -45,6 +45,9 @@ test('Save remains pending until its real HA ACK, then closes and survives reloa
 
 test('a confirmed Save refusal leaves server truth intact and does not poison subsequent Copy and history',async({page},testInfo)=>{
  test.setTimeout(120_000);
+ // Establish the desktop premise before the entire refusal -> Copy -> history
+ // sequence; never resize/reload/reset the queue between these operations.
+ await page.setViewportSize({width:1800,height:1000});
  const hold=await holdConfigReply(page),{host,dialog}=await openSpace(page),before=await pair();
  const originalTitle=spaceOf(before.config,FLOOR).title;
  await field(dialog,'space-title').fill(originalTitle+' refused1093');const reached=hold.arm({staleRevision:true});
@@ -61,7 +64,7 @@ test('a confirmed Save refusal leaves server truth intact and does not poison su
  // resetting a queue, reloading the page, or issuing a successful Save first.
  await enterEditor(host,'devices');
  const magnets=host.locator(HP.tool('device-magnets')).first();if(await magnets.getAttribute('aria-pressed')==='true' && await magnets.isEnabled())await magnets.click();
- for(let i=0;i<3;i++)await host.locator(hp('zoom-in')).first().click();await settle(host);
+ await zoomInVisible(host);await settle(host);
  const point=await centreOf(marker(host,SOURCE));await page.mouse.click(point.x,point.y,{button:'right'});
  await host.locator(hp('device-copy')).first().click();
  const copied=await waitForConfig(c=>c.markers.length===before.config.markers.length+1,{message:'fresh Copy works after refused Save'});
