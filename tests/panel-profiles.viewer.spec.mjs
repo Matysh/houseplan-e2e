@@ -61,7 +61,31 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
   expect(current.can_write).toBe(false);
   await expect(host.locator(hp('settings'))).toHaveCount(0);
   await expect(host.locator(hp('mode-tab'))).toHaveCount(0);
-  await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
+  // A deleted profile falls back to ordinary kiosk controls. Read-only users
+  // may change their local summary visibility, but cannot edit shared content.
+  const localWrites = viewerWire.receipt.commands.filter(command => command.type === 'houseplan/config/set').length;
+  await host.locator(hp('summary-settings')).click();
+  const localDialog = host.locator(HP.dialog('summary')).first();
+  await expect(localDialog).toBeVisible();
+  await expect(localDialog.getByText('You can change settings for this card. Shared panel contents are managed by an administrator.', { exact: true })).toBeVisible();
+  await expect(localDialog.getByRole('textbox')).toHaveCount(0);
+  await expect(localDialog.getByRole('checkbox')).toHaveCount(1);
+  await expect(localDialog.getByRole('button', { name: /add block|add value/i })).toHaveCount(0);
+  const localShow = localDialog.getByRole('checkbox', { name: 'Show panel on this card', exact: true });
+  await expect(localShow).not.toBeChecked();
+  await localShow.check();
+  await localDialog.locator(HP.dialogConfirm).first().click();
+  await expect(localDialog).toBeHidden();
+  await expect(host.locator(hp('summary-panel'))).toBeVisible();
+  await host.locator(hp('summary-settings')).click();
+  await expect(localDialog).toBeVisible();
+  await localShow.uncheck();
+  await localDialog.locator(HP.dialogConfirm).first().click();
+  await expect(localDialog).toBeHidden();
+  await expect(host.locator(hp('summary-panel'))).toBeHidden();
+  await viewerWire.settle();
+  expect(viewerWire.receipt.commands.filter(command => command.type === 'houseplan/config/set')).toHaveLength(localWrites);
+  expect((await planConfig()).config).toEqual(current.config);
   await expect(wsCall({ type: 'houseplan/config/set', config: current.config, expected_rev: current.rev }, 'viewer'))
     .rejects.toMatchObject({ code: 'unauthorized' });
   expect(profileNamespace((await planConfig()).config)).toEqual(profileNamespace(stored));

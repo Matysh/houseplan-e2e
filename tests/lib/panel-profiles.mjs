@@ -130,10 +130,11 @@ export class ProfileFixture {
 export const planConfigForViewer = () => wsCall({ type: 'houseplan/config/get' }, 'viewer');
 
 /** Transparent observer: count REAL application WS commands/ACKs/frames, not
- * Playwright roundtrips or oracle requests. Auth and config bodies are omitted.
+ * Playwright roundtrips or oracle requests. Only the public HA version is
+ * retained from auth_required; auth payloads and config bodies are omitted.
  */
 export async function profileWire(page) {
-  const receipt = { commands: [], replies: [], events: [], navigations: 0, connections: 0 };
+  const receipt = { commands: [], replies: [], events: [], haVersions: [], navigations: 0, connections: 0 };
   page.on('framenavigated', frame => { if (frame === page.mainFrame()) receipt.navigations++; });
   await page.routeWebSocket('**/api/websocket', socket => {
     const connection = ++receipt.connections;
@@ -149,6 +150,10 @@ export async function profileWire(page) {
     server.onMessage(raw => {
       let decoded; try { decoded = JSON.parse(String(raw)); } catch { socket.send(raw); return; }
       for (const message of Array.isArray(decoded) ? decoded : [decoded]) {
+        if (message.type === 'auth_required' && typeof message.ha_version === 'string'
+          && /^[0-9][0-9A-Za-z.+_-]{0,63}$/.test(message.ha_version)) {
+          receipt.haVersions.push({ connection, version: message.ha_version });
+        }
         const type = requests.get(message.id);
         if (message.type === 'result' && type) {
           requests.delete(message.id);
