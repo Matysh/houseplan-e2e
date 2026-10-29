@@ -89,8 +89,9 @@ jobs:
       E2E_RUN_DIR: ${{ github.workspace }}/run
       E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence-out
       GITHUB_TOKEN: ${{ github.token }}
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+      # Diagnostic branch only: keep ordinary test failures local to Actions.
+      TG_BOT_TOKEN: ''
+      TG_CHAT_ID: ''
     steps:
       - uses: actions/checkout@v4
 
