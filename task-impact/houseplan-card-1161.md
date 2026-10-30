@@ -5,6 +5,8 @@
 Задача: https://github.com/Matysh/houseplan-card/issues/1161.
 Дата проверки: 2026-10-30. Начальный материал реализации:
 e0fb971b163298dca0a7c85723419b6038a628ea; принятое ТЗ — SPEC-REVIEW-1161-r1.
+После ребейза на принятый #1159 материал — 88d5eb62856e8c167bf0549070620f7bc4fb97fa;
+файлы самого bounded reuse, его smoke и unit-тестов сохранены побайтно.
 
 Ограниченный владелец сохраняет до восьми независимых окон incremental reuse
 по этажам, исполняя прежние source/presentation/row/light guards. Снимки
