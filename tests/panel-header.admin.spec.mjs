@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
-import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
+import { hasBeta4PanelContract, hasBeta5UiPolishContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
 
@@ -64,6 +64,12 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await page.setViewportSize({ width: 390, height: 844 });
     await menuTarget(menu);
     await expectPlanDrawn(page, host);
+    if (hasBeta5UiPolishContract()) {
+      for (const action of [HP.modeTab('plan'),HP.modeTab('devices'),HP.modeTab('decor'),HP.settings,'[data-hp="pdf"]','[data-hp="support"]'])
+        await expect(host.locator(action)).toBeVisible();
+      expect(await host.locator('.hdr').evaluate(e=>e.scrollWidth<=e.getBoundingClientRect().width+1)).toBe(true);
+      await expect(host.locator('[data-hp="header-menu"]')).toBeHidden();
+    }
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await menu.click();
     await expectNativeDrawerEntry(page);
@@ -178,8 +184,9 @@ test('editor close glyph stays centered in full and compact modes with real HA i
           Math.abs(painted.y - button.y - button.height / 2),
           Math.abs(button.y + button.height / 2 - tab.y - tab.height / 2));
       }, { message: 'painted SVG and close target share the active editor center' }).toBeLessThanOrEqual(0.5);
-      expect(observed.button.width).toBeCloseTo(24, 1);
-      expect(observed.button.height).toBeCloseTo(24, 1);
+      const target=hasBeta5UiPolishContract()?44:24;
+      expect(observed.button.width).toBeCloseTo(target, 1);
+      expect(observed.button.height).toBeCloseTo(target, 1);
       receipts.push(observed);
       await testInfo.attach(`close-${modeName}-${presentation}`, {
         body: await group.screenshot(), contentType: 'image/png',

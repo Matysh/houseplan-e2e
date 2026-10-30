@@ -1,5 +1,6 @@
 // #1113: deleted profile identity stays deleted for an actual HA read-only user.
 import { test, expect } from '@playwright/test';
+import { hasBeta5UiPolishContract } from './lib/panel-release-contract.mjs';
 import { requireHooks } from './lib/contract.mjs';
 import { hp, HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, evidence } from './lib/ha-page.mjs';
@@ -33,7 +34,8 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
   await expect.poll(async () => profileOf((await planConfig()).config, fixture.id) ?? null).toBe(null);
   await expect(host.locator(hp('summary-panel'))).toBeHidden();
   await expectSizes(page, host, 100, 100, false);
-  await expect(host.locator(hp('summary-toggle'))).toBeVisible();
+  if(hasBeta5UiPolishContract()) await expect(host.locator(hp('summary-toggle'))).toHaveCount(0);
+  else await expect(host.locator(hp('summary-toggle'))).toBeVisible();
   expect(await sameHost.evaluate(element => element.isConnected)).toBe(true);
   const afterDelete = await planConfig(), allocated = profileNamespace(afterDelete.config).next_id;
   expect(allocated).toBeGreaterThan(fixture.id);
@@ -61,7 +63,13 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
   expect(current.can_write).toBe(false);
   await expect(host.locator(hp('settings'))).toHaveCount(0);
   await expect(host.locator(hp('mode-tab'))).toHaveCount(0);
-  // A deleted profile falls back to ordinary kiosk controls. Read-only users
+  // #1132 removes all kiosk controls. Exercise the unchanged read-only local
+  // preference surface on ordinary View, then restore the deleted-profile URL.
+  if(hasBeta5UiPolishContract()) {
+    await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
+    await page.goto('/houseplan');await expectPlanDrawn(page,host);
+  }
+  // On older versions a deleted profile falls back to kiosk controls. Read-only users
   // may change their local summary visibility, but cannot edit shared content.
   const localWrites = viewerWire.receipt.commands.filter(command => command.type === 'houseplan/config/set').length;
   await host.locator(hp('summary-settings')).click();
@@ -90,6 +98,7 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
     .rejects.toMatchObject({ code: 'unauthorized' });
   expect(profileNamespace((await planConfig()).config)).toEqual(profileNamespace(stored));
 
+  if(hasBeta5UiPolishContract()) await page.goto(`/houseplan?hpprofile=${fixture.id}`);
   await page.reload(); await expectPlanDrawn(page, card(page));
   await expectFloor(card(page), fixture, 'f1');
   await expectSizes(page, card(page), 100, 100, false);

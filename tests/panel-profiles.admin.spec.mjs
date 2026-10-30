@@ -1,5 +1,6 @@
 // #1113: native profile UI and actual HA persistence/stream adoption.
 import { test, expect } from '@playwright/test';
+import { hasBeta5UiPolishContract } from './lib/panel-release-contract.mjs';
 import { requireHooks } from './lib/contract.mjs';
 import { hp, HP } from './lib/hooks.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
@@ -18,7 +19,7 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   test.setTimeout(120_000);
   const context = await fixture.context(browser, 'admin', { authOnly: true }), page = await context.newPage();
   const wire = await profileWire(page);
-  let host = await openProfile(page, fixture.id, 'hpkiosk=0');
+  let host = await openProfile(page, fixture.id, hasBeta5UiPolishContract()?'hpkiosk=0&hpcontrols=1':'hpkiosk=0');
   await expectFloor(host, fixture, 'f2');
   const profileAngle = await planDirection(host, fixture.rooms.f2[0]);
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
@@ -102,7 +103,7 @@ test('a native admin Save reaches a real read-only screen live with zero extra c
     expect(viewerWire.receipt.events.slice(eventCount).some(event => ['resync', 'closed'].includes(event.kind))).toBe(false);
     expect(withoutProfiles(after.config)).toEqual(withoutProfiles(before.config));
     expect(profileOf(after.config, fixture.id)).toMatchObject({ rotation: 180, summary: 'hide',
-      hidden_devices: 'hide', icon_scale: 1.5, font_scale: 1.25, controls: true });
+      hidden_devices: 'hide', icon_scale: 1.5, font_scale: 1.25, controls: !hasBeta5UiPolishContract() });
     await expect(viewerHost.locator(hp('settings'))).toHaveCount(0);
     await expect(viewerHost.locator(hp('mode-tab'))).toHaveCount(0);
     await evidence(testInfo, viewerPage, 'readonly-live-profile-adopted');

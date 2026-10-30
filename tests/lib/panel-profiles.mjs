@@ -1,5 +1,6 @@
 // #1113 real HA profile fixtures and public UI adapters. No production props,
 // invented WS responses, .storage writes or backwards identity-counter reset.
+import { hasBeta5UiPolishContract } from './panel-release-contract.mjs';
 import { expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { USERS, HA_URL } from '../../scripts/users.mjs';
@@ -213,6 +214,10 @@ export async function editProfile(dialog, id) {
 }
 export async function chooseProfileField(dialog, key, value) {
   const native = dialog.locator(hp('field', { field: `external-screen-${key}` })).first();
+  if(key==='controls' && hasBeta5UiPolishContract()) {
+    await expect(native).toHaveCount(0); // Retired field is an explicit oracle, not a silent skip.
+    return;
+  }
   const trigger = native.locator('..').locator(hp('select-trigger')).first();
   await trigger.click();
   const menu = dialog.page().locator(`${hp('select-menu')}[id="${await trigger.getAttribute('aria-controls')}"]`);

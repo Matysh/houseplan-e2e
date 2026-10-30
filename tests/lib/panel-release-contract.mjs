@@ -12,3 +12,8 @@ export function hasBeta4PanelContract(version = installedRecord()?.version, cont
   if (title?.issue === 1120 && title.retired === '1.83.0-beta.4') return true;
   return !version || compareTags(`v${version}`, 'v1.83.0-beta.4') >= 0;
 }
+
+// #1132 is shipped by beta.5; older release runs keep their own assertions.
+export function hasBeta5UiPolishContract(version = installedRecord()?.version) {
+  return !!version && compareTags(`v${version}`, 'v1.83.0-beta.5') >= 0;
+}
