@@ -22,3 +22,14 @@ CODE r2: https://github.com/Matysh/houseplan-card/issues/1154#issuecomment-65243
 Discovery/contract lint и ordinary unit suite проверяются перед публикацией
 изменений companion. Product smoke и genuine offline verify из задачи не
 выдаются за исполнение этого HA journey.
+
+## Реальный candidate проверен
+
+[HA E2E41081198495](https://github.com/Matysh/houseplan-e2e/actions/runs/41081198495)
+SUCCESS на exact Houseplan034261b8ee5e727031804a3fe26fdf733bf21eed и test source
+50e4d48207a3bf6a2fd63a068d1eb15de5ff08a8: journeys76PASS, first-runPASS,
+upgrade с v1.82.0PASS. Новый space-copy-lifecycle.admin сценарий PASS6.0s,
+не skipped. Public unauthenticated HA greeting подтвердил2026.10.4, installed
+version1.83.0-beta.6; сборка побайтово воспроизвела committed bundle.
+Frontend fingerprintf22dcc979004507b77674070fffadce8266dc1cce8822581dae9e39c73410d02.
+Это настоящий HA-server/browser прогон; он не подменяется offline fake-hass smoke.
