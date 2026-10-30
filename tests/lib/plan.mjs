@@ -10,6 +10,7 @@
 import { expect } from '@playwright/test';
 import { card, expectPlanDrawn } from './ha-page.mjs';
 import { HP, hp } from './hooks.mjs';
+import { hasBeta4PanelContract } from './panel-release-contract.mjs';
 
 /** Open the sidebar page and wait for the drawn plan; returns the card host. */
 export async function openPlan(page, { space } = {}) {
@@ -73,20 +74,41 @@ export async function leaveEditor(host) {
 
 export const stage = (host) => host.locator(hp('stage')).first();
 
-/** Native zoom buttons are deliberately absent in a compact #1120 header. */
+/** Zoom through exposed native controls, or the compact panel's native wheel. */
 export async function zoomInVisible(host, clicks = 3) {
-  const zoom = host.locator(hp('zoom-in')).first();
-  await expect(zoom).toBeVisible();
-  await expect(zoom).toBeEnabled();
-  await expect.poll(async () => {
-    const owner = await host.boundingBox(), button = await zoom.boundingBox();
-    return !!owner && !!button && button.x >= owner.x && button.y >= owner.y
-      && button.x + button.width <= owner.x + owner.width + 1
-      && button.y + button.height <= owner.y + owner.height + 1;
-  }, { message: 'native zoom target stays inside the desktop fixture' }).toBe(true);
-  for (let i = 0; i < clicks; i++) await zoom.click();
+  const zoom = host.locator(`${hp('zoom-in')}:visible`).first();
+  if (await zoom.count()) {
+    await expect(zoom).toBeVisible();
+    await expect(zoom).toBeEnabled();
+    await expect.poll(async () => {
+      const owner = await host.boundingBox(), button = await zoom.boundingBox();
+      return !!owner && !!button && button.x >= owner.x && button.y >= owner.y
+        && button.x + button.width <= owner.x + owner.width + 1
+        && button.y + button.height <= owner.y + owner.height + 1;
+    }, { message: 'native zoom target stays inside the desktop fixture' }).toBe(true);
+    for (let i = 0; i < clicks; i++) await zoom.click();
+    return;
+  }
+  // #1132: wider grouped controls can compact zoom even at a wide viewport.
+  // Keep the real editor and native gesture; never reveal hidden controls or
+  // mutate the camera. Header-specific journeys retain their own assertions.
+  expect(hasBeta4PanelContract(), 'compact native zoom belongs to the panel contract').toBe(true);
+  await expect(host.locator(HP.editorClose).first()).toBeVisible();
+  const svg = stage(host), page = host.page();
+  const scale = () => svg.evaluate(node => {
+    const matrix = node.getScreenCTM();
+    return matrix ? Math.hypot(matrix.a, matrix.b) : 0;
+  });
+  const before = await scale(), box = await svg.boundingBox();
+  expect(before, 'drawn plan has a positive SVG scale').toBeGreaterThan(0);
+  expect(!!box && box.width > 0 && box.height > 0, 'native wheel has a visible plan target').toBe(true);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < clicks; i++) {
+    await page.mouse.wheel(0, -120);
+    await settle(host);
+  }
+  await expect.poll(scale, { message: 'native wheel actually zoomed the compact editor' }).toBeGreaterThan(before);
 }
-
 /** Let the camera transition and the next two frames finish. */
 export async function settle(host) {
   await stage(host).evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 350)));
