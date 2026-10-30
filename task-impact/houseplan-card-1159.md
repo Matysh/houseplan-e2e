@@ -4,6 +4,8 @@
 
 Задача: https://github.com/Matysh/houseplan-card/issues/1159.
 Дата проверки: 2026-10-30. Материал задачи: 967052cbfa0c9ac2bef64ed35c5d6ff1b360c0ce.
+После зелёного r1 материал ребейзнут до 36a95ebe13bcc93f54f779341e88fad7c8c3d3c2;
+продуктовый код и installation snapshot совпадают с материалом ревью.
 
 Уже полный steady-кадр пропускает ненужное измерение stage в settle callback.
 Холодный старт, переходные состояния, положительная геометрия, asset/token/paint
