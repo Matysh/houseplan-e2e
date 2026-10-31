@@ -3,7 +3,7 @@
 Вердикт: **не надо**.
 
 Задача: https://github.com/Matysh/houseplan-card/issues/1149.
-Материал: issue/1149-ui-kit-settings, база origin/dev5f1258a3a, product fingerprint `2c03f07db11d097917fd1c8ed8d6ec240e81ec436eebbcd5ff317771db482159`.
+Материал: issue/1149-ui-kit-settings, база origin/dev5f1258a3a, product fingerprint `06d526fcdab43d4b9008731a1113b3afa3220f68df9a53940f065aed0f7b12e9`.
 
 Пакет переводит содержимое настроек на общие поля/действия/тумблер/поверхность поповера. Нового шва browser → HA write → reload → persistence нет: все data-hp/data-field, native IDs сводной, accessible names, сохранение/отмена/права и формат конфигурации сохранены. Демо предпросмотра по-прежнему локальное и не вызывает сервисов.
 
