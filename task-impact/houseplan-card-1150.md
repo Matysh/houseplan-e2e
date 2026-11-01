@@ -3,7 +3,7 @@
 Вердикт: **не надо**.
 
 Задача: https://github.com/Matysh/houseplan-card/issues/1150.
-Материал: issue/1150-ui-kit-editors, база dev `30bed4e3090a3911a7da9239522da11c967a821b`, product fingerprint `ae8783af23e029a65b8f13ed3ade54f66f1c4a1ac384fffe7b52d21d3ef74ef0`.
+Материал: issue/1150-ui-kit-editors, база dev `30bed4e3090a3911a7da9239522da11c967a821b`, product fingerprint `79f1d4d35162f3f077cc958ad2298e7a77c0350745a85774064ea25adc7dcd81`.
 
 Компактные кнопки, поля Properties, лотки, палитры и редкие формы получают общие владельцы оформления. Новый путь browser → HA write → reload → persistence не добавлен. Обработчики выбора, истории, файлов, подтверждения, отмены и прав сохранены; публичные data-hp/data-field, accessible names и форматы записей не меняются.
 
