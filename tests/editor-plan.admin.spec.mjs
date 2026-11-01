@@ -4,7 +4,8 @@
 // dragged, a zero-thickness wall is drawn. The oracle is the document the
 // integration returns after the edit, then the plan after a page reload.
 import { test, expect } from '@playwright/test';
-import { requireHooks } from './lib/contract.mjs';
+import { installedRecord, requireHooks } from './lib/contract.mjs';
+import { compareTags } from '../scripts/tags.mjs';
 import { evidence, expectPlanDrawn, card } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
@@ -84,9 +85,29 @@ test('a room deleted with its walls kept is created again in the same walls', as
   expect(deleted.openings).toHaveLength(before.openings.length);
   await evidence(testInfo, page, 'room-deleted');
 
-  // the walls are still there: a plain click inside the free closed contour
-  // offers the room again (USER-GUIDE §8, «Создание комнаты» п. 5)
-  await useTool(host, 'draw');
+  // #1176 changes an existing action without a new DOM hook. Keep the previous
+  // stable's Walls entry for historical runs; the beta.2 candidate uses Select.
+  const version = installedRecord()?.version;
+  const selectCandidates = !version || compareTags('v' + version, 'v1.84.0-beta.2') >= 0;
+  if (selectCandidates) {
+    await useTool(host, 'draw');
+    await clickFloor(page, host, centre[0], centre[1]);
+    await expect(roomDialog(host)).toBeHidden();
+    const width = (Math.max(...sauna.poly.map(([x]) => x)) - Math.min(...sauna.poly.map(([x]) => x))) * U;
+    const end = await snap(host, centre[0] + width / 4, centre[1]);
+    await clickFloor(page, host, end.x, end.y);
+    await expect(roomDialog(host)).toBeHidden();
+    await waitForConfig(c => (spaceOf(c, GROUND).partitions || []).length === (deleted.partitions || []).length + 1,
+      { message: 'Walls draws a real saved segment inside the free contour' });
+    await host.locator(HP.action('geometry-undo')).click();
+    await page.keyboard.press('Escape');
+    const undone = spaceOf(await waitForConfig(c => (spaceOf(c, GROUND).partitions || []).length === (deleted.partitions || []).length,
+      { message: 'temporary inside wall undone on the server' }), GROUND);
+    expect(undone.partitions || []).toEqual(deleted.partitions || []);
+    expect(undone.rooms).toEqual(deleted.rooms);
+    await evidence(testInfo, page, 'walls-inside-free-contour-undone');
+  }
+  await useTool(host, selectCandidates ? 'select' : 'draw');
   await clickFloor(page, host, centre[0], centre[1]);
   const dialog = roomDialog(host);
   await expect(dialog).toBeVisible();

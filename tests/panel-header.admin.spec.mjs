@@ -3,7 +3,7 @@
 // property. Primary API/DOM source: home-assistant/frontend
 // src/panels/profile/ha-force-narrow-row.ts, ha-profile-dashboard.ts.
 import { test, expect } from '@playwright/test';
-import { requireHooks } from './lib/contract.mjs';
+import { historicalHp, requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
 import { hasBeta4PanelContract, hasBeta5UiPolishContract } from './lib/panel-release-contract.mjs';
@@ -68,7 +68,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
       for (const action of [HP.modeTab('plan'),HP.modeTab('devices'),HP.modeTab('decor'),HP.settings,'[data-hp="pdf"]','[data-hp="support"]'])
         await expect(host.locator(action)).toBeVisible();
       expect(await host.locator('.hdr').evaluate(e=>e.scrollWidth<=e.getBoundingClientRect().width+1)).toBe(true);
-      await expect(host.locator('[data-hp="header-menu"]')).toBeHidden();
+      await expect(host.locator(historicalHp('header-menu'))).toBeHidden();
     }
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await menu.click();
