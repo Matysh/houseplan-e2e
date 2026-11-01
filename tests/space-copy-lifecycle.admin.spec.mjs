@@ -5,7 +5,8 @@ import { installedRecord, requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, planLayout, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
+import { action, clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
+import { openMaintenance } from './lib/backup.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
 requireHooks(test, 'space-settings', 'action@data-action', 'dialog@data-kind');
@@ -75,6 +76,20 @@ test('space-copy furniture and decor choices persist all four combinations witho
   await page.keyboard.press('Escape');
   await waitForConfig(c => (spaceOf(c, sourceId).decor || []).some(d => d.kind === 'line'), { message: 'source line stored' });
   await leaveEditor(host);
+  // Copy legitimately offers whole-plan Optimize first. Accept that separate
+  // operation before taking Copy's immutable source/markers/layout oracle.
+  const maintenance = await openMaintenance(page);
+  await action(maintenance.settings, 'plan-optimize').click();
+  const optimization = maintenance.host.locator(HP.dialog('settings')).last();
+  const apply = optimization.locator(HP.dialogConfirm).first();
+  // This fixed seed contains off-grid text; a missing/disabled confirm is a
+  // genuine setup or preflight failure, never permission to weaken the oracle.
+  await expect(apply).toBeVisible();
+  await expect(apply).toBeEnabled();
+  await apply.click();
+  await expect(maintenance.host.locator(hp('toast', { id: 'gs.align_done' }))).toBeVisible();
+  await page.reload();
+  await expectPlanDrawn(page, card(page));
   const before = (await planConfig()).config, source = structuredClone(spaceOf(before, sourceId));
   const layoutBefore = (await planLayout()).layout;
   expect(new Set(source.decor.map(d => d.kind))).toEqual(new Set(['rect', 'text', 'furniture', 'image', 'line']));
@@ -104,14 +119,9 @@ test('space-copy furniture and decor choices persist all four combinations witho
     await field(dialog, 'space-copy-furniture').setChecked(furniture);
     await field(dialog, 'space-copy-decor').setChecked(decor);
     await dialog.locator(HP.dialogConfirm).first().click();
-    let optimizationAccepted = false;
     await expect.poll(async () => {
-      const confirm = host.locator(HP.dialog('confirm')).first();
-      if (!optimizationAccepted && await confirm.isVisible()) {
-        await expect(confirm).toContainText(/optimiz/i);
-        await confirm.locator(HP.dialogConfirm).first().click();
-        optimizationAccepted = true;
-      }
+      if (await host.locator(HP.dialog('confirm')).first().isVisible())
+        throw Error('Copy unexpectedly requests another Optimize after the accepted setup');
       return (await planConfig()).config.spaces.some(s => s.title === title);
     }, { timeout: 30_000, message: 'selected copy accepted by the real integration' }).toBe(true);
     const stored = (await planConfig()).config, copy = stored.spaces.find(s => s.title === title);
@@ -119,14 +129,14 @@ test('space-copy furniture and decor choices persist all four combinations witho
     expect((copy.decor || []).map(withoutId)).toEqual(expected.map(withoutId));
     expect(new Set((copy.decor || []).map(d => d.id)).size).toBe(expected.length);
     expect((copy.decor || []).every(d => !source.decor.some(original => original.id === d.id))).toBe(true);
-    expect(spaceOf(stored, sourceId).decor).toEqual(source.decor);
+    expect(spaceOf(stored, sourceId)).toEqual(source);
     expect(stored.markers).toEqual(before.markers);
     expect((await planLayout()).layout).toEqual(layoutBefore);
     await page.reload();
     await expectPlanDrawn(page, card(page));
     const reloaded = (await planConfig()).config;
     expect(spaceOf(reloaded, copy.id).decor || []).toEqual(copy.decor || []);
-    expect(spaceOf(reloaded, sourceId).decor).toEqual(source.decor);
+    expect(spaceOf(reloaded, sourceId)).toEqual(source);
     await selectSpace(card(page), copy.id);
     if (decor) {
       const image = copy.decor.find(d => d.kind === 'image');
