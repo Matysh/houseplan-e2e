@@ -1,14 +1,19 @@
 // Seed variant `empty`: the very first contact of an administrator — the
 // step where the cold Reddit user was lost (#486). Ends with a persisted
-// first space; outlining rooms by real clicks waits for the grid hooks (#489).
+// first space; model11 candidates also cross the native graph write/history seam.
 import { test, expect } from '@playwright/test';
 import { seedVariant } from '../lib/ha-ctl.mjs';
 import { card, editorTabs, evidence, spaceEntries, stageOf } from '../lib/ha-page.mjs';
 import { HP, confirmIn } from '../lib/hooks.mjs';
+import {installedRecord} from '../lib/contract.mjs';
+import {compareTags} from '../../scripts/tags.mjs';
+import {exactGraphFirstSpace} from '../lib/exact-graph-first-space.mjs';
+import {planConfig} from '../lib/ha-ws.mjs';
 
 test.skip(() => seedVariant() !== 'empty', 'needs the empty seed variant');
 
 test('from the sidebar page to a saved first space without any image', async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
   await page.goto('/houseplan');
   await expect(page.locator('houseplan-panel')).toBeVisible({ timeout: 60_000 });
   const host = card(page);
@@ -40,6 +45,14 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   await expect(stageOf(host)).toBeVisible();
   await expect(editorTabs(host)).toHaveCount(3);
   await evidence(testInfo, page, 'first-space-created.png');
+
+  // The fixed beta first-use journey now crosses the model11 render/write seam.
+  // Historical releases keep their own first-space behavior, not a silent pass
+  // of graph expectations unsupported by their installed version.
+  const version=installedRecord()?.version;
+  const saved=await planConfig();
+  if(!version||compareTags('v'+version,'v1.84.0-beta.3')>=0||saved.graph_change_api===2)
+    await exactGraphFirstSpace(page,host,testInfo,saved);
 
   // the space lives on the server, not in this tab
   await page.reload();

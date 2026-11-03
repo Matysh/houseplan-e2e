@@ -1,23 +1,24 @@
 // Import on a real Home Assistant (houseplan-card#1010, row 22): a «dirty»
 // full ZIP and a JSON from House Plan 1.62 through the real dialog. The
 // preview must name every stale reference; the import keeps the healthy plan,
-// switches broken features off with their settings kept, and leaves awkward
+// switches broken features off with their settings kept, and leaves supported
 // geometry exactly as it came; «Undo last full import» puts the previous plan
 // back. Damaged and wrong files are refused and change nothing.
 //
-// The import preview names stale references, not geometry: self-crossing
-// outlines, partitions lying on each other and nodes off the grid are kept
-// as they came and not reported (findings F127) — the oracle here is that
-// nothing changed them.
+// The import preview names stale references and supported geometry is preserved:
+// valid distinct coincident partitions and exact off-grid nodes are kept.
+// Current graph/projection corruption and a genuine zero-area legacy room
+// are separate atomic refusals (#1167/#1216); no invalid room is silently repaired.
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { repairsBackups, requireHooks } from './lib/contract.mjs';
-import { archive, complexPlan, CREATED_AT, dirtyPlan, oldJsonPlan, seedExport } from './lib/backup-fixtures.mjs';
-import { chooseBackup, footerCancel, openMaintenance, previewReply, revisions } from './lib/backup.mjs';
+import { archive, complexPlan, CREATED_AT, dirtyPlan, geometryRefusalPlans, legacy10OpeningPlan, oldJsonPlan, seedExport, structuralGeometry } from './lib/backup-fixtures.mjs';
+import { chooseBackup, footerCancel, openMaintenance, previewReply } from './lib/backup.mjs';
 import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
-import { planConfig, planLayout, wsCall } from './lib/ha-ws.mjs';
+import { planConfig, planLayout, spaceOf, wsCall } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
+import { observeLargePreview } from './lib/preview-observer.mjs';
 import { action, field, selectSpace } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
@@ -26,6 +27,18 @@ restoreSeedAfterEach(test);
 
 const toast = (host, id) => host.locator(hp('toast', { id }));
 const byId = (list, id) => list.find((item) => item.id === id);
+
+async function transferState() {
+  const [config, layout] = await Promise.all([planConfig(), planLayout()]);
+  expect(typeof config.can_optimize_undo).toBe('boolean');
+  expect(typeof layout.can_optimize_undo).toBe('boolean');
+  expect(Object.hasOwn(config, 'undo_kind')).toBe(true);
+  expect(Object.hasOwn(layout, 'undo_kind')).toBe(true);
+  return { config: config.config, layout: layout.layout, configRev: config.rev, layoutRev: layout.rev,
+    configUndo: { can: config.can_optimize_undo, kind: config.undo_kind },
+    layoutUndo: { can: layout.can_optimize_undo, kind: layout.undo_kind } };
+}
+
 
 test('a dirty ZIP: the preview names every problem, the import keeps the plan sound, undo brings the old plan back', async ({ page }, testInfo) => {
   const before = await planConfig();
@@ -38,7 +51,10 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   const { host, settings } = await openMaintenance(page);
   const replied = previewReply(page);
   const dialog = await chooseBackup(page, host, settings, { name: 'dirty-plan.zip', mimeType: 'application/zip', buffer: zip });
-  const { preview } = await (await replied).json();
+  const response = await replied, reply = await response.json();
+  expect(response.status(), JSON.stringify(reply)).toBe(200);
+  expect(reply).toHaveProperty('preview');
+  const { preview } = reply;
   // the integration's own report: every stale reference is counted
   expect(preview.bindings.missing).toBe(expected.missingBindings);
   expect(preview.missing_areas).toEqual(expected.missingAreas);
@@ -126,6 +142,12 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   for (const [space, ids] of Object.entries(expected.keptGeometry.rooms)) {
     for (const id of ids) expect(byId(byId(after.spaces, space).rooms, id)).toEqual(byId(byId(source.spaces, space).rooms, id));
   }
+  if (expected.keptGeometry.currentGraph) {
+    for (const space of source.spaces) {
+      expect(structuralGeometry(byId(after.spaces, space.id))).toEqual(structuralGeometry(space));
+      expect(byId(after.spaces, space.id).rooms).toEqual(space.rooms);
+    }
+  }
   if (expected.offWall) {
     // kept where it was, without a wall; nothing else about it changed
     const { host, ...offWall } = expected.offWall;
@@ -136,8 +158,10 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   await page.reload();
   const fresh = card(page);
   await expectPlanDrawn(page, fresh);
-  await selectSpace(fresh, 'smrwhw9la');
-  await expect(fresh.locator(hp('room', { id: 'e2e-bowtie' })).first()).toBeAttached();
+  await selectSpace(fresh, 'f1');
+  for (const id of expected.keptGeometry.partitions.f1) {
+    expect(byId(spaceOf((await planConfig()).config, 'f1').partitions, id)).toEqual(byId(spaceOf(source, 'f1').partitions, id));
+  }
   await evidence(testInfo, page, 'import-dirty-after-reload');
 
   // «Undo last full import»: the previous plan, exactly
@@ -145,6 +169,7 @@ test('a dirty ZIP: the preview names every problem, the import keeps the plan so
   await action(maintenance, 'plan-optimization-undo').click();
   await expect(toast(again, 'backup.import_undone')).toBeVisible();
   const undone = (await planConfig()).config;
+  expect(undone).toEqual(before.config);
   expect(undone.spaces).toEqual(before.config.spaces);
   expect(undone.markers).toEqual(before.config.markers);
   expect((await planLayout()).layout).toEqual(beforeLayout.layout);
@@ -187,6 +212,38 @@ test('a JSON from House Plan 1.62 on another Home Assistant is migrated to the c
   await page.reload();
   await expectPlanDrawn(page, card(page));
   await evidence(testInfo, page, 'import-old-json-after-reload');
+
+  if (after.model_version >= 11) await test.step('#1033 genuine legacy10 off-wall import and full Undo', async () => {
+    const previous = await transferState();
+    const plan = legacy10OpeningPlan(document.payload.config.settings), raw = Buffer.from(JSON.stringify(plan.document));
+    await testInfo.attach('literal-legacy10-off-wall.json', { body: raw, contentType: 'application/json' });
+    const { host, settings } = await openMaintenance(page), replied = previewReply(page);
+    const dialog = await chooseBackup(page, host, settings, { name: 'legacy10-off-wall.json', mimeType: 'application/json', buffer: raw });
+    const response = await replied, reply = await response.json();
+    expect(response.status(), JSON.stringify(reply)).toBe(200);
+    expect(reply.preview.model_version).toBe(10);
+    expect(reply.preview.opening_repairs).toEqual({ rehosted: 0, detached: 1, legacy_detached: 0,
+      examples: [{ space_id: 'e2e-legacy-floor', space_title: 'Legacy floor', opening_id: 'legacy-off-wall', type: 'door', result: 'detached' }] });
+    expect(reply.preview.confirmation_required).toBe(true);
+    const replace = dialog.locator(HP.dialogConfirm).first();
+    await expect(replace).toBeDisabled();
+    await field(dialog, 'backup-confirm-missing').check(); await expect(replace).toBeEnabled();
+    await replace.click(); await expect(toast(host, 'backup.full_done')).toBeVisible();
+    const restored = await planConfig();
+    expect(restored.config.model_version).toBe(11);
+    expect(restored.config.spaces).toHaveLength(1);
+    const space = restored.config.spaces[0];
+    expect(structuralGeometry(space)).toEqual(plan.expected.geometry);
+    expect(space.openings).toEqual([plan.expected.opening]);
+    await page.reload(); await expectPlanDrawn(page, card(page));
+    expect(structuralGeometry((await planConfig()).config.spaces[0])).toEqual(plan.expected.geometry);
+    expect((await planConfig()).config.spaces[0].openings).toEqual([plan.expected.opening]);
+    const { host: again, settings: maintenance } = await openMaintenance(page);
+    await action(maintenance, 'plan-optimization-undo').click(); await expect(toast(again, 'backup.import_undone')).toBeVisible();
+    expect((await planConfig()).config).toEqual(previous.config);
+    expect((await planLayout()).layout).toEqual(previous.layout);
+  });
+
 });
 
 test('a space exported as JSON comes back as a new space, devices already on the plan skipped', async ({ page }, testInfo) => {
@@ -230,13 +287,17 @@ function refusals(base) {
   const offWall = complexPlan(base);
   const ground = byId(offWall.document.payload.config.spaces, 'f1');
   ground.openings.push({ ...JSON.parse(JSON.stringify(ground.openings[0])), id: 'e2e-off-wall', x: 0.95, y: 0.95 });
-  const huge = { format: 'houseplan-export', export_version: 2, kind: 'full', padding: 'x'.repeat(8 * 1024 * 1024) };
+  // Current portable-document limit is 32 MiB. Keep a real valid envelope
+  // so a changed size gate cannot accidentally turn this into a format test.
+  const huge = JSON.parse(JSON.stringify(base));
+  huge.padding = 'x'.repeat(32 * 1024 * 1024);
   return [
     ['a damaged ZIP', 'damaged.zip', 'application/zip', complex.subarray(0, Math.floor(complex.length * 0.6)), 'The ZIP backup is damaged or unsupported. Choose a valid House Plan backup.'],
     ['a picture renamed .zip', 'picture.zip', 'application/zip', png, 'The ZIP backup is damaged or unsupported. Choose a valid House Plan backup.'],
     ['a picture renamed .json', 'picture.json', 'application/json', png, 'The selected file is not valid JSON.'],
     ['JSON that is not a House Plan backup', 'other.json', 'application/json', Buffer.from('{"version":1,"items":[]}'), 'The selected file is not a House Plan backup.'],
-    ['JSON over the 8 MiB limit', 'huge.json', 'application/json', Buffer.from(JSON.stringify(huge)), 'The backup exceeds the 8 MiB limit.'],
+    ['JSON over the 32 MiB portable-document limit', 'huge.json', 'application/json', Buffer.from(JSON.stringify(huge)), 'The backup exceeds the 8 MiB limit.'],
+    ...geometryRefusalPlans(base),
     ['a shape of zero width', 'zero-size.zip', 'application/zip', archive(zeroSize), 'The backup contains an invalid House Plan configuration.'],
     ...(repairsBackups() ? [] : [['an opening off its wall', 'off-wall.json', 'application/json', Buffer.from(JSON.stringify(offWall.document)), 'The backup contains an invalid House Plan configuration.']]),
   ];
@@ -244,19 +305,40 @@ function refusals(base) {
 
 test('damaged, wrong and invalid files are refused and the plan stays as it was', async ({ page }, testInfo) => {
   const cases = refusals(await seedExport());
-  const before = await revisions();
+  const before = await transferState();
   const { host, settings } = await openMaintenance(page);
   let maintenance = settings;
-  for (const [what, name, mimeType, buffer, message] of cases) {
+  for (const [what, name, mimeType, buffer, message, expectedCode] of cases) {
     await test.step(what, async () => {
-      const dialog = await chooseBackup(page, host, maintenance, { name, mimeType, buffer });
-      await expect(dialog.getByRole('alert')).toContainText(message);
-      await expect(dialog.locator(HP.dialogConfirm)).toHaveCount(0);
-      if (what === 'a damaged ZIP') await evidence(testInfo, page, 'import-refused-damaged-zip');
-      await footerCancel(dialog).click();
-      await expect(dialog).toBeHidden();
-      expect(await revisions(), `${what}: nothing written`).toEqual(before);
-      ({ settings: maintenance } = await reopenMaintenance(host));
+      const large = name === 'huge.json' ? await observeLargePreview(page) : null;
+      try {
+        const replied = previewReply(page);
+        const dialog = await chooseBackup(page, host, maintenance, { name, mimeType, buffer });
+        const response = await replied;
+        const observed = large ? await large.response : null;
+        const reply = observed ? observed.reply : await response.json();
+        if (observed) {
+          expect(observed.url).toBe(response.url()); expect(observed.status).toBe(response.status());
+          expect(observed.method).toBe('POST'); expect(large.requests).toHaveLength(1);
+          await testInfo.attach('oversize-preview-real-http.json', { body: JSON.stringify({
+            url: observed.url, requestId: observed.requestId, method: observed.method,
+            status: observed.status, error: reply.error, hasToken: Object.hasOwn(reply, 'token'),
+            hasPreview: Object.hasOwn(reply, 'preview'), requestCount: large.requests.length,
+          }), contentType: 'application/json' });
+        }
+        expect(response.ok(), JSON.stringify(reply)).toBe(false);
+        if (expectedCode) expect(reply.error).toBe(expectedCode);
+        expect(reply.token).toBeUndefined();
+        expect(reply.preview).toBeUndefined();
+        await expect(dialog.getByRole('alert')).toContainText(message);
+        await expect(dialog.locator(HP.dialogConfirm)).toHaveCount(0);
+        if (what === 'a damaged ZIP') await evidence(testInfo, page, 'import-refused-damaged-zip');
+        await footerCancel(dialog).click();
+        await expect(dialog).toBeHidden();
+        expect(await transferState(), `${what}: entire pair, revisions and Undo are unchanged`).toEqual(before);
+        ({ settings: maintenance } = await reopenMaintenance(host));
+        if (large) expect(large.requests).toHaveLength(1);
+      } finally { await large?.dispose(); }
     });
   }
 });

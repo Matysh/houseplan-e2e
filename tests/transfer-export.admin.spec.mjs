@@ -9,7 +9,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { requireHooks } from './lib/contract.mjs';
-import { archive, complexPlan, dirtyPlan, PLAN, seedExport, TILE, ZIGBEE_TOPICS } from './lib/backup-fixtures.mjs';
+import { archive, complexPlan, dirtyPlan, PLAN, seedExport, structuralGeometry, TILE, ZIGBEE_TOPICS } from './lib/backup-fixtures.mjs';
 import { byContent, exportArchive, kindField, openArchive, openMaintenance, restoreArchive } from './lib/backup.mjs';
 import { evidence } from './lib/ha-page.mjs';
 import { planConfig, wsCall } from './lib/ha-ws.mjs';
@@ -164,6 +164,13 @@ test('a plan with problems: the export names them and gives the repaired, incomp
   expect(exported.manifest.complete).toBe(false);
   const reasons = Object.fromEntries(exported.manifest.images.filter((r) => r.reason).map((r) => [r.ref.owner_id, r.reason]));
   expect(reasons).toEqual({ 'f1:e2e-picture-lost': 'missing', smrwhw9la: 'external' });
+  if (plan.expected.keptGeometry.currentGraph) {
+    for (const source of plan.document.payload.config.spaces) {
+      const target = exported.document.payload.config.spaces.find(space => space.id === source.id);
+      expect(structuralGeometry(target)).toEqual(structuralGeometry(source));
+      expect(target.rooms).toEqual(source.rooms);
+    }
+  }
   // the copy keeps the switched-off features with their settings, as the plan does
   const markers = exported.document.payload.config.markers;
   const radar = markers.find((m) => m.id === 'e2e_radar_lost').radar;

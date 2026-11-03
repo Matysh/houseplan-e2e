@@ -6,13 +6,16 @@ import { hp, HP } from './lib/hooks.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { selectSpace } from './lib/plan.mjs';
 import { planConfig } from './lib/ha-ws.mjs';
-import { PROFILE_HOOKS, ProfileFixture, HIDDEN_MARKER, profileOf, profileWire, openProfile,
+import { footerCancel } from './lib/backup.mjs';
+import { PROFILE_HOOKS, ProfileFixture, HIDDEN_MARKER, profileOf, profileView, profileNamespace, currentProfile, profileWire, openProfile,
   expectFloor, profileSettings, editProfile, chooseProfileField, finishProfile, saveProfileSettings,
   expectSizes, setLocalSizes, planDirection, expectQuarterTurn, withoutProfiles, changedPaths, attachProfileReceipt } from './lib/panel-profiles.mjs';
 
 requireHooks(test, ...PROFILE_HOOKS);
 let fixture;
-test.beforeEach(async () => { fixture = new ProfileFixture(); await fixture.setup(); });
+test.beforeEach(async ({}, info) => { fixture = new ProfileFixture(); await fixture.setup({
+  legacy: info.title === 'a cold saved profile opens its floor, rotation, sizes and display defaults',
+}); });
 test.afterEach(async ({ page }) => { await fixture?.cleanup(page); fixture = null; });
 
 test('a cold saved profile opens its floor, rotation, sizes and display defaults', async ({ browser }, testInfo) => {
@@ -23,7 +26,8 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   await expectFloor(host, fixture, 'f2');
   const profileAngle = await planDirection(host, fixture.rooms.f2[0]);
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
+  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expect(host.locator(hp('summary-toggle'))).toHaveCount(0);
   await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
   // A kiosk header may be omitted or CSS-hidden; its editors stay unavailable.
@@ -45,6 +49,62 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   expect(profileOf((await planConfig()).config, fixture.id)).toEqual(fixture.profile);
   expect(wire.receipt.commands.filter(command => command.type === 'houseplan/config/set')).toHaveLength(0);
   await attachProfileReceipt(testInfo, 'cold-profile-real-ws.json', wire);
+  if (fixture.api === 2) {
+    // The legacy reader is intentionally tested before current-v2 fixtures.
+    // Read and both cancellation paths must not eagerly write a migration.
+    const legacy = await planConfig();
+    expect(profileNamespace(legacy.config).version).toBe(1);
+    const configSetCount = () => wire.receipt.commands.filter(command => command.type === 'houseplan/config/set').length;
+    const expectLegacyUnwritten = async () => {
+      await wire.settle();
+      const actual = await planConfig();
+      expect(actual.config).toEqual(legacy.config);
+      expect(actual.rev).toBe(legacy.rev);
+      expect(configSetCount()).toBe(0);
+      expect(wire.saveAcks()).toHaveLength(0);
+    };
+    try {
+      let { dialog } = await profileSettings(page), child = await editProfile(dialog, fixture.id);
+      await footerCancel(child).click(); await expect(child).toBeHidden();
+      await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
+      await expectLegacyUnwritten();
+      ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
+      await finishProfile(child); // OK affects only the outer draft.
+      await expectLegacyUnwritten();
+      const discard = card(page).locator(HP.dialog('confirm')).filter({
+        has: page.locator('[data-confirm-key=discard-settings-dialog]'),
+      });
+      await footerCancel(dialog).click();
+      await expect(discard).toBeVisible(); await expect(dialog).toBeVisible();
+      // Continue keeps the unsaved outer draft: it is not a successful Cancel.
+      await discard.locator('[slot=footer]').locator(HP.dialogCancel).click();
+      await expect(discard).toBeHidden(); await expect(dialog).toBeVisible();
+      await expectLegacyUnwritten();
+      // A second Cancel must still offer Discard, proving Continue retained it.
+      await footerCancel(dialog).click(); await expect(discard).toBeVisible();
+      await discard.locator('[slot=footer]').locator(HP.dialogConfirm).click();
+      await expect(discard).toBeHidden(); await expect(dialog).toBeHidden();
+      await expectLegacyUnwritten();
+      ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
+      await finishProfile(child);
+      await expectLegacyUnwritten();
+      const ack = await saveProfileSettings(dialog, wire);
+      await wire.settle();
+      const migrated = await planConfig();
+      expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
+      expect(ack.rev).toBe(migrated.rev); expect(migrated.rev).toBeGreaterThan(legacy.rev);
+      expect(profileNamespace(migrated.config).version).toBe(2);
+      expect(profileOf(migrated.config, fixture.id)).toEqual(currentProfile(fixture.profile));
+      await page.reload(); await expectPlanDrawn(page, card(page));
+      const reloaded = await planConfig();
+      expect(reloaded.config).toEqual(migrated.config); expect(reloaded.rev).toBe(migrated.rev);
+      await wire.settle();
+      expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
+      await evidence(testInfo, page, 'legacy-profile-native-v2-migration');
+    } finally {
+      await attachProfileReceipt(testInfo, 'legacy-profile-cancel-save-real-ws.json', wire);
+    }
+  }
 });
 test('a native admin Save reaches a real read-only screen live with zero extra config GETs', async ({ page, browser }, testInfo) => {
   test.setTimeout(180_000);
@@ -61,7 +121,7 @@ test('a native admin Save reaches a real read-only screen live with zero extra c
   await adminWire.settle();
   const prepared = await planConfig();
   expect(profileOf(prepared.config, fixture.id)).toEqual(fixture.profile);
-  expect(profileOf(prepared.config, fixture.localId).rotation).toBe(90);
+  expect(profileView(prepared.config, fixture.localId, 'f2').rotation).toBe(90);
   const context = await fixture.context(browser, 'viewer'), viewerPage = await context.newPage();
   const viewerWire = await profileWire(viewerPage), viewerHost = await openProfile(viewerPage, fixture.id);
   await viewerWire.ready();
@@ -102,8 +162,9 @@ test('a native admin Save reaches a real read-only screen live with zero extra c
       && event.baseRev === before.rev && event.profilePatch === true)).toBe(true);
     expect(viewerWire.receipt.events.slice(eventCount).some(event => ['resync', 'closed'].includes(event.kind))).toBe(false);
     expect(withoutProfiles(after.config)).toEqual(withoutProfiles(before.config));
-    expect(profileOf(after.config, fixture.id)).toMatchObject({ rotation: 180, summary: 'hide',
-      hidden_devices: 'hide', icon_scale: 1.5, font_scale: 1.25, controls: !hasBeta5UiPolishContract() });
+    expect(profileView(after.config, fixture.id, 'f2')).toMatchObject({ rotation: 180, summary: 'hide', icon_scale: 1.5, font_scale: 1.25 });
+    if (fixture.api === 1) expect(profileOf(after.config, fixture.id)).toMatchObject({ hidden_devices: 'hide', controls: !hasBeta5UiPolishContract() });
+    else expect(profileOf(after.config, fixture.id).default_view).toEqual(fixture.profile.default_view);
     await expect(viewerHost.locator(hp('settings'))).toHaveCount(0);
     await expect(viewerHost.locator(hp('mode-tab'))).toHaveCount(0);
     await evidence(testInfo, viewerPage, 'readonly-live-profile-adopted');
@@ -133,7 +194,8 @@ test('URL overrides outrank profile and native local choices without persisting 
 
   host = await openProfile(page, fixture.id, 'hpkiosk=0');
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
+  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expectSizes(page, host, 175, 150);
   const profileAngle = await planDirection(host, fixture.rooms.f2[0]);
   host = await openProfile(page, fixture.id,
@@ -150,7 +212,8 @@ test('URL overrides outrank profile and native local choices without persisting 
   host = await openProfile(page, fixture.id,
     'hprotate=45&hpsummary=no&hphidden=2&hpicons=NaN&hptext=301&hpcontrols=maybe&hpcycle=-1&hpidle=bad');
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
+  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expectSizes(page, host, 175, 150);
   expectQuarterTurn(profileAngle, await planDirection(host, fixture.rooms.f2[0]), 0);
   await page.goto(`/houseplan/kiosk/1?hpprofile=${fixture.id}&hpspace=2`);

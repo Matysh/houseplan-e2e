@@ -3,8 +3,8 @@
 import { test, expect } from '@playwright/test';
 import { installedRecord, requireHooks } from './lib/contract.mjs';
 import { compareTags } from '../scripts/tags.mjs';
-import { archive, dirtyPlan, seedExport } from './lib/backup-fixtures.mjs';
-import { chooseBackup, footerCancel, openMaintenance } from './lib/backup.mjs';
+import { archive, complexPlan, seedExport } from './lib/backup-fixtures.mjs';
+import { chooseBackup, footerCancel, openMaintenance, previewReply } from './lib/backup.mjs';
 import { planConfig, planLayout } from './lib/ha-ws.mjs';
 import { evidence } from './lib/ha-page.mjs';
 
@@ -24,11 +24,22 @@ test('settings and import dialogs survive a late genuine HA bootstrap on cold an
     await route.continue();
   });
   const configBefore = await planConfig(), layoutBefore = await planLayout();
-  const zip = archive(dirtyPlan(await seedExport()));
+  // Bootstrap tests UI registration, not malformed geometry migration. Use
+  // one repairable nonstructural stale reference and preserve graph authority.
+  const plan = complexPlan(await seedExport());
+  const radar = plan.document.payload.config.markers.find(marker => marker.id === 'e2e_radar_kitchen');
+  expect(radar?.radar).toBeDefined();
+  radar.radar.room_id = 'e2e_bootstrap_missing_room';
+  const zip = archive(plan);
   for (const entry of ['cold', 'repeated']) {
     const { host, settings } = await openMaintenance(page);
+    const replied = previewReply(page);
     const dialog = await chooseBackup(page, host, settings,
       { name: 'bootstrap-preview.zip', mimeType: 'application/zip', buffer: zip });
+    const response = await replied;
+    const reply = await response.json();
+    expect(response.status(), JSON.stringify(reply)).toBe(200);
+    expect(reply.preview?.recovery?.counts?.radar).toBe(1);
     await expect(settings).toBeHidden();
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('The plan will be restored with repairs');

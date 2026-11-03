@@ -55,7 +55,7 @@ its labels. The installed product's contract decides: it lists the action id
 
 ## «Грязный план» — `dirtyPlan()`, full ZIP
 
-This is the complex plan with stale references and awkward geometry.
+This is the complex plan with stale references and supported exact geometry.
 `expected` holds what the preview must name and what the import must keep.
 
 | Broken on purpose | The preview must name it as | After the import |
@@ -68,7 +68,7 @@ This is the complex plan with stale references and awkward geometry.
 | value badge derived from `marker:e2e_gone_marker` | recovery `value` («Disabled dependent values: 1») | badge `enabled: false`, `source: null` |
 | decor picture whose file is not in the archive | content `missing_preserved`, archive `missing` | kept as a placeholder to repair; the import needs the confirmation box |
 | Yard backdrop on `https://e2e-yard-backdrop.invalid/…` (a host that never resolves) | content `external`, archive `external` | kept as a link |
-| a partition lying exactly on another one, a partition with nodes off the 1/240 grid, a room whose outline crosses itself (with matching walls) | nothing (findings F127) | kept byte for byte: nothing is «optimized» without being asked |
+| a distinct coincident partition and a legal exact off-grid partition | no geometry repair | the complete current graph, original IDs/coordinates and derived projections remain identical; current import is not Optimize |
 | a door moved far off its wall (`e2e-off-wall`, #1033 products only) | `opening_repairs.detached: 1` with the door in `examples` («Openings kept off walls: 1», under **Show openings**); the confirmation box names it | kept where it was without a wall; every other field unchanged |
 
 «Undo last full import» must then return the previous plan exactly
@@ -78,6 +78,51 @@ Exporting the dirty plan after the import reports what is still switched
 off: the radar and the vacuum (controls and values were repaired by the
 import). It also reports the two images that are not included. The download
 is `…-incomplete.zip` with those two images listed by reason.
+
+## F127 split: supported geometry, authority corruption and genuine legacy
+
+The former combined “twin/offgrid/bowtie all kept byte for byte” row does not
+apply to model11. Exact off-grid points and distinct coincident identities remain
+positive geometry; a mathematically invalid room and inconsistent current
+projections are separate refusal cases. This follows the accepted #1167 contract
+1/5/6/8/9 and #1216 R1/R4, not a new blanket legacy sunset.
+
+A. `dirtyPlan()` current11 uses `current-dirty-geometry.json`, a frozen official
+`commitGraphEditResult` partitions result on the real synthetic seed export.
+It adds only two named edges and four independent nodes. The original graph,
+room cycles and carriers remain; the twin keeps distinct identity and the offgrid
+points use exact q. A full structural-before assertion rejects a changed seed
+instead of rebuilding authority from projections. Room appearance/HA metadata
+is retained from the actual export. Both JSON/ZIP transfer and repaired export
+check the entire current structural projection and graph, with existing stale
+reference/content reports and full-import Undo unchanged. The off-wall opening
+still asserts #1033 repair, independently tracked by #1238 if it fails.
+
+B. The negative-import journey contains an explicitly corrupted model11 export:
+a room projection ID changes while its graph is untouched. HTTP must refuse,
+no preview/apply token may be issued, and both complete document contents,
+revisions and maintenance Undo metadata remain unchanged.
+
+C. `legacy10-transfer-cases.json` contains a literal legacy10 bow-tie with its
+own consistent wall catalogue and no graph. Independent integer predicates show
+zero signed area and a proper interior crossing. This is outside the ORIGINAL R
+valid-cycle class in accepted #1216 R1: import to current11 refuses atomically,
+without inventing rooms or deleting the stored source. The refusal substep checks
+`invalid_plan_graph`; it does not accept an earlier malformed-host/catalogue error.
+Legacy-only View readers/source-export support are not retired by this test change.
+
+D. The same literal file separately contains the valid model10 room with one
+opening moved off its existing host. The existing1.62/model5 journey remains;
+its current11 branch adds a genuine10 JSON import/confirmation/reload/Undo substep.
+The room, exact graph and all carriers must match the frozen TS-produced target
+independently accepted by the Python materializer. Only the opening host is
+removed: x/y/angle/size/flip/opaque future data stay exact. Its target is never
+normalized with the product after a write. This preserves #1033 K3/K5 and
+AC4–AC9 even though an exported11 document cannot be relabelled10.
+
+All new checks are substeps of the existing business case IDs. These fixture
+ports are not evidence of HA success; #1238 remains visible in the current dirty
+positive case, and all actual outcomes must come from the addressed real HA run.
 
 ## «Прежний JSON» — `oldJsonPlan()`, House Plan 1.62
 

@@ -2,14 +2,14 @@
 import { test, expect } from '@playwright/test';
 import { compareTags } from '../scripts/tags.mjs';
 import { installedRecord, requireHooks } from './lib/contract.mjs';
-import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
+import { card, evidence, expectPlanDrawn, stageOf } from './lib/ha-page.mjs';
 import { planConfig, planLayout, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { action, clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
-import { openMaintenance } from './lib/backup.mjs';
+import { clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
+import { profileWire, attachProfileReceipt } from './lib/panel-profiles.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
-requireHooks(test, 'space-settings', 'action@data-action', 'dialog@data-kind');
+requireHooks(test, 'space-settings', 'action@data-action', 'dialog@data-kind', 'stage');
 restoreSeedAfterEach(test);
 
 test('space-copy name survives the retired HA settings shell and Cancel keeps configuration', async ({ page }, testInfo) => {
@@ -52,6 +52,7 @@ test('space-copy furniture and decor choices persist all four combinations witho
   const version = installedRecord()?.version;
   test.skip(!!version && compareTags('v' + version, 'v1.84.0-beta.2') < 0,
     'Copy composition #1156 first ships in 1.84.0-beta.2; the earlier copy contract remains unchanged');
+  const wire = await profileWire(page);
   const sourceId = 'smrwhw9la';
   const host = await openPlan(page, { space: sourceId });
   await enterEditor(host, 'decor');
@@ -76,20 +77,11 @@ test('space-copy furniture and decor choices persist all four combinations witho
   await page.keyboard.press('Escape');
   await waitForConfig(c => (spaceOf(c, sourceId).decor || []).some(d => d.kind === 'line'), { message: 'source line stored' });
   await leaveEditor(host);
-  // Copy legitimately offers whole-plan Optimize first. Accept that separate
-  // operation before taking Copy's immutable source/markers/layout oracle.
-  const maintenance = await openMaintenance(page);
-  await action(maintenance.settings, 'plan-optimize').click();
-  const optimization = maintenance.host.locator(HP.dialog('settings')).last();
-  const apply = optimization.locator(HP.dialogConfirm).first();
-  // This fixed seed contains off-grid text; a missing/disabled confirm is a
-  // genuine setup or preflight failure, never permission to weaken the oracle.
-  await expect(apply).toBeVisible();
-  await expect(apply).toBeEnabled();
-  await apply.click();
-  await expect(maintenance.host.locator(hp('toast', { id: 'gs.align_done' }))).toBeVisible();
-  await page.reload();
-  await expectPlanDrawn(page, card(page));
+  // #1227 copies accepted saved geometry directly; no Optimize admission step.
+  // Observe real passthrough websocket traffic rather than mocking the writer.
+  await wire.settle();
+  const optimizeRequests = () => wire.receipt.commands.filter(command => command.type === 'houseplan/plan/optimize');
+  expect(optimizeRequests()).toHaveLength(0);
   const before = (await planConfig()).config, source = structuredClone(spaceOf(before, sourceId));
   const layoutBefore = (await planLayout()).layout;
   expect(new Set(source.decor.map(d => d.kind))).toEqual(new Set(['rect', 'text', 'furniture', 'image', 'line']));
@@ -121,9 +113,11 @@ test('space-copy furniture and decor choices persist all four combinations witho
     await dialog.locator(HP.dialogConfirm).first().click();
     await expect.poll(async () => {
       if (await host.locator(HP.dialog('confirm')).first().isVisible())
-        throw Error('Copy unexpectedly requests another Optimize after the accepted setup');
+        throw Error('Copy unexpectedly requests Optimize instead of copying accepted geometry (#1227)');
       return (await planConfig()).config.spaces.some(s => s.title === title);
     }, { timeout: 30_000, message: 'selected copy accepted by the real integration' }).toBe(true);
+    await wire.settle();
+    expect(optimizeRequests()).toHaveLength(0);
     const stored = (await planConfig()).config, copy = stored.spaces.find(s => s.title === title);
     const expected = source.decor.filter(d => d.kind === 'furniture' ? furniture : decor);
     expect((copy.decor || []).map(withoutId)).toEqual(expected.map(withoutId));
@@ -133,8 +127,35 @@ test('space-copy furniture and decor choices persist all four combinations witho
     expect(stored.markers).toEqual(before.markers);
     expect((await planLayout()).layout).toEqual(layoutBefore);
     await page.reload();
-    await expectPlanDrawn(page, card(page));
+    const fresh = card(page);
+    // Copy converts the room outline into independent partitions; this saved
+    // space intentionally has no room records. Require its real geometry.
+    await expect(fresh.locator(HP.ready)).toBeVisible();
+    const surface = stageOf(fresh); await expect(surface).toBeVisible();
+    await expect.poll(async () => (await surface.boundingBox())?.height ?? 0).toBeGreaterThan(200);
     const reloaded = (await planConfig()).config;
+    expect(spaceOf(reloaded, copy.id)).toEqual(copy);
+    expect(copy.rooms).toEqual([]);
+    await expect(fresh.locator(HP.room)).toHaveCount(0);
+    expect(copy.partitions).toHaveLength(4);
+    expect(copy.partitions.every(partition => partition.cm === 0)).toBe(true);
+    const orderSegments = segments => segments.map(segment => segment.sort((a, b) => a[0] - b[0] || a[1] - b[1]))
+      .sort((a, b) => a[0][0] - b[0][0] || a[0][1] - b[0][1] || a[1][0] - b[1][0] || a[1][1] - b[1][1]);
+    const group = surface.locator('.zero-walls');
+    await expect(group).toBeVisible();
+    expect(await group.evaluate(node => Number(getComputedStyle(node).opacity))).toBeGreaterThan(0);
+    const lines = surface.locator('line.zero-wall');
+    await expect(lines).toHaveCount(4);
+    const rendered = await lines.evaluateAll(nodes => nodes.map(node => {
+      const style = getComputedStyle(node);
+      return { points: [[Number(node.getAttribute('x1')), Number(node.getAttribute('y1'))],
+        [Number(node.getAttribute('x2')), Number(node.getAttribute('y2'))]],
+        paints: style.display !== 'none' && style.visibility !== 'hidden' && style.stroke !== 'none'
+          && Number(style.strokeOpacity) > 0 && parseFloat(style.strokeWidth) > 0 };
+    }));
+    expect(rendered.every(line => line.paints)).toBe(true);
+    expect(orderSegments(rendered.map(line => line.points))).toEqual(orderSegments(copy.partitions.map(partition =>
+      [partition.a.map(value => value * 1000), partition.b.map(value => value * 1000)])));
     expect(spaceOf(reloaded, copy.id).decor || []).toEqual(copy.decor || []);
     expect(spaceOf(reloaded, sourceId)).toEqual(source);
     await selectSpace(card(page), copy.id);
@@ -147,5 +168,6 @@ test('space-copy furniture and decor choices persist all four combinations witho
       expect((await page.request.get(new URL(href, page.url()).toString())).status()).toBe(200);
     }
     await evidence(testInfo, page, `copy-composition-${Number(furniture)}${Number(decor)}-after-reload`);
+    await attachProfileReceipt(testInfo, 'copy-direct-real-ws.json', wire);
   }
 });

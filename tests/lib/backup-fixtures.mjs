@@ -9,6 +9,7 @@
  * export over the integration's websocket), so every fixture is a plan this
  * product could have written itself, plus the additions named below.
  */
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -22,6 +23,66 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const sha256 = (raw) => createHash('sha256').update(raw).digest('hex');
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const json = (value) => Buffer.from(JSON.stringify(value), 'utf8');
+
+const CURRENT_DIRTY_GEOMETRY = JSON.parse(readFileSync(resolve(ROOT, 'fixtures/backups/current-dirty-geometry.json'), 'utf8'));
+const LEGACY10_TRANSFER = JSON.parse(readFileSync(resolve(ROOT, 'fixtures/backups/legacy10-transfer-cases.json'), 'utf8'));
+/** Structural-only projection; room presentation/HA metadata stays independent. */
+export const structuralGeometry = space => Object.fromEntries(
+  ['rooms', 'wall_segments', 'partitions', 'walls', 'plan_graph'].map(key => [key,
+    key === 'rooms' ? space.rooms.map(room => ({ id: room.id, poly: room.poly, wall_ids: room.wall_ids })) : space[key]]));
+
+function currentDirtyGeometry(space) {
+  assert.equal(space.id, CURRENT_DIRTY_GEOMETRY.spaceId);
+  assert.deepEqual(structuralGeometry(space), CURRENT_DIRTY_GEOMETRY.before,
+    'the real seed export must match the frozen producer source; never normalize an unexpected source');
+  const next = copy(CURRENT_DIRTY_GEOMETRY.after);
+  const rooms = new Map(next.rooms.map(room => [room.id, room]));
+  space.rooms = space.rooms.map(room => ({ ...room, poly: rooms.get(room.id).poly, wall_ids: rooms.get(room.id).wall_ids }));
+  for (const key of ['wall_segments', 'partitions', 'walls', 'plan_graph']) space[key] = next[key];
+}
+
+/** Explicit current-corruption and genuine legacy10 invalid-cycle inputs. */
+export function geometryRefusalPlans(base) {
+  if (base.model_version < 11) return [];
+  const mismatch = copy(base);
+  mismatch.payload.config.spaces[0].rooms[0].id = 'e2e-current-projection-only-room';
+  const bowtie = copy(LEGACY10_TRANSFER.bowtie);
+  assert.equal(bowtie.model_version, 10);
+  assert.ok(bowtie.payload.config.spaces.every(space => !space.plan_graph));
+  const room = bowtie.payload.config.spaces[0].rooms[0];
+  const points = room.poly.map(point => point.map(value => value * 10));
+  assert.ok(points.flat().every(Number.isInteger));
+  const orient = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  assert.equal(points.reduce((sum, p, i) => sum + p[0] * points[(i + 1) % 4][1] - p[1] * points[(i + 1) % 4][0], 0), 0);
+  assert.ok(orient(points[0], points[1], points[2]) * orient(points[0], points[1], points[3]) < 0
+    && orient(points[2], points[3], points[0]) * orient(points[2], points[3], points[1]) < 0,
+    'independent literal witness: edges0/2 cross properly, not numerical noise');
+  return [
+    ['current graph/projection disagreement', 'projection-mismatch.json', 'application/json', json(mismatch), 'The backup contains an invalid House Plan configuration.', 'invalid_config'],
+    ['a genuine legacy10 zero-area crossing room', 'legacy10-bowtie.json', 'application/json', json(bowtie), 'invalid_plan_graph', 'invalid_plan_graph'],
+  ];
+}
+
+/** #1033 model10 input remains literal, never a relabelled current export. */
+export function legacy10OpeningPlan(parentSettings) {
+  const document = copy(LEGACY10_TRANSFER.openingRepair);
+  assert.equal(document.model_version, 10);
+  assert.ok(document.payload.config.spaces.every(space => !space.plan_graph));
+  if (parentSettings) {
+    // Historical discovery checkpoint, already present in the genuine parent
+    // backup. Preserve only these keys, not unrelated modern space references.
+    const keys = ['filter_seeded', 'known_devices', 'new_device_ids'];
+    for (const key of keys) assert.ok(Object.hasOwn(parentSettings, key), `parent checkpoint missing ${key}`);
+    assert.equal(parentSettings.filter_seeded, true);
+    assert.ok(Array.isArray(parentSettings.known_devices) && Array.isArray(parentSettings.new_device_ids));
+    document.payload.config.settings = { ...document.payload.config.settings,
+      ...Object.fromEntries(keys.map(key => [key, copy(parentSettings[key])])) };
+  }
+  const { host, ...opening } = document.payload.config.spaces[0].openings[0];
+  assert.deepEqual(host, { kind: 'wall', id: 'legacy-top', t: .5 });
+  return { document, expected: { opening, geometry: copy(LEGACY10_TRANSFER.expectedOpeningRepairGeometry) } };
+}
+
 
 export const CREATED_AT = '2026-10-22T00:00:00.000000Z';
 
@@ -124,7 +185,7 @@ export function complexPlan(base) {
 }
 
 /**
- * «Грязный план»: the complex plan with stale references and awkward
+ * «Грязный план»: the complex plan with stale references and supported exact
  * geometry. `expected` is what the import preview must name, what the import
  * must switch off but keep, and the geometry it must leave exactly as it is.
  */
@@ -167,15 +228,15 @@ export function dirtyPlan(base) {
   const lostPicture = sha256(uniquePng('e2e lost picture'));
   ground.decor.push({ id: 'e2e-picture-lost', kind: 'image', asset_id: lostPicture, x: 0.6, y: 0.3, w: 0.05, h: 0.05 });
   yard.plan_url = 'https://e2e-yard-backdrop.invalid/plan.png'; // never resolves: no real host is contacted
-  // geometry the import has no business changing
-  const partition = ground.partitions[0];
-  ground.partitions.push({ ...copy(partition), id: 'e2e-partition-twin' }); // lies exactly on the first
-  ground.partitions.push({ id: 'e2e-partition-offgrid', a: [0.701234, 0.30123], b: [0.749876, 0.30123], cm: 10 }); // off the 1/240 grid
-  // a room whose outline crosses itself, with the walls it implies
-  const bowTie = [[0.6, 0.1], [0.8, 0.3], [0.8, 0.1], [0.6, 0.3]];
-  const bowTieWalls = bowTie.map((_, i) => `wall-e2ebowtie${i}`);
-  yard.rooms.push({ id: 'e2e-bowtie', name: 'Bow tie', poly: bowTie, wall_ids: bowTieWalls });
-  bowTie.forEach((point, i) => yard.wall_segments.push({ id: bowTieWalls[i], a: point, b: bowTie[(i + 1) % bowTie.length], cm: 0 }));
+  // Legal coincident identity and exact off-grid geometry stay positive.
+  // Current graph authority comes from a frozen, explicitly authored producer
+  // result; model11 projections are never appended without their graph.
+  if (document.model_version >= 11) currentDirtyGeometry(ground);
+  else {
+    const partition = ground.partitions[0];
+    ground.partitions.push({ ...copy(partition), id: 'e2e-partition-twin' });
+    ground.partitions.push({ id: 'e2e-partition-offgrid', a: [0.701234, 0.30123], b: [0.749876, 0.30123], cm: 10 });
+  }
   // a door moved far off its wall (houseplan-card#1033): imported without a
   // wall, everything else about it kept; older products refuse such a file
   const offWall = repairsBackups()
@@ -189,7 +250,7 @@ export function dirtyPlan(base) {
       recovery: { radar: ['e2e_radar_lost'], vacuum: ['e_vacuum_demo_robot'], controls: ['e2e_lamp_switch'], value: ['e2e_badge_lost'] },
       missingPictures: ['e2e-picture-lost'],
       external: ['https://e2e-yard-backdrop.invalid/plan.png'],
-      keptGeometry: { partitions: { f1: ['e2e-partition-twin', 'e2e-partition-offgrid'] }, rooms: { smrwhw9la: ['e2e-bowtie'] } },
+      keptGeometry: { partitions: { f1: ['e2e-partition-twin', 'e2e-partition-offgrid'] }, rooms: {}, currentGraph: document.model_version >= 11 },
       offWall,
       kitchen: kitchen.id,
     },

@@ -11,9 +11,10 @@ import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import {
   centreOf, clickFloor, dragClient, dragFloor, enterEditor, field, leaveEditor, openPlan, selectSpace,
-  settle, snap, toClient, useTool,
+  settle, snap, stage, gridStep, toClient, useTool,
 } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
+import { visiblePlanSegment } from './lib/visible-plan-target.mjs';
 
 requireHooks(test, 'stage@data-grid-step', 'mode-tab', 'field', 'action', 'wall-node', 'room-resize');
 restoreSeedAfterEach(test);
@@ -29,19 +30,25 @@ const roomDialog = (host) => host.locator(HP.dialog('room')).first();
 const confirmNamed = (dialog, name) => dialog.locator(HP.dialogConfirm).filter({ hasText: name }).first();
 
 /** Draw a closed rectangle with the Walls tool; the room dialog opens. */
-async function drawRectangle(page, host, [x0, y0, x1, y1]) {
+async function drawRectangle(page, host, testInfo) {
   await useTool(host, 'draw');
-  const corners = [];
-  for (const [x, y] of [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]) corners.push(await snap(host, x, y));
-  for (const c of [...corners, corners[0]]) await clickFloor(page, host, c.x, c.y);
-  return corners.map((c) => [c.x / U, c.y / U]);
+  const targets = await stage(host).evaluate(visiblePlanSegment, {
+    step: await gridStep(host), clearInterior: true,
+    pattern: [[[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]],
+  });
+  await testInfo.attach('visible-free-room-targets.json', {
+    body: JSON.stringify(targets, null, 2), contentType: 'application/json',
+  });
+  const corners = targets.segments.map(segment => segment.a);
+  for (const point of [...corners, corners[0]]) await clickFloor(page, host, point.x, point.y);
+  return corners.map(point => [point.x / U, point.y / U]);
 }
 
 test('walls drawn into a closed contour become a saved room', async ({ page }, testInfo) => {
   const host = await openPlan(page, { space: YARD });
   await evidence(testInfo, page, 'walls-before');
   await enterEditor(host, 'plan');
-  const outline = await drawRectangle(page, host, [600, 200, 800, 400]);
+  const outline = await drawRectangle(page, host, testInfo);
 
   const dialog = roomDialog(host);
   await expect(dialog).toBeVisible();
@@ -181,14 +188,33 @@ test('a wall node is dragged to a new point', async ({ page }, testInfo) => {
   await clickFloor(page, host, a.x, a.y);
   await clickFloor(page, host, b.x, b.y);
   await page.keyboard.press('Escape');
-  await waitForConfig((c) => (spaceOf(c, YARD).partitions || []).length === 1, { message: 'free wall saved' });
+  const authored = await waitForConfig((c) => (spaceOf(c, YARD).partitions || []).length === 1,
+    { message: 'free wall saved' });
+  const wire = await planConfig(), saved = spaceOf(authored, YARD);
+  const nodeKey = (p) => `${(p.x / U).toFixed(9)},${(p.y / U).toFixed(9)}`;
+  let fixedNode = nodeKey(a), movingNode = nodeKey(b);
+  if (wire.graph_change_api === 2) {
+    expect(authored.model_version).toBe(11);
+    expect(saved.plan_graph?.version).toBe(1);
+    // Binding comes from the named edge the native a -> b command saved,
+    // never from a nearest screen point or an unrelated room node.
+    const edge = saved.plan_graph.edges.find(edge => edge.kind === 'partition' && edge.id === saved.partitions[0].id);
+    expect(edge).toBeTruthy();
+    fixedNode = edge.from; movingNode = edge.to;
+    expect(saved.plan_graph.nodes.some(node => node.id === fixedNode)).toBe(true);
+    expect(saved.plan_graph.nodes.some(node => node.id === movingNode)).toBe(true);
+  } else {
+    // Historical integrations retain their coordinate-key DOM contract.
+    expect(authored.model_version).toBeLessThan(11);
+  }
   await useTool(host, 'select');
   await settle(host);
   await evidence(testInfo, page, 'node-before');
 
-  const nodeKey = (p) => `${(p.x / U).toFixed(9)},${(p.y / U).toFixed(9)}`;
-  const end = host.locator(hp('wall-node', { node: nodeKey(b) })).first();
+  const end = host.locator(hp('wall-node', { node: movingNode })).first();
   await expect(end).toBeVisible();
+  expect(Number(await end.getAttribute('cx'))).toBeCloseTo(b.x, 6);
+  expect(Number(await end.getAttribute('cy'))).toBeCloseTo(b.y, 6);
   const to = await snap(host, b.x, b.y - 80);
   await dragClient(page, await centreOf(end), await toClient(host, to.x, to.y));
 
@@ -198,6 +224,11 @@ test('a wall node is dragged to a new point', async ({ page }, testInfo) => {
   }, { message: 'wall end at the new point on the server' });
   const wall = spaceOf(moved, YARD).partitions[0];
   expect([wall.a, wall.b].some(([x, y]) => Math.abs(x * U - a.x) < 1e-3 && Math.abs(y * U - a.y) < 1e-3)).toBe(true);
+  if (wire.graph_change_api === 2) {
+    const graph = spaceOf(moved, YARD).plan_graph;
+    const edge = graph.edges.find(edge => edge.kind === 'partition' && edge.id === saved.partitions[0].id);
+    expect([edge.from, edge.to]).toEqual([fixedNode, movingNode]);
+  }
   await evidence(testInfo, page, 'node-after');
 
   // after a reload the wall's end is at the new point, not at the old one
@@ -206,9 +237,27 @@ test('a wall node is dragged to a new point', async ({ page }, testInfo) => {
   await enterEditor(fresh, 'plan');
   await useTool(fresh, 'select');
   await settle(fresh);
-  await expect(fresh.locator(hp('wall-node', { node: nodeKey(to) })).first()).toBeVisible();
-  await expect(fresh.locator(hp('wall-node', { node: nodeKey(b) }))).toHaveCount(0);
-  await expect(fresh.locator(hp('wall-node', { node: nodeKey(a) })).first()).toBeVisible();
+  const reloadedEnd = fresh.locator(hp('wall-node', { node: wire.graph_change_api === 2 ? movingNode : nodeKey(to) })).first();
+  await expect(reloadedEnd).toBeVisible();
+  // Stable identity remains, but its old position must not: this replaces the
+  // old coordinate-key absence oracle with the same exact positional contract.
+  expect(Number(await reloadedEnd.getAttribute('cx'))).toBeCloseTo(to.x, 6);
+  expect(Number(await reloadedEnd.getAttribute('cy'))).toBeCloseTo(to.y, 6);
+  expect(Math.abs(Number(await reloadedEnd.getAttribute('cy')) - b.y)).toBeGreaterThan(1);
+  if (wire.graph_change_api !== 2) {
+    await expect(fresh.locator(hp('wall-node', { node: nodeKey(b) }))).toHaveCount(0);
+  } else {
+    // The old coordinate-key absence checked ALL handles at that position,
+    // not just the moving node. Retain that same 9-decimal positional oracle.
+    const oldPositionCount = await fresh.locator(hp('wall-node')).evaluateAll((nodes, p) => nodes.filter(node =>
+      (Number(node.getAttribute('cx')) / 1000).toFixed(9) === (p.x / 1000).toFixed(9)
+      && (Number(node.getAttribute('cy')) / 1000).toFixed(9) === (p.y / 1000).toFixed(9)).length, b);
+    expect(oldPositionCount).toBe(0);
+  }
+  const reloadedFixed = fresh.locator(hp('wall-node', { node: fixedNode })).first();
+  await expect(reloadedFixed).toBeVisible();
+  expect(Number(await reloadedFixed.getAttribute('cx'))).toBeCloseTo(a.x, 6);
+  expect(Number(await reloadedFixed.getAttribute('cy'))).toBeCloseTo(a.y, 6);
   await evidence(testInfo, page, 'node-after-reload');
 });
 
