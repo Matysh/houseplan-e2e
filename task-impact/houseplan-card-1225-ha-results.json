@@ -872,5 +872,579 @@
       "evidence": "artifacts/process-next-e2e-labs/hp-e2e-upgrade-7etIGL/artifacts/results.json",
       "afterPortStatus": "not-applicable"
     }
-  ]
+  ],
+  "followUp": {
+    "run": 41646456489,
+    "runUrl": "https://github.com/Matysh/houseplan-card/actions/runs/41646456489",
+    "product": "a07f4a10309c7b187ab122cf3227002f04c2e81d",
+    "companion": "afa1724d91205babbe6790804f2944450f7cf6fa",
+    "business": {
+      "total": 77,
+      "passed": 72,
+      "failed": 5,
+      "timedOut": 0,
+      "skipped": 0,
+      "interrupted": 0,
+      "undefined": 0
+    },
+    "setup": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "timedOut": 0,
+      "skipped": 0,
+      "interrupted": 0,
+      "undefined": 0
+    },
+    "cache": {
+      "reused": 459,
+      "passed": 10,
+      "failed": 64,
+      "notRequired": 2,
+      "blocked": 1
+    },
+    "duration": "29m56s",
+    "caseResults": [
+      {
+        "project": "first-run-viewer",
+        "file": "tests/first-run/empty.viewer.spec.mjs",
+        "title": "a non-admin sees a calm read-only empty state, no create action",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-first-run-mMdU01/artifacts/results.json"
+      },
+      {
+        "project": "first-run-admin",
+        "file": "tests/first-run/first-space.admin.spec.mjs",
+        "title": "from the sidebar page to a saved first space without any image",
+        "status": "failed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-first-run-mMdU01/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/dashboard.admin.spec.mjs",
+        "title": "Panel view: the card owns the page",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/dashboard.admin.spec.mjs",
+        "title": "Sections view: the card defaults to the full width of its section",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/dashboard.admin.spec.mjs",
+        "title": "Masonry view: the card still draws the plan",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/dashboard.admin.spec.mjs",
+        "title": "kiosk view hides the header and keeps the plan",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-decor.admin.spec.mjs",
+        "title": "a rectangle, an oval and a line are drawn and kept",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-decor.admin.spec.mjs",
+        "title": "a text with a live Home Assistant value is placed and shows the value",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-decor.admin.spec.mjs",
+        "title": "a sofa from the furniture palette is placed and kept",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-decor.admin.spec.mjs",
+        "title": "an uploaded image is placed on the plan and served back after a reload",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-decor.admin.spec.mjs",
+        "title": "the backdrop image of a space is moved in its own tool",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-devices.admin.spec.mjs",
+        "title": "the Properties panel changes the size of the selected device",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-devices.admin.spec.mjs",
+        "title": "two devices pulled together by the magnets form one outlined group",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-devices.admin.spec.mjs",
+        "title": "Properties follows the real card width at 1023, 1024 and 1025 without losing selection",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-plan.admin.spec.mjs",
+        "title": "walls drawn into a closed contour become a saved room",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-plan.admin.spec.mjs",
+        "title": "a room deleted with its walls kept is created again in the same walls",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-plan.admin.spec.mjs",
+        "title": "a room is resized by dragging its wall",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-plan.admin.spec.mjs",
+        "title": "a wall node is dragged to a new point",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-plan.admin.spec.mjs",
+        "title": "a zero-thickness wall is drawn and kept as an axis without a body",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/ha-bootstrap.admin.spec.mjs",
+        "title": "settings and import dialogs survive a late genuine HA bootstrap on cold and repeated entry",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/light.admin.spec.mjs",
+        "title": "a lamp switched on in Home Assistant spreads its light on the plan, and off removes it",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-header.admin.spec.mjs",
+        "title": "the native HA menu follows width and the real sidebar preference, and stays outside Lovelace",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-header.admin.spec.mjs",
+        "title": "editor close glyph stays centered in full and compact modes with real HA icons",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-1 cold path and query kiosk remove both headers and all editor entries",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-2/3 position follows ordinary UI order and path keeps foreign query encoding and hash",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-4 malformed positions show all floors; fixed position resists hash and native swipe",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-5 SPA, Back/Forward and foreign query preserve the mounted card, camera and actual IO",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-7 true HA leave ends editor, remount does not retain old actions",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-8 another real client reorders floors; a genuinely stale cold cache waits for the authoritative roster",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-8 add/remove changes an out-of-range URL between all floors and a real fixed floor",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-10 dirty device draft Keep retains input/URL; Discard enters exactly the requested kiosk without a write",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-kiosk.admin.spec.mjs",
+        "title": "1103-10 late real Save reply cannot act on the replacement HA panel",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-profiles.admin.spec.mjs",
+        "title": "a cold saved profile opens its floor, rotation, sizes and display defaults",
+        "status": "failed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-profiles.admin.spec.mjs",
+        "title": "a native admin Save reaches a real read-only screen live with zero extra config GETs",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel-profiles.admin.spec.mjs",
+        "title": "URL overrides outrank profile and native local choices without persisting them",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel.admin.spec.mjs",
+        "title": "lists the spaces in one select on this window and as tabs on a wide one",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel.admin.spec.mjs",
+        "title": "survives leaving for a dashboard and coming back inside the app",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel.admin.spec.mjs",
+        "title": "reflects entity state changed in Home Assistant",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/pdf.admin.spec.mjs",
+        "title": "the current space downloads as a real PDF",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/pdf.admin.spec.mjs",
+        "title": "switching room names off in the dialog changes the PDF",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/selective-invalidation.admin.spec.mjs",
+        "title": "an HA update on an inactive floor is current when that floor is shown",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/settings.admin.spec.mjs",
+        "title": "General settings: a toggle is saved for the whole installation",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/settings.admin.spec.mjs",
+        "title": "Space settings: a renamed space keeps its new name",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/settings.admin.spec.mjs",
+        "title": "Room settings: a renamed room shows its new name on the plan",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/settings.admin.spec.mjs",
+        "title": "Device on the plan: a new display is saved and shown again",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/space-copy-lifecycle.admin.spec.mjs",
+        "title": "space-copy name survives the retired HA settings shell and Cancel keeps configuration",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/space-copy-lifecycle.admin.spec.mjs",
+        "title": "space-copy furniture and decor choices persist all four combinations without changing the source",
+        "status": "failed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/spaces.admin.spec.mjs",
+        "title": "a space is added, kept after a reload, and deleted again",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/static-sync.admin.spec.mjs",
+        "title": "five native full-card drags ACK and update both static cards on the same HA connection",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/static-sync.admin.spec.mjs",
+        "title": "a real five-write burst uses one shared layout GET; equal and older events do not read or roll back",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/static-sync.admin.spec.mjs",
+        "title": "new configuration refreshes config and advertised capabilities, while layout-only and legacy events retain the other half",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/static-sync.admin.spec.mjs",
+        "title": "a real virtual-light event paints immediately and survives a layout-only refresh",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/static-sync.admin.spec.mjs",
+        "title": "held old reads cannot replace newer events, and a real connection handoff drops the old revision high-water",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/summary.admin.spec.mjs",
+        "title": "the summary panel is shown, its values are drawn and its title and values are edited",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/support.admin.spec.mjs",
+        "title": "the diagnostics package is prepared, previewed and downloaded without sending",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-export.admin.spec.mjs",
+        "title": "a complex plan exports as a complete ZIP with its backdrop, pictures and Zigbee snapshot",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-export.admin.spec.mjs",
+        "title": "the current space exports as JSON, and as its plan only",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-export.admin.spec.mjs",
+        "title": "a plan with problems: the export names them and gives the repaired, incomplete copy",
+        "status": "failed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-import.admin.spec.mjs",
+        "title": "a dirty ZIP: the preview names every problem, the import keeps the plan sound, undo brings the old plan back",
+        "status": "failed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-import.admin.spec.mjs",
+        "title": "a JSON from House Plan 1.62 on another Home Assistant is migrated to the current plan model",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-import.admin.spec.mjs",
+        "title": "a space exported as JSON comes back as a new space, devices already on the plan skipped",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/vacuum-trail.admin.spec.mjs",
+        "title": "the stored trail is drawn, a live run moves the robot and draws a trail the server keeps",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "viewer",
+        "file": "tests/panel-kiosk.viewer.spec.mjs",
+        "title": "1103-9 viewer kiosk cannot expose editors or write; empty plan offers no creation",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "viewer",
+        "file": "tests/panel-kiosk.viewer.spec.mjs",
+        "title": "1103-9 ordinary Lovelace kiosk cycle/floor/rotation contract and strict bad floor remain",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "viewer",
+        "file": "tests/panel-profiles.viewer.spec.mjs",
+        "title": "deletion falls back live, new IDs never capture the old URL, and the screen stays read-only",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "mobile",
+        "file": "tests/panel-kiosk.mobile.spec.mjs",
+        "title": "1103-6 mobile all/fixed native swipe, pinch, pan, double tap, local sizes and orientation",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-ZmbsIv/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/editor-devices.admin.spec.mjs",
+        "title": "a device is moved with undo and redo, renamed and copied, and the plan keeps it",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel.admin.spec.mjs",
+        "title": "is listed in the sidebar and shows the plan on the very first open",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/panel.admin.spec.mjs",
+        "title": "tapping a toggle-bound lamp switches it in Home Assistant",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/selective-invalidation.admin.spec.mjs",
+        "title": "Save remains pending until its real HA ACK, then closes and survives reload",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/selective-invalidation.admin.spec.mjs",
+        "title": "a confirmed Save refusal leaves server truth intact and does not poison subsequent Copy and history",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/transfer-import.admin.spec.mjs",
+        "title": "damaged, wrong and invalid files are refused and the plan stays as it was",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "admin",
+        "file": "tests/zz-restart.admin.spec.mjs",
+        "title": "an open plan survives a Home Assistant restart and is live again",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "viewer",
+        "file": "tests/readonly.viewer.spec.mjs",
+        "title": "the sidebar page shows the plan read-only",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "viewer",
+        "file": "tests/readonly.viewer.spec.mjs",
+        "title": "the dashboard card is the same read-only plan",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "mobile",
+        "file": "tests/panel.mobile.spec.mjs",
+        "title": "sidebar page on a phone draws the plan and opens the drawer",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-journeys-pCupIU/artifacts/results.json"
+      },
+      {
+        "project": "upgrade",
+        "file": "tests/upgrade/upgrade.admin.spec.mjs",
+        "title": "an open browser follows an integration update after the HA restart",
+        "status": "passed",
+        "evidence": "artifacts/process-next-e2e-labs/hp-e2e-upgrade-0gcSVF/artifacts/results.json"
+      }
+    ],
+    "remaining": "First-run #1237; profile outer Cancel after inner OK needs trace classification; Copy Optimize on old material; two dirty fixtures before A-D port. A-D applied after this run, not HA-validated."
+  }
 }

@@ -72,3 +72,46 @@ Addressed local verification after these ports: visible-target browser helper
 3/3 passed (including occupied-interior control); contract lint51 files passed.
 Those results do not substitute for HA verification. No new workflow, test
 selection/profile, product patch or release command was introduced.
+
+## Actual follow-up41646456489 and versioned dirty transfers
+
+The authorized ordinary fallback follow-up pinned the same producta07 and
+companionafa1724; HA2026.10.4/upgradev1.83.1 were unchanged. It completed in
+29m56s and actually reused459 prior successful steps (10 newly passed,
+64 failed,2 not-required,1 blocked). All77 business cases executed again:
+**72 passed,5 failed,0 skipped/unexecuted; all10 setups passed.** All published
+HA summary counts match a new translation of raw primary Playwright JSON.
+
+Six repaired business fixtures now have actual PASS: room creation, node drag,
+three decor shapes, kiosk cloned-floor identity, genuine bootstrap, and the
+oversize refusal. The legacy profile case passed the previous ambiguous-selector
+point and now stops after outer Cancel following inner OK; its current trace is
+still being classified. First-run exact lattice#1237, old-material Copy Optimize
+and two pre-A-D dirty producers remain explicit failures. A-D changes below
+were integrated after this run and must not be reported as having passed it.
+
+Accepted#1033/#1167/#1216 distinguish legal distinct coincident/off-grid
+partitions from a proper-crossing zero-area room. The previous broad question
+was corrected in issuecomment6605582890; no new owner decision is needed for
+that specific atomic refusal. The stale combined F127 fixture is now split:
+current authority-consistent positive content/reference repair with the exact
+legal partitions and unchanged#1238 opening-repair assertion; negative current
+projection tamper; an isolated literal legacy10 zero-area crossing; and a
+positive genuine legacy10 off-wall repair following the unchanged model5 case.
+All77 original business IDs remain; these are substeps, not new selections.
+
+The current positive geometry is a frozen official producer result with an
+exact source precondition, not a runtime rebuild from changed projections.
+Current rooms are compared in full as well as through the complete structural
+graph/projection. Negative inputs preserve the full config/layout pair, both
+revisions and existing Undo metadata. Literal legacy sources are never renamed
+current exports; exact source/repair/reload and whole-config Undo remain.
+
+Addressed local checks of integrated A-D: syntax3 modules, contract51 files,
+actual fixture/archive construction and source-precondition checks passed.
+The generation produces exact current11 data and two explicit refusal inputs;
+it does not contact HA. The integrated pure backend A control excluding only
+the deliberate #1238 opening also passed: all three spaces keep whole rooms
+including opaque metadata, and the complete official producer structural target
+is unchanged. No expected output was normalized. Current11 opening-repair#1238 remains RED. No third
+HA audit was dispatched and neither PR18 merge nor productS8 is claimed.
