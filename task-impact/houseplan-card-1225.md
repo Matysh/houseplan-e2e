@@ -17,8 +17,9 @@ monotonic identity counter; event/patch envelope remains v1. Historical API1
 fixtures remain separate and explicit. Retired hidden-device profile fields
 do not overwrite the browser's ordinary Hidden preference.
 
-PR16 (`61497db39e9982520349ce2c16cb1cd7a57b739a`) is retained as an ancestor
-of this branch rather than overwritten. Its exact-graph first-use journey
+PR16 (`61497db39e9982520349ce2c16cb1cd7a57b739a`) is retained through the
+patch-equivalent cherry-pick `7a10cb9`; the original commit is not an ancestor
+of this branch, and the original PR was not overwritten. Its exact-graph first-use journey
 uses the same exposed-target selection for L/X and node dragging. Its native
 server, ID, Undo/Redo, export and reload oracles are retained.
 
