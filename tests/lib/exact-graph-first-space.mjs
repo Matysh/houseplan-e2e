@@ -2,7 +2,8 @@
 import {expect} from '@playwright/test';
 import {HP,hp} from './hooks.mjs';
 import {planConfig,spaceOf,waitForConfig,wsCall} from './ha-ws.mjs';
-import {centreOf,clickFloor,dragClient,enterEditor,field,leaveEditor,settle,snap,toClient,useTool} from './plan.mjs';
+import {centreOf,clickFloor,dragClient,enterEditor,field,leaveEditor,settle,stage,gridStep,toClient,useTool} from './plan.mjs';
+import {visiblePlanSegment} from './visible-plan-target.mjs';
 import {card,evidence,stageOf} from './ha-page.mjs';
 
 const graphOf=(config,id)=>spaceOf(config,id).plan_graph;
@@ -16,7 +17,11 @@ export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined)
  if(!await host.locator(HP.mode('plan')).isVisible())await enterEditor(host,'plan');
  await useTool(host,'draw');
  const depth=field(host,'wall-thickness');await depth.fill('15');await depth.press('Enter');
- const [a,b,c]=await Promise.all([[350,300],[650,300],[650,500]].map(([x,y])=>snap(host,x,y)));
+ const targets=await stage(host).evaluate(visiblePlanSegment,{step:await gridStep(host),pattern:[
+  [[0,0],[2,0]],[[2,0],[2,2]],[[1,-1],[1,1]],[[0,0],[-1,0]],
+ ]});
+ const [{a,b},{b:c},{a:x1,b:x2},{b:target}]=targets.segments;
+ await testInfo.attach('exact-first-space-visible-targets.json',{body:JSON.stringify(targets,null,2),contentType:'application/json'});
  for(const p of [a,b,c])await clickFloor(page,host,p.x,p.y);
  await page.keyboard.press('Escape');
  await waitForConfig(config=>graphOf(config,id)?.edges.length===2,{message:'native L is durable exact graph'});
@@ -24,7 +29,7 @@ export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined)
  // A second finite carrier crosses the first; its four incident children must
  // meet at one stored node, with both physical thicknesses retained.
  await useTool(host,'draw');await depth.fill('25');await depth.press('Enter');
- for(const [x,y]of [[525,200],[525,400]]){const p=await snap(host,x,y);await clickFloor(page,host,p.x,p.y);}
+ for(const p of [x1,x2])await clickFloor(page,host,p.x,p.y);
  await page.keyboard.press('Escape');
  const before=await waitForConfig(config=>graphOf(config,id)?.edges.length>=5,{message:'native unequal-depth X is noded on the server'});
  const graph=graphOf(before,id),degree=new Map();
@@ -35,7 +40,7 @@ export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined)
  await useTool(host,'select');await settle(host);
  const sourceNode=graph.nodes.find(n=>JSON.stringify(n.p)===JSON.stringify(wire(a)));
  expect(sourceNode).toBeTruthy();
- const target=await snap(host,a.x-50,a.y),handle=host.locator(hp('wall-node',{node:nodeKey(a)})).first();
+ const handle=host.locator(hp('wall-node',{node:nodeKey(a)})).first();
  await expect(handle).toBeVisible();
  await dragClient(page,await centreOf(handle),await toClient(host,target.x,target.y));
  const moved=await waitForConfig(config=>{

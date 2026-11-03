@@ -5,7 +5,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { hp, HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, evidence } from './lib/ha-page.mjs';
 import { planConfig, wsCall } from './lib/ha-ws.mjs';
-import { PROFILE_HOOKS, ProfileFixture, profileOf, profileNamespace, profileWire, openProfile,
+import { PROFILE_HOOKS, ProfileFixture, profileOf, profileView, profileNamespace, profileWire, openProfile,
   expectFloor, profileSettings, profileEditButton, chooseProfileField, finishProfile, saveProfileSettings,
   expectSizes, planConfigForViewer, attachProfileReceipt } from './lib/panel-profiles.mjs';
 
@@ -51,8 +51,8 @@ test('deletion falls back live, new IDs never capture the old URL, and the scree
   await saveProfileSettings(dialog, adminWire);
   const stored = (await planConfig()).config;
   expect(profileOf(stored, fixture.id)).toBeUndefined();
-  expect(profileOf(stored, allocated)).toMatchObject({ id: allocated, space: 'f2', rotation: 270,
-    summary: 'show', icon_scale: 2.5, font_scale: 2 });
+  expect(profileOf(stored, allocated)).toMatchObject({ id: allocated, space: 'f2' });
+  expect(profileView(stored, allocated, 'f2')).toMatchObject({ rotation: 270, summary: 'show', icon_scale: 2.5, font_scale: 2 });
   expect(profileNamespace(stored).next_id).toBe(allocated + 1);
   await viewerWire.settle();
   // The already-open URL still means no profile after a new one is allocated.
