@@ -129,3 +129,30 @@ Root read-only review approved the narrow patch; addressed syntax and contract51
 passed. This does not change the actual latest audit result72/5, and no third
 HA audit or PR merge was performed. Issue1225 remains S6+blocked pending actual
 proof and the named product dependencies.
+
+## Resume after product fixes0c030e700 (actual HA pending)
+
+Live accepted fixes#1228–#1238 are now S8. In particular #1237 retains native
+Draw grid provenance without rounding imported exact coordinates, and #1238
+repairs current exact opening hosts before strict projection admission while
+preserving graph authority. No executor branch rebase or new audit is hidden
+behind this note.
+
+Pure parser/materializer controls on an immutable backend archive of
+0c030e70016f34ee103ce9a0e15a312915edb09f now pass for the COMPLETE current11
+dirty positive input (including the deliberately off-wall opening) and the
+genuine literal10 positive. Each detaches exactly one opening, with complete
+structural target and all opening payload fields unchanged beyond the reported
+host removal. Current rooms retain full metadata. These are zero-network local
+controls, not a real HA PASS; proof is output/issue1225-resume-proof in the
+executor workspace.
+
+The Copy fixture follows the explicit accepted#1227 owner decision: copy accepted
+saved geometry directly, without Optimize or geometric preflight. Its obsolete
+explicit maintenance Optimize setup is removed. A real passthrough websocket
+observer requires zero Optimize requests before and after each of the same four
+composition variants. All source/markers/layout/cancel/reload/image-byte checks
+remain; no private product state or mocked backend response is introduced.
+Addressed changed-file syntax and contract51 pass. Actual proof is reserved for
+one coordinated common stable diagnostic candidate with the root task#1226.
+No independent HA, workflow or release is started here.

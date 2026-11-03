@@ -5,8 +5,8 @@ import { installedRecord, requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, planLayout, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { action, clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
-import { openMaintenance } from './lib/backup.mjs';
+import { clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
+import { profileWire, attachProfileReceipt } from './lib/panel-profiles.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
 
 requireHooks(test, 'space-settings', 'action@data-action', 'dialog@data-kind');
@@ -52,6 +52,7 @@ test('space-copy furniture and decor choices persist all four combinations witho
   const version = installedRecord()?.version;
   test.skip(!!version && compareTags('v' + version, 'v1.84.0-beta.2') < 0,
     'Copy composition #1156 first ships in 1.84.0-beta.2; the earlier copy contract remains unchanged');
+  const wire = await profileWire(page);
   const sourceId = 'smrwhw9la';
   const host = await openPlan(page, { space: sourceId });
   await enterEditor(host, 'decor');
@@ -76,20 +77,11 @@ test('space-copy furniture and decor choices persist all four combinations witho
   await page.keyboard.press('Escape');
   await waitForConfig(c => (spaceOf(c, sourceId).decor || []).some(d => d.kind === 'line'), { message: 'source line stored' });
   await leaveEditor(host);
-  // Copy legitimately offers whole-plan Optimize first. Accept that separate
-  // operation before taking Copy's immutable source/markers/layout oracle.
-  const maintenance = await openMaintenance(page);
-  await action(maintenance.settings, 'plan-optimize').click();
-  const optimization = maintenance.host.locator(HP.dialog('settings')).last();
-  const apply = optimization.locator(HP.dialogConfirm).first();
-  // This fixed seed contains off-grid text; a missing/disabled confirm is a
-  // genuine setup or preflight failure, never permission to weaken the oracle.
-  await expect(apply).toBeVisible();
-  await expect(apply).toBeEnabled();
-  await apply.click();
-  await expect(maintenance.host.locator(hp('toast', { id: 'gs.align_done' }))).toBeVisible();
-  await page.reload();
-  await expectPlanDrawn(page, card(page));
+  // #1227 copies accepted saved geometry directly; no Optimize admission step.
+  // Observe real passthrough websocket traffic rather than mocking the writer.
+  await wire.settle();
+  const optimizeRequests = () => wire.receipt.commands.filter(command => command.type === 'houseplan/plan/optimize');
+  expect(optimizeRequests()).toHaveLength(0);
   const before = (await planConfig()).config, source = structuredClone(spaceOf(before, sourceId));
   const layoutBefore = (await planLayout()).layout;
   expect(new Set(source.decor.map(d => d.kind))).toEqual(new Set(['rect', 'text', 'furniture', 'image', 'line']));
@@ -121,9 +113,11 @@ test('space-copy furniture and decor choices persist all four combinations witho
     await dialog.locator(HP.dialogConfirm).first().click();
     await expect.poll(async () => {
       if (await host.locator(HP.dialog('confirm')).first().isVisible())
-        throw Error('Copy unexpectedly requests another Optimize after the accepted setup');
+        throw Error('Copy unexpectedly requests Optimize instead of copying accepted geometry (#1227)');
       return (await planConfig()).config.spaces.some(s => s.title === title);
     }, { timeout: 30_000, message: 'selected copy accepted by the real integration' }).toBe(true);
+    await wire.settle();
+    expect(optimizeRequests()).toHaveLength(0);
     const stored = (await planConfig()).config, copy = stored.spaces.find(s => s.title === title);
     const expected = source.decor.filter(d => d.kind === 'furniture' ? furniture : decor);
     expect((copy.decor || []).map(withoutId)).toEqual(expected.map(withoutId));
@@ -147,5 +141,6 @@ test('space-copy furniture and decor choices persist all four combinations witho
       expect((await page.request.get(new URL(href, page.url()).toString())).status()).toBe(200);
     }
     await evidence(testInfo, page, `copy-composition-${Number(furniture)}${Number(decor)}-after-reload`);
+    await attachProfileReceipt(testInfo, 'copy-direct-real-ws.json', wire);
   }
 });
