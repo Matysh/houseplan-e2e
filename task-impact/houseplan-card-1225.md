@@ -85,8 +85,9 @@ HA summary counts match a new translation of raw primary Playwright JSON.
 Six repaired business fixtures now have actual PASS: room creation, node drag,
 three decor shapes, kiosk cloned-floor identity, genuine bootstrap, and the
 oversize refusal. The legacy profile case passed the previous ambiguous-selector
-point and now stops after outer Cancel following inner OK; its current trace is
-still being classified. First-run exact lattice#1237, old-material Copy Optimize
+point and now stops after outer Cancel following inner OK. Its screenshot and accepted
+P10/requestClose prove that the standard discard confirmation is intentional;
+this is a further outdated test expectation, not a failed product Cancel. First-run exact lattice#1237, old-material Copy Optimize
 and two pre-A-D dirty producers remain explicit failures. A-D changes below
 were integrated after this run and must not be reported as having passed it.
 
@@ -115,3 +116,16 @@ the deliberate #1238 opening also passed: all three spaces keep whole rooms
 including opaque metadata, and the complete official producer structural target
 is unchanged. No expected output was normalized. Current11 opening-repair#1238 remains RED. No third
 HA audit was dispatched and neither PR18 merge nor productS8 is claimed.
+
+## Legacy profile discard follow-up (not yet HA-validated)
+
+The profile fixture now explicitly requires the public discard-settings-dialog
+confirmation after dirty outer Cancel, proves Continue retains the unsaved draft,
+then repeats Cancel and Discard. Full config/revision and zero real config/set
+requests/ACKs remain checked until the one native outer Save. Exactly one Save
+ACK, server revision, namespace v2 and full reload durability are required.
+Existing floor/rotation/size/display and cold legacy-reader checks remain.
+Root read-only review approved the narrow patch; addressed syntax and contract51
+passed. This does not change the actual latest audit result72/5, and no third
+HA audit or PR merge was performed. Issue1225 remains S6+blocked pending actual
+proof and the named product dependencies.

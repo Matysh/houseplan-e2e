@@ -54,23 +54,56 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
     // Read and both cancellation paths must not eagerly write a migration.
     const legacy = await planConfig();
     expect(profileNamespace(legacy.config).version).toBe(1);
-    let { dialog } = await profileSettings(page), child = await editProfile(dialog, fixture.id);
-    await footerCancel(child).click(); await expect(child).toBeHidden();
-    await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
-    expect((await planConfig()).config).toEqual(legacy.config);
-    ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
-    await finishProfile(child); // OK affects only the outer draft.
-    expect((await planConfig()).config).toEqual(legacy.config);
-    await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
-    expect((await planConfig()).config).toEqual(legacy.config);
-    ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
-    await finishProfile(child); await saveProfileSettings(dialog);
-    const migrated = await planConfig();
-    expect(profileNamespace(migrated.config).version).toBe(2);
-    expect(profileOf(migrated.config, fixture.id)).toEqual(currentProfile(fixture.profile));
-    await page.reload(); await expectPlanDrawn(page, card(page));
-    expect(profileNamespace((await planConfig()).config)).toEqual(profileNamespace(migrated.config));
-    await evidence(testInfo, page, 'legacy-profile-native-v2-migration');
+    const configSetCount = () => wire.receipt.commands.filter(command => command.type === 'houseplan/config/set').length;
+    const expectLegacyUnwritten = async () => {
+      await wire.settle();
+      const actual = await planConfig();
+      expect(actual.config).toEqual(legacy.config);
+      expect(actual.rev).toBe(legacy.rev);
+      expect(configSetCount()).toBe(0);
+      expect(wire.saveAcks()).toHaveLength(0);
+    };
+    try {
+      let { dialog } = await profileSettings(page), child = await editProfile(dialog, fixture.id);
+      await footerCancel(child).click(); await expect(child).toBeHidden();
+      await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
+      await expectLegacyUnwritten();
+      ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
+      await finishProfile(child); // OK affects only the outer draft.
+      await expectLegacyUnwritten();
+      const discard = card(page).locator(HP.dialog('confirm')).filter({
+        has: page.locator('[data-confirm-key=discard-settings-dialog]'),
+      });
+      await footerCancel(dialog).click();
+      await expect(discard).toBeVisible(); await expect(dialog).toBeVisible();
+      // Continue keeps the unsaved outer draft: it is not a successful Cancel.
+      await discard.locator('[slot=footer]').locator(HP.dialogCancel).click();
+      await expect(discard).toBeHidden(); await expect(dialog).toBeVisible();
+      await expectLegacyUnwritten();
+      // A second Cancel must still offer Discard, proving Continue retained it.
+      await footerCancel(dialog).click(); await expect(discard).toBeVisible();
+      await discard.locator('[slot=footer]').locator(HP.dialogConfirm).click();
+      await expect(discard).toBeHidden(); await expect(dialog).toBeHidden();
+      await expectLegacyUnwritten();
+      ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
+      await finishProfile(child);
+      await expectLegacyUnwritten();
+      const ack = await saveProfileSettings(dialog, wire);
+      await wire.settle();
+      const migrated = await planConfig();
+      expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
+      expect(ack.rev).toBe(migrated.rev); expect(migrated.rev).toBeGreaterThan(legacy.rev);
+      expect(profileNamespace(migrated.config).version).toBe(2);
+      expect(profileOf(migrated.config, fixture.id)).toEqual(currentProfile(fixture.profile));
+      await page.reload(); await expectPlanDrawn(page, card(page));
+      const reloaded = await planConfig();
+      expect(reloaded.config).toEqual(migrated.config); expect(reloaded.rev).toBe(migrated.rev);
+      await wire.settle();
+      expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
+      await evidence(testInfo, page, 'legacy-profile-native-v2-migration');
+    } finally {
+      await attachProfileReceipt(testInfo, 'legacy-profile-cancel-save-real-ws.json', wire);
+    }
   }
 });
 test('a native admin Save reaches a real read-only screen live with zero extra config GETs', async ({ page, browser }, testInfo) => {

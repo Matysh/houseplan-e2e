@@ -1445,6 +1445,6 @@
         "evidence": "artifacts/process-next-e2e-labs/hp-e2e-upgrade-0gcSVF/artifacts/results.json"
       }
     ],
-    "remaining": "First-run #1237; profile outer Cancel after inner OK needs trace classification; Copy Optimize on old material; two dirty fixtures before A-D port. A-D applied after this run, not HA-validated."
+    "remaining": "First-run #1237; profile dirty outer Cancel correctly opened the standard discard confirmation; explicit Continue/Discard/no-write port applied after this run, not HA-validated; Copy Optimize on old material; two dirty fixtures before A-D port. A-D applied after this run, not HA-validated."
   }
 }
