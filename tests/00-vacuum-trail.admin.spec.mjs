@@ -8,8 +8,10 @@
 // 2-second tick, so the journey drives it a counted number of ticks: the run,
 // and with it every evidence frame, is the same from one run to the next.
 //
-// Runs late in the suite on purpose: the integration has no way to put a
-// recorded trail back, so the journeys after it see one more stored run.
+// Runs before plan-mutating journeys: full import intentionally purges the
+// history of removed markers, and config/layout teardown cannot restore it.
+// The 00- prefix makes the existing one-worker file order explicit. Later
+// journeys may replace the plan; no test fabricates/restores trail storage.
 import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
 import { callService, getState, waitForState } from './lib/ha-api.mjs';
@@ -53,6 +55,16 @@ test.afterEach(async () => {
 test('the stored trail is drawn, a live run moves the robot and draws a trail the server keeps', async ({ page }, testInfo) => {
   test.setTimeout(240_000);
   await waitForState(VACUUM, 'docked');
+  // This journey observes the immutable seeded previous run before destructive
+  // full imports. Missing history is a broken fixture precondition, never an
+  // alternate rendering success or a reason to manufacture a replacement run.
+  const stored = await trailOf();
+  await testInfo.attach('vacuum-seeded-trails-before-render.json', {
+    body: JSON.stringify({ marker: MARKER, trails: stored }), contentType: 'application/json',
+  });
+  expect(stored.previous, 'seed previous run must precede marker-removing imports').toBeTruthy();
+  expect(stored.previous.map_id).toBe('1');
+  expect(lastPoint(stored.previous)).toEqual([4041.9, 3088.3]);
   const marker = (await planConfig()).config.markers.find((m) => m.id === MARKER);
   const [a, b, c, d, e, f] = Object.values(marker.vacuum.calibration)[0];
   await page.goto('/houseplan');
