@@ -6,6 +6,7 @@ import { hp, HP } from './lib/hooks.mjs';
 import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { selectSpace } from './lib/plan.mjs';
 import { planConfig } from './lib/ha-ws.mjs';
+import { footerCancel } from './lib/backup.mjs';
 import { PROFILE_HOOKS, ProfileFixture, HIDDEN_MARKER, profileOf, profileView, profileNamespace, currentProfile, profileWire, openProfile,
   expectFloor, profileSettings, editProfile, chooseProfileField, finishProfile, saveProfileSettings,
   expectSizes, setLocalSizes, planDirection, expectQuarterTurn, withoutProfiles, changedPaths, attachProfileReceipt } from './lib/panel-profiles.mjs';
@@ -54,13 +55,13 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
     const legacy = await planConfig();
     expect(profileNamespace(legacy.config).version).toBe(1);
     let { dialog } = await profileSettings(page), child = await editProfile(dialog, fixture.id);
-    await child.locator(HP.dialogCancel).click(); await expect(child).toBeHidden();
-    await dialog.locator(HP.dialogCancel).click(); await expect(dialog).toBeHidden();
+    await footerCancel(child).click(); await expect(child).toBeHidden();
+    await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
     expect((await planConfig()).config).toEqual(legacy.config);
     ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
     await finishProfile(child); // OK affects only the outer draft.
     expect((await planConfig()).config).toEqual(legacy.config);
-    await dialog.locator(HP.dialogCancel).click(); await expect(dialog).toBeHidden();
+    await footerCancel(dialog).click(); await expect(dialog).toBeHidden();
     expect((await planConfig()).config).toEqual(legacy.config);
     ({ dialog } = await profileSettings(page)); child = await editProfile(dialog, fixture.id);
     await finishProfile(child); await saveProfileSettings(dialog);

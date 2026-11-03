@@ -1,6 +1,6 @@
 /** Browser-side geometry only: a visible, unobscured snapped native edit target.
  * Never changes camera/product state and never reaches private product fields. */
-export function visiblePlanSegment(svg, { step, pixels = 90, pattern = [[[0, 0], [1, 0]]] }) {
+export function visiblePlanSegment(svg, { step, pixels = 90, clearInterior = false, pattern = [[[0, 0], [1, 0]]] }) {
   if (!(step > 0)) throw Error('The editor must expose a positive grid step');
   const matrix = svg.getScreenCTM(), box = svg.getBoundingClientRect();
   if (!matrix || ![matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite)
@@ -42,6 +42,15 @@ export function visiblePlanSegment(svg, { step, pixels = 90, pattern = [[[0, 0],
           x: from.x + (to.x - from.x) * i / 12, y: from.y + (to.y - from.y) * i / 12 })) };
       });
       const samples = segments.flatMap(line => line.samples);
+      // A closed-room witness must not surround an existing room or wall.
+      // Conservative client AABBs reject the entire filled rectangle, not only
+      // sampled boundary points. The default segment/X journeys are unchanged.
+      if (clearInterior) {
+        const area = { left: Math.min(...samples.map(p => p.x)), right: Math.max(...samples.map(p => p.x)),
+          top: Math.min(...samples.map(p => p.y)), bottom: Math.max(...samples.map(p => p.y)) };
+        if (occupied.some(rect => rect.left <= area.right + 12 && rect.right >= area.left - 12
+          && rect.top <= area.bottom + 12 && rect.bottom >= area.top - 12)) continue;
+      }
       if (samples.every(available)) return { ...segments[0], segments, clip, samples };
     }
   }

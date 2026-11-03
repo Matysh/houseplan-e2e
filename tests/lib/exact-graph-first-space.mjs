@@ -8,7 +8,6 @@ import {card,evidence,stageOf} from './ha-page.mjs';
 
 const graphOf=(config,id)=>spaceOf(config,id).plan_graph;
 const wire=p=>['l',String(Math.round(p.x*240/1000)),String(Math.round(p.y*240/1000))];
-const nodeKey=p=>`${(p.x/1000).toFixed(9)},${(p.y/1000).toFixed(9)}`;
 
 export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined){
  initial??=await planConfig();const id=initial.config.spaces[0].id;
@@ -40,7 +39,7 @@ export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined)
  await useTool(host,'select');await settle(host);
  const sourceNode=graph.nodes.find(n=>JSON.stringify(n.p)===JSON.stringify(wire(a)));
  expect(sourceNode).toBeTruthy();
- const handle=host.locator(hp('wall-node',{node:nodeKey(a)})).first();
+ const handle=host.locator(hp('wall-node',{node:sourceNode.id})).first();
  await expect(handle).toBeVisible();
  await dragClient(page,await centreOf(handle),await toClient(host,target.x,target.y));
  const moved=await waitForConfig(config=>{

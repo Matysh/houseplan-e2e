@@ -109,7 +109,16 @@ test('1103-8 add/remove changes an out-of-range URL between all floors and a rea
   const config=await orderedFixture(),position=config.spaces.length+1;
   await page.goto(`/houseplan/kiosk/${position}`);await expectPlanDrawn(page);await expectKiosk(card(page));
   const added=await writeConfig(c=>{
-    const space=structuredClone(c.spaces[0]);space.id='e2e-kiosk-added';space.title='Added E2E';space.rooms.forEach((room,i)=>{room.id=`e2e-added-room-${i}`;});c.spaces.push(space);
+    const space=structuredClone(c.spaces[0]);space.id='e2e-kiosk-added';space.title='Added E2E';
+    const roomIds=new Map(space.rooms.map((room,i)=>[room.id,`e2e-added-room-${i}`]));
+    space.rooms.forEach(room=>{room.id=roomIds.get(room.id);});
+    // This fixture changes floor/room identity, not geometry. Rename the
+    // accepted graph's room-cycle references with its unchanged projection.
+    for(const cycle of space.plan_graph?.rooms??[]) {
+      if(!roomIds.has(cycle.room))throw Error('cloned graph has an unknown room owner');
+      cycle.room=roomIds.get(cycle.room);
+    }
+    c.spaces.push(space);
     c.markers.push({id:'e2e-kiosk-floor-witness',binding:'virtual',space:space.id,name:'Added floor witness',icon:'mdi:home'});
   });
   const layout=await planLayout(),room=added.spaces.at(-1).rooms[0],point=room.poly.reduce((p,q)=>[p[0]+q[0]/room.poly.length,p[1]+q[1]/room.poly.length],[0,0]);

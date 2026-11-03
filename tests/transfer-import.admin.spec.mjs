@@ -230,13 +230,16 @@ function refusals(base) {
   const offWall = complexPlan(base);
   const ground = byId(offWall.document.payload.config.spaces, 'f1');
   ground.openings.push({ ...JSON.parse(JSON.stringify(ground.openings[0])), id: 'e2e-off-wall', x: 0.95, y: 0.95 });
-  const huge = { format: 'houseplan-export', export_version: 2, kind: 'full', padding: 'x'.repeat(8 * 1024 * 1024) };
+  // Current portable-document limit is 32 MiB. Keep a real valid envelope
+  // so a changed size gate cannot accidentally turn this into a format test.
+  const huge = JSON.parse(JSON.stringify(base));
+  huge.padding = 'x'.repeat(32 * 1024 * 1024);
   return [
     ['a damaged ZIP', 'damaged.zip', 'application/zip', complex.subarray(0, Math.floor(complex.length * 0.6)), 'The ZIP backup is damaged or unsupported. Choose a valid House Plan backup.'],
     ['a picture renamed .zip', 'picture.zip', 'application/zip', png, 'The ZIP backup is damaged or unsupported. Choose a valid House Plan backup.'],
     ['a picture renamed .json', 'picture.json', 'application/json', png, 'The selected file is not valid JSON.'],
     ['JSON that is not a House Plan backup', 'other.json', 'application/json', Buffer.from('{"version":1,"items":[]}'), 'The selected file is not a House Plan backup.'],
-    ['JSON over the 8 MiB limit', 'huge.json', 'application/json', Buffer.from(JSON.stringify(huge)), 'The backup exceeds the 8 MiB limit.'],
+    ['JSON over the 32 MiB portable-document limit', 'huge.json', 'application/json', Buffer.from(JSON.stringify(huge)), 'The backup exceeds the 8 MiB limit.'],
     ['a shape of zero width', 'zero-size.zip', 'application/zip', archive(zeroSize), 'The backup contains an invalid House Plan configuration.'],
     ...(repairsBackups() ? [] : [['an opening off its wall', 'off-wall.json', 'application/json', Buffer.from(JSON.stringify(offWall.document)), 'The backup contains an invalid House Plan configuration.']]),
   ];

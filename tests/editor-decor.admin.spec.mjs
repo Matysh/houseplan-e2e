@@ -9,10 +9,11 @@ import { card, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import {
-  centreOf, clickFloor, dragClient, dragFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, settle, snap,
+  centreOf, clickFloor, dragClient, dragFloor, enterEditor, field, gridStep, leaveEditor, openPlan, selectSpace, settle, snap, stage,
   useTool,
 } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
+import { visiblePlanSegment } from './lib/visible-plan-target.mjs';
 
 requireHooks(test, 'decor', 'stage@data-grid-step', 'mode-tab', 'field', 'action', 'furniture-category', 'furniture-item',
   'image-upload', 'backdrop', 'decor@data-kind');
@@ -39,15 +40,18 @@ test('a rectangle, an oval and a line are drawn and kept', async ({ page }, test
   const host = await openPlan(page, { space: YARD });
   await enterEditor(host, 'decor');
   await evidence(testInfo, page, 'shapes-before');
-  for (const [tool, from, to] of [
-    ['rect', [620, 160], [700, 230]],
-    ['ellipse', [720, 160], [800, 230]],
-    ['line', [620, 270], [800, 270]],
-  ]) {
+  await useTool(host, 'shapes'); await useTool(host, 'rect');
+  const targets = await stage(host).evaluate(visiblePlanSegment, {
+    step: await gridStep(host), pixels: 65,
+    pattern: [[[0, 0], [1, 1]], [[1.5, 0], [2.5, 1]], [[0, 1.5], [2.5, 1.5]]],
+  });
+  await testInfo.attach('decor-visible-targets.json', {
+    body: JSON.stringify(targets, null, 2), contentType: 'application/json',
+  });
+  for (const [index, tool] of ['rect', 'ellipse', 'line'].entries()) {
     await useTool(host, 'shapes');
     await useTool(host, tool);
-    const a = await snap(host, ...from);
-    const b = await snap(host, ...to);
+    const { a, b } = targets.segments[index];
     if (tool === 'line' && drawsLinesByClicks()) {
       // houseplan-card#1046: two clicks store one segment, Esc ends the chain
       await clickFloor(page, host, a.x, a.y);
@@ -56,6 +60,8 @@ test('a rectangle, an oval and a line are drawn and kept', async ({ page }, test
     } else {
       await dragFloor(page, host, a, b);
     }
+    await waitForConfig(c => added(c, YARD, before, tool).length === 1,
+      { message: `native ${tool} stored` });
   }
   const config = await waitForConfig((c) => ['rect', 'ellipse', 'line'].every((k) => added(c, YARD, before, k).length === 1),
     { message: 'three shapes stored' });
