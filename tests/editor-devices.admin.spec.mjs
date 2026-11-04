@@ -1,3 +1,4 @@
+import {beta5Maintenance} from './lib/beta5-maintenance.mjs';
 // Device editor on a real Home Assistant (houseplan-card#1010, rows 1, 7, 15):
 // a device is moved (with its own undo/redo), renamed in its settings dialog
 // and copied from the context menu; its size is changed in the side
@@ -81,6 +82,25 @@ test('a device is moved with undo and redo, renamed and copied, and the plan kee
   expect(copy, 'the copy is named with the first free number').toBeTruthy();
   expect(copy.binding).toBe('virtual');
   await evidence(testInfo, page, 'device-copied');
+  if(beta5Maintenance()){
+    const layout=await waitForLayout(l=>!!l[copy.id],{message:'virtual copy has its server position'});
+    const copyPosition=structuredClone(layout[copy.id]),foreignPosition=structuredClone(layout[THERMO]);
+    const at=await centreOf(marker(host,copy.id));await page.mouse.dblclick(at.x,at.y);
+    const edit=host.locator(HP.dialog('marker')).first();await expect(edit).toBeVisible();
+    await edit.locator(HP.action('marker-delete')).click();
+    const confirm=host.locator(HP.dialog('confirm')).last();await expect(confirm).toBeVisible();
+    await confirm.locator(HP.dialogConfirm).click();
+    await waitForConfig(c=>!markerOf(c,copy.id),{message:'virtual marker deleted on the server'});
+    await expect.poll(async()=>(await planLayout()).layout[copy.id]).toBeUndefined();
+    expect((await planLayout()).layout[THERMO]).toEqual(foreignPosition);
+    for(const direction of ['undo','redo','undo']){
+      await host.locator(hp('device-history',{action:direction})).first().click();
+      await waitForConfig(c=>direction==='redo'?!markerOf(c,copy.id):!!markerOf(c,copy.id),{message:'virtual deletion '+direction+' accepted'});
+      await expect.poll(async()=>(await planLayout()).layout[copy.id]).toEqual(direction==='redo'?undefined:copyPosition);
+      if(direction!=='redo')expect(markerOf((await planConfig()).config,copy.id)).toEqual(copy);
+    }
+    await evidence(testInfo,page,'beta5-device-delete-history');
+  }
 
   await leaveEditor(host);
   await page.reload();

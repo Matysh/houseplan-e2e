@@ -6,7 +6,9 @@
 import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn, spaceEntries, spaceEntry } from './lib/ha-page.mjs';
-import { planConfig, waitForConfig } from './lib/ha-ws.mjs';
+import { planConfig, planLayout, waitForConfig } from './lib/ha-ws.mjs';
+import {beta5Maintenance} from './lib/beta5-maintenance.mjs';
+import {openMaintenance} from './lib/backup.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { field, selectSpace, settle } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
@@ -42,6 +44,7 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
   await expect(spaceEntry(host, annex.id)).toContainText('E2E Annex', { timeout: 60_000 });
   await expect(spaceEntries(host)).toHaveCount(before.length + 1);
 
+  const deletionSource=await planConfig(),deletionLayout=await planLayout();
   // delete from its own settings; an empty space needs no device decision —
   // the compact header (#997) has one gear, for the current space
   await selectSpace(host, annex.id);
@@ -57,9 +60,20 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
   await expect(spaceEntry(host, annex.id)).toHaveCount(0);
   await expect(host.locator(hp('toast', { id: 'toast.space_deleted' }))).toBeVisible();
   await evidence(testInfo, page, 'space-deleted');
+  if(beta5Maintenance()){
+    const removed=await planConfig();expect(removed.can_optimize_undo).toBe(true);expect(removed.undo_kind).toBe('space_delete');
+    expect(Object.values((await planLayout()).layout).some(p=>p.s===annex.id)).toBe(false);
+    const {host:undoHost,settings:maintenance}=await openMaintenance(page);
+    await maintenance.locator(HP.action('plan-optimization-undo')).click();
+    await expect.poll(async()=>(await planConfig()).config).toEqual(deletionSource.config);
+    await expect.poll(async()=>(await planLayout()).layout).toEqual(deletionLayout.layout);
+    await evidence(testInfo,page,'beta5-space-delete-undone');
+    await maintenance.locator(HP.dialogCancel).last().click();
+    await expect(spaceEntry(undoHost,annex.id)).toContainText('E2E Annex');
+  }
 
   await page.reload();
   host = card(page);
   await expectPlanDrawn(page, host);
-  await expect(spaceEntries(host)).toHaveCount(before.length);
+  await expect(spaceEntries(host)).toHaveCount(before.length+(beta5Maintenance()?1:0));
 });

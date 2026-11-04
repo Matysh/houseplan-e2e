@@ -28,3 +28,10 @@ T на точной горизонтальной/вертикальной опо
 Импорты/legacy/manual JSON/stale client, позиции с неподтверждённым владельцем
 и физическая полнота fail-closed перекрытий остаются исключениями. Не выдавать
 этот unit-прогон за real HA E2E PASS.
+
+Перед beta.5 расширен существующий фиксированный first-space journey: настоящий
+Draw диагональной опоры и on-edge T, exact q/dependency в server config/get и
+экспорте; диалог Optimize сообщает no-op без config/layout revision changes,
+затем reload сохраняет граф. Код: tests/lib/beta5-maintenance.mjs. Это описание
+добавленного сценария, его фактический результат будет в отчёте прогона beta.5.
+Остальные адресные границы выше не выдаются за уже выполненный browser E2E.

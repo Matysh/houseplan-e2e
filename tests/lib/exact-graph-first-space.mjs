@@ -5,6 +5,7 @@ import {planConfig,spaceOf,waitForConfig,wsCall} from './ha-ws.mjs';
 import {centreOf,clickFloor,dragClient,enterEditor,field,leaveEditor,settle,stage,gridStep,toClient,useTool} from './plan.mjs';
 import {visiblePlanSegment} from './visible-plan-target.mjs';
 import {card,evidence,stageOf} from './ha-page.mjs';
+import {nativeDiagonalMaintenance} from './beta5-maintenance.mjs';
 
 const graphOf=(config,id)=>spaceOf(config,id).plan_graph;
 const wire=p=>['l',String(Math.round(p.x*240/1000)),String(Math.round(p.y*240/1000))];
@@ -63,4 +64,5 @@ export async function exactGraphFirstSpace(page,host,testInfo,initial=undefined)
  expect(reloaded.config.model_version).toBe(11);expect(graphOf(reloaded.config,id)).toEqual(movedGraph);
  expect(reloaded.rev).toBe(accepted.rev);
  await evidence(testInfo,page,'exact-first-space-reloaded');
+ await nativeDiagonalMaintenance(page,fresh,testInfo,id);
 }

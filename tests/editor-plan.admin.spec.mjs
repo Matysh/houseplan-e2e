@@ -7,7 +7,8 @@ import { test, expect } from '@playwright/test';
 import { installedRecord, requireHooks } from './lib/contract.mjs';
 import { compareTags } from '../scripts/tags.mjs';
 import { evidence, expectPlanDrawn, card } from './lib/ha-page.mjs';
-import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
+import { planConfig, planLayout, spaceOf, waitForConfig, waitForLayout } from './lib/ha-ws.mjs';
+import {beta5Maintenance} from './lib/beta5-maintenance.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import {
   centreOf, clickFloor, dragClient, dragFloor, enterEditor, field, leaveEditor, openPlan, selectSpace,
@@ -80,6 +81,15 @@ test('a room deleted with its walls kept is created again in the same walls', as
   const host = await openPlan(page, { space: GROUND });
   await enterEditor(host, 'plan');
   await evidence(testInfo, page, 'room-delete-before');
+  let movedLabel;
+  if(beta5Maintenance()){
+    const label=host.locator(hp('room-label',{id:sauna.id})).first();
+    const at=await centreOf(label);
+    const prior=(await planLayout()).layout['rl_'+sauna.id];
+    await dragClient(page,at,{x:at.x+24,y:at.y+18});
+    const layout=await waitForLayout(l=>!!l['rl_'+sauna.id]&&JSON.stringify(l['rl_'+sauna.id])!==JSON.stringify(prior),{message:'room label moved through the real editor'});
+    movedLabel=structuredClone(layout['rl_'+sauna.id]);
+  }
 
   await useTool(host, 'rooms');
   await useTool(host, 'delete-room');
@@ -91,6 +101,16 @@ test('a room deleted with its walls kept is created again in the same walls', as
   expect(deleted.rooms).toHaveLength(before.rooms.length - 1);
   expect(deleted.openings).toHaveLength(before.openings.length);
   await evidence(testInfo, page, 'room-deleted');
+  if(beta5Maintenance()){
+    expect((await planLayout()).layout['rl_'+sauna.id]).toBeUndefined();
+    await host.locator(HP.action('geometry-undo')).click();
+    await waitForConfig(c=>!!spaceOf(c,GROUND).rooms.find(r=>r.id===sauna.id),{message:'room deletion Undo accepted'});
+    await expect.poll(async()=>(await planLayout()).layout['rl_'+sauna.id]).toEqual(movedLabel);
+    await host.locator(HP.action('geometry-redo')).click();
+    await waitForConfig(c=>!spaceOf(c,GROUND).rooms.some(r=>r.id===sauna.id),{message:'room deletion Redo accepted'});
+    await expect.poll(async()=>(await planLayout()).layout['rl_'+sauna.id]).toBeUndefined();
+    await evidence(testInfo,page,'beta5-room-label-delete-history');
+  }
 
   // #1176 changes an existing action without a new DOM hook. Keep the previous
   // stable's Walls entry for historical runs; the beta.2 candidate uses Select.
