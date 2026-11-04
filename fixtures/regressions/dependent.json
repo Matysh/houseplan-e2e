@@ -1,0 +1,847 @@
+{
+  "model_version": 11,
+  "spaces": [
+    {
+      "id": "dependent-seam",
+      "title": "Dependent corner",
+      "cell_cm": 20,
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "rooms": [
+        {
+          "id": "a",
+          "name": "a",
+          "poly": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              0
+            ],
+            [
+              0.5,
+              0.5
+            ],
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0,
+              0.5
+            ]
+          ],
+          "wall_ids": [
+            "wall-3g5dxr573dn6qduuri4d",
+            "wall-vluugcsf6noesvjkbto5",
+            "wall-b6lz5pddye2ihnogy2pq",
+            "wall-kglgaugtkd7ohlaxvmkn",
+            "wall-flm24iasb7kvh7bvp77u"
+          ]
+        },
+        {
+          "id": "b",
+          "name": "b",
+          "poly": [
+            [
+              0.5,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              0.5
+            ],
+            [
+              0.5,
+              0.5
+            ]
+          ],
+          "wall_ids": [
+            "wall-bymhpl5f5fh5eksbmo7t",
+            "wall-di6gj74zl2auxehijncz",
+            "wall-b6lz5pddye2ihnogy2pq~1",
+            "wall-vluugcsf6noesvjkbto5"
+          ]
+        },
+        {
+          "id": "fixed-left",
+          "name": "Fixed left",
+          "poly": [
+            [
+              0,
+              0.5
+            ],
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0.3,
+              0.7
+            ],
+            [
+              0.3,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "wall_ids": [
+            "wall-kglgaugtkd7ohlaxvmkn",
+            "wall-jgbewk62lh4klsf4a5yx",
+            "wall-s33rq2rxfiqn3g7cireq",
+            "wall-hp4qn3u4e2bl6s7xbpfb",
+            "wall-vncn6kferdqwq6hnapfe"
+          ]
+        },
+        {
+          "id": "fixed-right",
+          "name": "Fixed right",
+          "poly": [
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0.5,
+              0.5
+            ],
+            [
+              1,
+              0.5
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.3,
+              1
+            ],
+            [
+              0.3,
+              0.7
+            ]
+          ],
+          "wall_ids": [
+            "wall-b6lz5pddye2ihnogy2pq",
+            "wall-b6lz5pddye2ihnogy2pq~1",
+            "wall-qnpvsl5ublh7myi7c5bg",
+            "wall-taj7g2hwc5fwcqn3cfeg",
+            "wall-s33rq2rxfiqn3g7cireq",
+            "wall-jgbewk62lh4klsf4a5yx"
+          ]
+        }
+      ],
+      "wall_segments": [
+        {
+          "id": "wall-3g5dxr573dn6qduuri4d",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0.5,
+            0
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-b6lz5pddye2ihnogy2pq",
+          "a": [
+            0.3,
+            0.5
+          ],
+          "b": [
+            0.5,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-b6lz5pddye2ihnogy2pq~1",
+          "a": [
+            0.5,
+            0.5
+          ],
+          "b": [
+            1,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-bymhpl5f5fh5eksbmo7t",
+          "a": [
+            0.5,
+            0
+          ],
+          "b": [
+            1,
+            0
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-di6gj74zl2auxehijncz",
+          "a": [
+            1,
+            0
+          ],
+          "b": [
+            1,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-flm24iasb7kvh7bvp77u",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-hp4qn3u4e2bl6s7xbpfb",
+          "a": [
+            0,
+            1
+          ],
+          "b": [
+            0.3,
+            1
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-jgbewk62lh4klsf4a5yx",
+          "a": [
+            0.3,
+            0.5
+          ],
+          "b": [
+            0.3,
+            0.7
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-kglgaugtkd7ohlaxvmkn",
+          "a": [
+            0,
+            0.5
+          ],
+          "b": [
+            0.3,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-qnpvsl5ublh7myi7c5bg",
+          "a": [
+            1,
+            0.5
+          ],
+          "b": [
+            1,
+            1
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-s33rq2rxfiqn3g7cireq",
+          "a": [
+            0.3,
+            0.7
+          ],
+          "b": [
+            0.3,
+            1
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-taj7g2hwc5fwcqn3cfeg",
+          "a": [
+            0.3,
+            1
+          ],
+          "b": [
+            1,
+            1
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-vluugcsf6noesvjkbto5",
+          "a": [
+            0.5,
+            0
+          ],
+          "b": [
+            0.5,
+            0.5
+          ],
+          "cm": 20
+        },
+        {
+          "id": "wall-vncn6kferdqwq6hnapfe",
+          "a": [
+            0,
+            0.5
+          ],
+          "b": [
+            0,
+            1
+          ],
+          "cm": 20
+        }
+      ],
+      "partitions": [],
+      "walls": [
+        {
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0.5,
+            0
+          ],
+          "cm": 20,
+          "key": "0.250000,0.000000@0.0000"
+        },
+        {
+          "a": [
+            0.3,
+            0.5
+          ],
+          "b": [
+            0.5,
+            0.5
+          ],
+          "cm": 20,
+          "key": "0.400000,0.500000@0.0000"
+        },
+        {
+          "a": [
+            0.5,
+            0.5
+          ],
+          "b": [
+            1,
+            0.5
+          ],
+          "cm": 20,
+          "key": "0.750000,0.500000@0.0000"
+        },
+        {
+          "a": [
+            0.5,
+            0
+          ],
+          "b": [
+            1,
+            0
+          ],
+          "cm": 20,
+          "key": "0.750000,0.000000@0.0000"
+        },
+        {
+          "a": [
+            1,
+            0
+          ],
+          "b": [
+            1,
+            0.5
+          ],
+          "cm": 20,
+          "key": "1.000000,0.250000@1.5706"
+        },
+        {
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0.5
+          ],
+          "cm": 20,
+          "key": "0.000000,0.250000@1.5706"
+        },
+        {
+          "a": [
+            0,
+            1
+          ],
+          "b": [
+            0.3,
+            1
+          ],
+          "cm": 20,
+          "key": "0.150000,1.000000@0.0000"
+        },
+        {
+          "a": [
+            0.3,
+            0.5
+          ],
+          "b": [
+            0.3,
+            0.7
+          ],
+          "cm": 20,
+          "key": "0.300000,0.600000@1.5706"
+        },
+        {
+          "a": [
+            0,
+            0.5
+          ],
+          "b": [
+            0.3,
+            0.5
+          ],
+          "cm": 20,
+          "key": "0.150000,0.500000@0.0000"
+        },
+        {
+          "a": [
+            1,
+            0.5
+          ],
+          "b": [
+            1,
+            1
+          ],
+          "cm": 20,
+          "key": "1.000000,0.750000@1.5706"
+        },
+        {
+          "a": [
+            0.3,
+            0.7
+          ],
+          "b": [
+            0.3,
+            1
+          ],
+          "cm": 20,
+          "key": "0.300000,0.850000@1.5706"
+        },
+        {
+          "a": [
+            0.3,
+            1
+          ],
+          "b": [
+            1,
+            1
+          ],
+          "cm": 20,
+          "key": "0.650000,1.000000@0.0000"
+        },
+        {
+          "a": [
+            0.5,
+            0
+          ],
+          "b": [
+            0.5,
+            0.5
+          ],
+          "cm": 20,
+          "key": "0.500000,0.250000@1.5706"
+        },
+        {
+          "a": [
+            0,
+            0.5
+          ],
+          "b": [
+            0,
+            1
+          ],
+          "cm": 20,
+          "key": "0.000000,0.750000@1.5706"
+        }
+      ],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "0",
+              "0"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "0",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "120",
+              "0"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "120",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "240",
+              "0"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "240",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "0",
+              "240"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "72",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22168%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "72",
+              "168"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "72",
+              "240"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22fixed-right%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "240",
+              "240"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "wall-3g5dxr573dn6qduuri4d",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-b6lz5pddye2ihnogy2pq",
+            "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-b6lz5pddye2ihnogy2pq~1",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-bymhpl5f5fh5eksbmo7t",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-di6gj74zl2auxehijncz",
+            "from": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-flm24iasb7kvh7bvp77u",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-hp4qn3u4e2bl6s7xbpfb",
+            "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-jgbewk62lh4klsf4a5yx",
+            "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22168%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-kglgaugtkd7ohlaxvmkn",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-qnpvsl5ublh7myi7c5bg",
+            "from": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-right%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-s33rq2rxfiqn3g7cireq",
+            "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22168%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-taj7g2hwc5fwcqn3cfeg",
+            "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-right%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-vluugcsf6noesvjkbto5",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%220%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          },
+          {
+            "id": "wall-vncn6kferdqwq6hnapfe",
+            "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 20
+          }
+        ],
+        "rooms": [
+          {
+            "room": "a",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-3g5dxr573dn6qduuri4d",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-vluugcsf6noesvjkbto5",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-b6lz5pddye2ihnogy2pq",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-kglgaugtkd7ohlaxvmkn",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-flm24iasb7kvh7bvp77u",
+                "reverse": true
+              }
+            ]
+          },
+          {
+            "room": "b",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-bymhpl5f5fh5eksbmo7t",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-di6gj74zl2auxehijncz",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-b6lz5pddye2ihnogy2pq~1",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-vluugcsf6noesvjkbto5",
+                "reverse": true
+              }
+            ]
+          },
+          {
+            "room": "fixed-left",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-kglgaugtkd7ohlaxvmkn",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-jgbewk62lh4klsf4a5yx",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-s33rq2rxfiqn3g7cireq",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-hp4qn3u4e2bl6s7xbpfb",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-vncn6kferdqwq6hnapfe",
+                "reverse": true
+              }
+            ]
+          },
+          {
+            "room": "fixed-right",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-b6lz5pddye2ihnogy2pq",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-b6lz5pddye2ihnogy2pq~1",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-qnpvsl5ublh7myi7c5bg",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-taj7g2hwc5fwcqn3cfeg",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-s33rq2rxfiqn3g7cireq",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-jgbewk62lh4klsf4a5yx",
+                "reverse": true
+              }
+            ]
+          }
+        ],
+        "dependencies": [
+          {
+            "node": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+            "kind": "on-edge",
+            "refs": [
+              {
+                "from": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22120%5C%22%5D%22%5D",
+                "to": "n:%5B%22room%22%2C%22b%22%2C%22%5B%5C%22l%5C%22%2C%5C%22240%5C%22%2C%5C%22120%5C%22%5D%22%5D"
+              }
+            ],
+            "parameters": [
+              [
+                "1",
+                "2"
+              ]
+            ]
+          },
+          {
+            "node": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%2272%5C%22%2C%5C%22168%5C%22%5D%22%5D",
+            "kind": "on-edge",
+            "refs": [
+              {
+                "from": "n:%5B%22room%22%2C%22fixed-left%22%2C%22%5B%5C%22l%5C%22%2C%5C%220%5C%22%2C%5C%22240%5C%22%5D%22%5D",
+                "to": "n:%5B%22room%22%2C%22a%22%2C%22%5B%5C%22l%5C%22%2C%5C%22120%5C%22%2C%5C%22120%5C%22%5D%22%5D"
+              }
+            ],
+            "parameters": [
+              [
+                "3",
+                "5"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": [],
+    "show_header": true
+  }
+}

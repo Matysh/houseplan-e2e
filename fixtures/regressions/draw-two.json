@@ -1,0 +1,197 @@
+{
+  "spaces": [
+    {
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "id": "draw-floor",
+      "title": "Two rooms",
+      "cell_cm": 5,
+      "rooms": [],
+      "partitions": [
+        {
+          "id": "bottom-source",
+          "a": [
+            0.1,
+            0.8
+          ],
+          "b": [
+            0.5,
+            0.8
+          ],
+          "cm": 15
+        },
+        {
+          "id": "bottom-source~1",
+          "a": [
+            0.5,
+            0.8
+          ],
+          "b": [
+            0.9,
+            0.8
+          ],
+          "cm": 15
+        },
+        {
+          "id": "left-source",
+          "a": [
+            0.1,
+            0.2
+          ],
+          "b": [
+            0.1,
+            0.8
+          ],
+          "cm": 15
+        },
+        {
+          "id": "middle-source",
+          "a": [
+            0.5,
+            0.2
+          ],
+          "b": [
+            0.5,
+            0.8
+          ],
+          "cm": 15
+        },
+        {
+          "id": "right-source",
+          "a": [
+            0.9,
+            0.2
+          ],
+          "b": [
+            0.9,
+            0.8
+          ],
+          "cm": 15
+        }
+      ],
+      "wall_segments": [],
+      "walls": [],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22partition%22%2C%22bottom-source%22%2C0%5D",
+            "p": [
+              "l",
+              "24",
+              "192"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22bottom-source%22%2C1%5D",
+            "p": [
+              "l",
+              "216",
+              "192"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22left-source%22%2C0%5D",
+            "p": [
+              "l",
+              "24",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22middle-source%22%2C0%5D",
+            "p": [
+              "l",
+              "120",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22middle-source%22%2C1%5D",
+            "p": [
+              "l",
+              "120",
+              "192"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22right-source%22%2C0%5D",
+            "p": [
+              "l",
+              "216",
+              "48"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "bottom-source",
+            "from": "n:%5B%22partition%22%2C%22bottom-source%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22middle-source%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "bottom-source~1",
+            "from": "n:%5B%22partition%22%2C%22middle-source%22%2C1%5D",
+            "to": "n:%5B%22partition%22%2C%22bottom-source%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "left-source",
+            "from": "n:%5B%22partition%22%2C%22left-source%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22bottom-source%22%2C0%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "middle-source",
+            "from": "n:%5B%22partition%22%2C%22middle-source%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22middle-source%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "right-source",
+            "from": "n:%5B%22partition%22%2C%22right-source%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22bottom-source%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          }
+        ],
+        "rooms": [],
+        "dependencies": [
+          {
+            "node": "n:%5B%22partition%22%2C%22middle-source%22%2C1%5D",
+            "kind": "on-edge",
+            "refs": [
+              {
+                "from": "n:%5B%22partition%22%2C%22bottom-source%22%2C0%5D",
+                "to": "n:%5B%22partition%22%2C%22bottom-source%22%2C1%5D"
+              }
+            ],
+            "parameters": [
+              [
+                "1",
+                "2"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": [],
+    "show_header": true
+  },
+  "model_version": 11
+}

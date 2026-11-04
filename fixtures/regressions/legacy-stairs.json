@@ -1,0 +1,94 @@
+{
+  "spaces": [
+    {
+      "id": "legacy",
+      "title": "Legacy stairs",
+      "cell_cm": 5,
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "rooms": [
+        {
+          "id": "legacy-room",
+          "name": "Room",
+          "poly": [
+            [
+              0.1,
+              0.1
+            ],
+            [
+              0.9,
+              0.1
+            ],
+            [
+              0.9,
+              0.9
+            ],
+            [
+              0.1,
+              0.9
+            ]
+          ],
+          "wall_thickness_cm": 15
+        }
+      ],
+      "walls": [
+        {
+          "key": "0.500000,0.100000@0.0000",
+          "cm": 15
+        },
+        {
+          "key": "0.900000,0.500000@1.5706",
+          "cm": 15
+        },
+        {
+          "key": "0.500000,0.900000@0.0000",
+          "cm": 15
+        },
+        {
+          "key": "0.100000,0.500000@1.5706",
+          "cm": 15
+        }
+      ],
+      "stairs": [
+        {
+          "id": "legacy-stair",
+          "kind": "straight",
+          "x": 0.4,
+          "y": 0.4,
+          "length": 0.2,
+          "width": 0.1,
+          "angle": 0,
+          "direction": "forward",
+          "target_space_id": "target",
+          "color": "#ffffff",
+          "opacity": 1,
+          "fill_color": "#ffffff",
+          "fill_opacity": 0
+        }
+      ]
+    },
+    {
+      "id": "target",
+      "title": "Target",
+      "cell_cm": 5,
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "rooms": []
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": [],
+    "show_header": true
+  }
+}

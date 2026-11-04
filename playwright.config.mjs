@@ -7,7 +7,7 @@ export default defineConfig({
   testDir: './tests',
   // first-run/ and upgrade/ need their own Home Assistant (empty seed, older
   // integration) and run as separate CI jobs via --project
-  testIgnore: ['**/first-run/**', '**/upgrade/**'],
+  testIgnore: ['**/first-run/**', '**/upgrade/**', '**/legacy/**'],
   // One Home Assistant, one plan: journeys mutate shared state (lights, the
   // plan itself), so they run one after another, in file order.
   fullyParallel: false,

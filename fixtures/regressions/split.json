@@ -1,0 +1,201 @@
+{
+  "spaces": [
+    {
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "id": "split-floor",
+      "title": "Split regression",
+      "cell_cm": 5,
+      "rooms": [
+        {
+          "id": "source",
+          "name": "Source",
+          "wall_thickness_cm": 0,
+          "poly": [
+            [
+              0.1,
+              0.1
+            ],
+            [
+              0.9,
+              0.1
+            ],
+            [
+              0.9,
+              0.9
+            ],
+            [
+              0.1,
+              0.9
+            ]
+          ],
+          "wall_ids": [
+            "wall-v5xjmiwqhzv2cjqvilp6",
+            "wall-6xnorzb5ylgzdy6uvffr",
+            "wall-6nsa6kx2wzfquikjaxon",
+            "wall-qqfhroofvgtscomqx3yk"
+          ]
+        }
+      ],
+      "wall_segments": [
+        {
+          "id": "wall-6nsa6kx2wzfquikjaxon",
+          "a": [
+            0.1,
+            0.9
+          ],
+          "b": [
+            0.9,
+            0.9
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-6xnorzb5ylgzdy6uvffr",
+          "a": [
+            0.9,
+            0.1
+          ],
+          "b": [
+            0.9,
+            0.9
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-qqfhroofvgtscomqx3yk",
+          "a": [
+            0.1,
+            0.1
+          ],
+          "b": [
+            0.1,
+            0.9
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-v5xjmiwqhzv2cjqvilp6",
+          "a": [
+            0.1,
+            0.1
+          ],
+          "b": [
+            0.9,
+            0.1
+          ],
+          "cm": 0
+        }
+      ],
+      "partitions": [],
+      "walls": [],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "216",
+              "216"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "216",
+              "24"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "24",
+              "216"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "24",
+              "24"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "wall-6nsa6kx2wzfquikjaxon",
+            "from": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-6xnorzb5ylgzdy6uvffr",
+            "from": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-qqfhroofvgtscomqx3yk",
+            "from": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-v5xjmiwqhzv2cjqvilp6",
+            "from": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22source%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          }
+        ],
+        "rooms": [
+          {
+            "room": "source",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-v5xjmiwqhzv2cjqvilp6",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-6xnorzb5ylgzdy6uvffr",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-6nsa6kx2wzfquikjaxon",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-qqfhroofvgtscomqx3yk",
+                "reverse": true
+              }
+            ]
+          }
+        ],
+        "dependencies": []
+      }
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": [],
+    "show_header": true
+  },
+  "model_version": 11
+}

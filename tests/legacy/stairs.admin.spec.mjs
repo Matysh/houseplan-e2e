@@ -1,0 +1,34 @@
+import {test,expect} from '@playwright/test';
+import {isDeepStrictEqual as equal} from 'node:util';
+import {installedRecord,requireHooks} from '../lib/contract.mjs';
+import {compareTags} from '../../scripts/tags.mjs';
+import {HP,hp} from '../lib/hooks.mjs';
+import {openPlan,enterEditor,useTool,clickFloor,dragFloor} from '../lib/plan.mjs';
+import {planConfig,waitForConfig} from '../lib/ha-ws.mjs';
+import {evidence} from '../lib/ha-page.mjs';
+import {history,reloadUnchanged} from '../lib/beta4-regressions.mjs';
+
+requireHooks(test,'stair','stair-frame','stage','action');
+test('#1269 a missing-version legacy stair moves under the armed tool and has exact Undo Redo and reload',async({page},info)=>{
+ test.setTimeout(150000);
+ const version=installedRecord()?.version;
+ test.skip(version&&compareTags('v'+version,'v1.84.0-beta.4')<0,'legacy stair-history repair ships in1.84.0-beta.4');
+ await page.setViewportSize({width:2000,height:1100});
+ const initial=(await planConfig()).config;
+ expect(Number(initial.model_version??0)).toBeLessThan(9);
+ expect(initial.spaces.every(s=>!s.plan_graph&&!s.wall_segments)).toBe(true);
+ const host=await openPlan(page,{space:'legacy'});await enterEditor(host,'plan');
+ const node=host.locator(hp('stair')).first();await expect(node).toHaveCount(1);
+ await useTool(host,'stairs');await useTool(host,'straight');
+ await node.click();await expect(host.locator(hp('stair-frame'))).toHaveCount(1);
+ const before=(await planConfig()).config,original=before.spaces[0].stairs[0];
+ await dragFloor(page,host,{x:original.x*1000,y:original.y*1000},{x:550,y:440},8);
+ const moved=await waitForConfig(c=>c.spaces[0].stairs[0].x!==original.x),stair=moved.spaces[0].stairs[0];
+ expect({...stair,x:original.x,y:original.y}).toEqual(original);
+ const carrier=config=>({...config,spaces:config.spaces.map(({stairs,...space})=>space)});
+ expect(carrier(moved)).toEqual(carrier(before));expect(moved.spaces[0].stairs).toHaveLength(1);
+ await history(host,'undo');await waitForConfig(c=>equal(c,before));
+ await history(host,'redo');await waitForConfig(c=>equal(c,moved));
+ await reloadUnchanged(page,moved);await expect(host.locator(hp('stair'))).toHaveCount(1);
+ await evidence(info,page,'legacy-carrier-after-redo-reload');
+});
