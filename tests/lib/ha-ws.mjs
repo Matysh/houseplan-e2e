@@ -74,7 +74,7 @@ export async function snapshotPlan() {
 }
 
 /** Replace the stored plan with an exported document: preview, then apply. */
-export async function importDocument(document, { duplicatePolicy = 'skip' } = {}) {
+export async function importDocument(document, { duplicatePolicy = 'skip', confirmMissingContent = false } = {}) {
   const response = await fetch(`${HA_URL}/api/houseplan/import/preview?duplicate_policy=${duplicatePolicy}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${await accessToken('admin')}`, 'Content-Type': 'application/json' },
@@ -85,6 +85,7 @@ export async function importDocument(document, { duplicatePolicy = 'skip' } = {}
   return wsCall({
     type: 'houseplan/import/apply', token: preview.token,
     expected_config_rev: preview.expected_config_rev, expected_layout_rev: preview.expected_layout_rev,
+    confirm_missing_content: confirmMissingContent,
   });
 }
 
@@ -113,7 +114,10 @@ export async function restorePlan(snapshot) {
           continue;
         }
         if (error.code === 'wall_model_client_outdated' && snapshot.document) {
-          await importDocument(snapshot.document);
+          // Fixture teardown deliberately restores its own exported references;
+          // an export document does not bundle image bytes. This consent is
+          // confined to restoring that snapshot, never a measured import.
+          await importDocument(snapshot.document, { confirmMissingContent: true });
           return 'import';
         }
         throw error;
