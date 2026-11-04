@@ -15,8 +15,10 @@ export function beta5Maintenance(){
 
 export async function nativeDiagonalMaintenance(page,host,info,spaceId){
  if(!beta5Maintenance())return;
+ await page.setViewportSize({width:2000,height:1100});
+ await settle(host);
  await enterEditor(host,'plan');await useTool(host,'draw');
- const targets=await stage(host).evaluate(visiblePlanSegment,{step:await gridStep(host),clearInterior:true,
+ const targets=await stage(host).evaluate(visiblePlanSegment,{step:await gridStep(host),pixels:45,clearInterior:true,
   pattern:[[[0,0],[3,2]],[[1.5,1],[1.5,5]]]});
  const [support,branch]=targets.segments;
  await info.attach('beta5-native-diagonal-targets.json',{body:JSON.stringify(targets,null,2),contentType:'application/json'});
