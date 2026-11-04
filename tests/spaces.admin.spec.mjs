@@ -74,6 +74,15 @@ test('a space is added, kept after a reload, and deleted again', async ({ page }
 
   await page.reload();
   host = card(page);
+  if(beta5Maintenance()) {
+    // Undo restores the selected empty Annex, so readiness must not require
+    // rooms on that space. Verify persistence, then inspect the seeded floor.
+    await expect(host.locator(HP.ready)).toBeVisible();
+    await expect(host.locator(hp('stage')).first()).toBeVisible();
+    await expect.poll(async()=>(await planConfig()).config).toEqual(deletionSource.config);
+    await expect.poll(async()=>(await planLayout()).layout).toEqual(deletionLayout.layout);
+    await selectSpace(host,before[0]);
+  }
   await expectPlanDrawn(page, host);
   await expect(spaceEntries(host)).toHaveCount(before.length+(beta5Maintenance()?1:0));
 });

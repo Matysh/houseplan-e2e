@@ -37,3 +37,10 @@ Optimize. Быстрый seeded pair replay #1285 не является real HA 
 остаток после публикации. Фактические результаты — в соответствующих отчётах;
 PDF/pins, shared attachment и оба непустых режима пока остаются backend harness
 доказательствами и отдельным планом browser-проверок, не ложным browser PASS.
+
+
+## Факт beta.5 / 05.11.2026
+
+Выполнены virtual-device Delete/Undo/Redo, room-label Sauna Delete/Undo/Redo и empty-space Delete/Undo с полной серверной парой и reload. Для empty-space потребовалось исправить тестовую проверку готовности пустого пространства; адресный повтор PASS. PDF/shared pins, physical tombstones и непустые режимы этим browser-прогоном не объявляются выполненными.
+
+Полные SHA, CI-ссылки, ограничения и адресный повтор: [общий отчёт](beta5-20261105-results.md).
