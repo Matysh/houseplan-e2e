@@ -5,21 +5,22 @@
  */
 export class HeldConfigReply {
   constructor() { this.pending=null; this.writes=[]; }
-  arm({staleRevision=false}={}) {
+  arm({staleRevision=false,command='houseplan/config/set'}={}) {
     if(this.pending) throw new Error('previous held config result is not released');
     let resolve;
     const reached=new Promise(r=>{resolve=r;});
-    this.pending={staleRevision,resolve,request:null,reply:null,release:null};
+    if(!['houseplan/config/set','houseplan/wall/node_move'].includes(command))throw new Error('unsupported held write command');
+    this.pending={staleRevision,command,resolve,request:null,reply:null,release:null};
     return reached;
   }
   attach(socket) {
     const server=socket.connectToServer();
     socket.onMessage(raw=>{
       let message;try{message=JSON.parse(String(raw));}catch{server.send(raw);return;}
-      if(message.type?.startsWith('houseplan/') && /\/(set|copy|history|delete)$/.test(message.type))
+      if(message.type?.startsWith('houseplan/') && /\/(set|copy|history|delete|node_move)$/.test(message.type))
         this.writes.push({type:message.type,id:message.id});
       const pending=this.pending;
-      if(message.type==='houseplan/config/set' && pending && !pending.request) {
+      if(pending && message.type===pending.command && !pending.request) {
         pending.request={id:message.id,type:message.type,expectedRev:message.expected_rev};pending.socket=socket;
         if(pending.staleRevision) {
           if(!Number.isSafeInteger(message.expected_rev)||message.expected_rev<1) throw new Error('stale CAS fixture needs an existing positive revision');
