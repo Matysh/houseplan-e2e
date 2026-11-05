@@ -26,3 +26,6 @@ Space Undo readiness уже исправлен 1736049f9f98bdf16ac2ab57de2916f0c
 затем выбирается исходный непустой этаж. Адресный real HA space PASS ранее получен
 на том же ZIP (setup3/3, общий диагностический business2/3, третий отказ был Resize).
 Это не новый продуктовый дефект и не второй заново исполненный space journey.
+
+Результат: S8 root fb04ca0fb54e1671bf5384ca404da67bccde0970, ревью41957899723 принято.
+Executable companion ceec9aec155585096880863a076aaf9d2e81a0da; root содержит отчёт и полный diff helper.
