@@ -10,7 +10,7 @@ import {useTool,toClient,centreOf,action,enterEditor} from './lib/plan.mjs';
 import {card} from './lib/ha-page.mjs';
 import {holdConfigReply} from './lib/held-config-reply.mjs';
 
-requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action','zoom-out');
+requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action','zoom-out','zoom-in','node-context-menu');
 restoreSeedAfterEach(test);
 test.beforeEach(async()=>test.skip((await planConfig()).wall_node_merge_api!==1,'requires node merge capability; skip is not evidence'));
 const point=p=>p[0]==='l'?[Number(p[1])/240,Number(p[2])/240]:[Number(p[1])/Number(p[2]),Number(p[3])/Number(p[4])];
@@ -98,4 +98,36 @@ test('unsafe foreign contact refuses the whole node gesture without a write',asy
   await expect(host.locator(hp('toast')).last()).toBeVisible();
   await expect(action(host,'geometry-undo')).toBeDisabled();
   expect((await planConfig()).config).toEqual(before);expect(hold.writes.length).toBe(count);
+});
+
+
+test('painted node edge at high zoom moves only that endpoint and opens its menu without a write on cancel', async ({page}) => {
+  const hold=await holdConfigReply(page),host=await installFixture(page,'node-save-independent');
+  await frameNodes(host);await useTool(host,'select');
+  const before=(await planConfig()).config,source=node(before,[.5,.5]).id;
+  const geometry=()=>handle(host,source).first().evaluate(h=>{
+    const root=h.getRootNode(),x=Number(h.getAttribute('cx')),y=Number(h.getAttribute('cy'));
+    const marker=[...root.querySelectorAll('.plan-snap-node')].find(n=>Math.abs(Number(n.getAttribute('cx'))-x)<1e-6&&Math.abs(Number(n.getAttribute('cy'))-y)<1e-6);
+    if(!marker)throw Error('painted source endpoint is absent');
+    const m=marker.getScreenCTM(),p=new DOMPoint(x,y).matrixTransform(m);
+    return{x:p.x,y:p.y,r:Number(marker.getAttribute('r'))*Math.hypot(m.a,m.b)};
+  });
+  let g;
+  for(let step=0;step<18;step++){
+    g=await geometry();if(g.r>14)break;
+    await host.locator(hp('zoom-in')).first().click();await settledViewport(host);
+  }
+  expect(g.r,'the painted edge must exceed the old 12px picker').toBeGreaterThan(14);
+  const fixed=await host.locator(hp('wall-node')).evaluateAll(items=>items.map(h=>{const r=h.getBoundingClientRect();return{id:h.dataset.node,x:r.x+r.width/2,y:r.y+r.height/2};}));
+  const edge={x:g.x+g.r+.25,y:g.y};
+  await page.mouse.move(edge.x,edge.y);await page.mouse.down();await page.mouse.move(g.x+40,g.y+60,{steps:8});
+  await expect.poll(async()=>{const p=await centreOf(handle(host,source).last());return Math.hypot(p.x-g.x,p.y-g.y);}).toBeGreaterThan(8);
+  for(const n of fixed.filter(n=>n.id!==source)){
+    const p=await centreOf(handle(host,n.id).first());expect(Math.hypot(p.x-n.x,p.y-n.y),'the wall body must not move the other endpoint').toBeLessThan(1);
+  }
+  await page.keyboard.press('Escape');await page.mouse.up();await settledViewport(host);
+  expect((await planConfig()).config).toEqual(before);expect(hold.writes).toHaveLength(0);await expect(action(host,'geometry-undo')).toBeDisabled();
+  g=await geometry();await page.mouse.click(g.x+g.r+.25,g.y,{button:'right'});
+  await expect(host.locator(hp('node-context-menu')).last()).toBeVisible();await page.keyboard.press('Escape');
+  expect((await planConfig()).config).toEqual(before);expect(hold.writes).toHaveLength(0);
 });
