@@ -8,6 +8,7 @@
  * a zoom or an editor switch.
  */
 import { expect } from '@playwright/test';
+import { readCurrentSpace } from './current-space.mjs';
 import { card, expectPlanDrawn } from './ha-page.mjs';
 import { HP, hp } from './hooks.mjs';
 import { hasBeta4PanelContract } from './panel-release-contract.mjs';
@@ -29,10 +30,9 @@ export const spaceTab = (host, spaceId) => host.locator(hp('space-tab', { space:
  * neither is drawn.
  */
 export async function currentSpace(host) {
-  const value = host.locator(hp('space-select-value')).first();
-  if (await value.count()) return value.inputValue();
-  const tab = host.locator(`${hp('space-tab')}[aria-current="page"]`).first();
-  return (await tab.count()) ? tab.getAttribute('data-space') : null;
+  return host.evaluate(readCurrentSpace, {
+    value: hp('space-select-value'), tab: `${hp('space-tab')}[aria-current="page"]`,
+  });
 }
 
 /**
