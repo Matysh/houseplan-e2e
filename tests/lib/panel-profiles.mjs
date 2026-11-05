@@ -247,10 +247,13 @@ export async function sizeDialog(page, host) {
   const surface = stage(host); await surface.scrollIntoViewIfNeeded();
   const box = await surface.boundingBox();
   await page.mouse.move(box.x + 8, box.y + 8);
-  await page.mouse.down();
-  try { await page.waitForTimeout(3100); } finally { await page.mouse.up(); }
   const dialog = host.locator(HP.dialog('kiosk')).first();
-  await expect(dialog).toBeVisible(); return dialog;
+  await page.mouse.down();
+  // The browser may deliver its 3s hold callback after 3100ms under load.
+  // Keep the native pointer down until the real dialog appears; release also
+  // on failure, so no later step inherits a pressed mouse button.
+  try { await expect(dialog).toBeVisible(); } finally { await page.mouse.up(); }
+  return dialog;
 }
 export async function expectSizes(page, host, icon, text, locked = true) {
   const dialog = await sizeDialog(page, host);
