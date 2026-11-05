@@ -1,1 +1,299 @@
-{"model_version":10,"spaces":[{"id":"node-main","title":"Node saves","view_box":[0,0,1,1],"cell_cm":5,"rooms":[],"partitions":[{"id":"a","a":[0.2,0.2],"b":[0.5,0.2],"cm":15},{"id":"b","a":[0.5,0.5],"b":[0.8,0.5],"cm":15}],"openings":[],"future":{"keep":true}},{"id":"node-hidden","title":"Untouched space","view_box":[0,0,1,1],"cell_cm":5,"rooms":[{"id":"hidden-room","name":"Hidden room","poly":[[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9]]}],"partitions":[],"openings":[]}],"markers":[],"settings":{"filter_seeded":true,"known_devices":[],"new_device_ids":[]}}
+{
+  "model_version": 11,
+  "spaces": [
+    {
+      "id": "node-main",
+      "title": "Node saves",
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "cell_cm": 5,
+      "rooms": [],
+      "partitions": [
+        {
+          "id": "a",
+          "a": [
+            0.2,
+            0.2
+          ],
+          "b": [
+            0.5,
+            0.2
+          ],
+          "cm": 15
+        },
+        {
+          "id": "b",
+          "a": [
+            0.5,
+            0.5
+          ],
+          "b": [
+            0.8,
+            0.5
+          ],
+          "cm": 15
+        }
+      ],
+      "openings": [],
+      "future": {
+        "keep": true
+      },
+      "wall_segments": [],
+      "walls": [],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22partition%22%2C%22a%22%2C0%5D",
+            "p": [
+              "l",
+              "48",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22a%22%2C1%5D",
+            "p": [
+              "l",
+              "120",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22b%22%2C0%5D",
+            "p": [
+              "l",
+              "120",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22b%22%2C1%5D",
+            "p": [
+              "l",
+              "192",
+              "120"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a",
+            "from": "n:%5B%22partition%22%2C%22a%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22a%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "b",
+            "from": "n:%5B%22partition%22%2C%22b%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22b%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          }
+        ],
+        "rooms": [],
+        "dependencies": []
+      }
+    },
+    {
+      "id": "node-hidden",
+      "title": "Untouched space",
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "cell_cm": 5,
+      "rooms": [
+        {
+          "id": "hidden-room",
+          "name": "Hidden room",
+          "poly": [
+            [
+              0.1,
+              0.1
+            ],
+            [
+              0.9,
+              0.1
+            ],
+            [
+              0.9,
+              0.9
+            ],
+            [
+              0.1,
+              0.9
+            ]
+          ],
+          "wall_ids": [
+            "wall-r2w3xevy32eihqtjlzc3",
+            "wall-n24huwdiskkvn7u7rspi",
+            "wall-xineib3aknmfij76unzv",
+            "wall-sa2eq7az5s42pbeexkyy"
+          ]
+        }
+      ],
+      "partitions": [],
+      "openings": [],
+      "wall_segments": [
+        {
+          "id": "wall-n24huwdiskkvn7u7rspi",
+          "a": [
+            0.9,
+            0.1
+          ],
+          "b": [
+            0.9,
+            0.9
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-r2w3xevy32eihqtjlzc3",
+          "a": [
+            0.1,
+            0.1
+          ],
+          "b": [
+            0.9,
+            0.1
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-sa2eq7az5s42pbeexkyy",
+          "a": [
+            0.1,
+            0.1
+          ],
+          "b": [
+            0.1,
+            0.9
+          ],
+          "cm": 0
+        },
+        {
+          "id": "wall-xineib3aknmfij76unzv",
+          "a": [
+            0.1,
+            0.9
+          ],
+          "b": [
+            0.9,
+            0.9
+          ],
+          "cm": 0
+        }
+      ],
+      "walls": [],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "216",
+              "216"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "216",
+              "24"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "24",
+              "216"
+            ]
+          },
+          {
+            "id": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "p": [
+              "l",
+              "24",
+              "24"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "wall-n24huwdiskkvn7u7rspi",
+            "from": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-r2w3xevy32eihqtjlzc3",
+            "from": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-sa2eq7az5s42pbeexkyy",
+            "from": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%2224%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          },
+          {
+            "id": "wall-xineib3aknmfij76unzv",
+            "from": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%2224%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "to": "n:%5B%22room%22%2C%22hidden-room%22%2C%22%5B%5C%22l%5C%22%2C%5C%22216%5C%22%2C%5C%22216%5C%22%5D%22%5D",
+            "kind": "wall",
+            "cm": 0
+          }
+        ],
+        "rooms": [
+          {
+            "room": "hidden-room",
+            "edges": [
+              {
+                "kind": "wall",
+                "id": "wall-r2w3xevy32eihqtjlzc3",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-n24huwdiskkvn7u7rspi",
+                "reverse": false
+              },
+              {
+                "kind": "wall",
+                "id": "wall-xineib3aknmfij76unzv",
+                "reverse": true
+              },
+              {
+                "kind": "wall",
+                "id": "wall-sa2eq7az5s42pbeexkyy",
+                "reverse": true
+              }
+            ]
+          }
+        ],
+        "dependencies": []
+      }
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": []
+  }
+}

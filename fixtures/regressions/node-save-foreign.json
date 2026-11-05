@@ -1,1 +1,142 @@
-{"model_version":10,"spaces":[{"id":"node-main","title":"Foreign contact refusal","view_box":[0,0,1,1],"cell_cm":5,"rooms":[],"partitions":[{"id":"a","a":[0.2,0.2],"b":[0.5,0.2],"cm":15},{"id":"b","a":[0.5,0.5],"b":[0.8,0.5],"cm":15},{"id":"foreign","a":[0.35,0.35],"b":[0.65,0.35],"cm":15}],"openings":[]}],"markers":[],"settings":{"filter_seeded":true,"known_devices":[],"new_device_ids":[]}}
+{
+  "model_version": 11,
+  "spaces": [
+    {
+      "id": "node-main",
+      "title": "Foreign contact refusal",
+      "view_box": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "cell_cm": 5,
+      "rooms": [],
+      "partitions": [
+        {
+          "id": "a",
+          "a": [
+            0.2,
+            0.2
+          ],
+          "b": [
+            0.5,
+            0.2
+          ],
+          "cm": 15
+        },
+        {
+          "id": "b",
+          "a": [
+            0.5,
+            0.5
+          ],
+          "b": [
+            0.8,
+            0.5
+          ],
+          "cm": 15
+        },
+        {
+          "id": "foreign",
+          "a": [
+            0.35,
+            0.35
+          ],
+          "b": [
+            0.65,
+            0.35
+          ],
+          "cm": 15
+        }
+      ],
+      "openings": [],
+      "wall_segments": [],
+      "walls": [],
+      "plan_graph": {
+        "version": 1,
+        "nodes": [
+          {
+            "id": "n:%5B%22partition%22%2C%22a%22%2C0%5D",
+            "p": [
+              "l",
+              "48",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22a%22%2C1%5D",
+            "p": [
+              "l",
+              "120",
+              "48"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22b%22%2C0%5D",
+            "p": [
+              "l",
+              "120",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22b%22%2C1%5D",
+            "p": [
+              "l",
+              "192",
+              "120"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22foreign%22%2C0%5D",
+            "p": [
+              "l",
+              "84",
+              "84"
+            ]
+          },
+          {
+            "id": "n:%5B%22partition%22%2C%22foreign%22%2C1%5D",
+            "p": [
+              "l",
+              "156",
+              "84"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a",
+            "from": "n:%5B%22partition%22%2C%22a%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22a%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "b",
+            "from": "n:%5B%22partition%22%2C%22b%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22b%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          },
+          {
+            "id": "foreign",
+            "from": "n:%5B%22partition%22%2C%22foreign%22%2C0%5D",
+            "to": "n:%5B%22partition%22%2C%22foreign%22%2C1%5D",
+            "kind": "partition",
+            "cm": 15
+          }
+        ],
+        "rooms": [],
+        "dependencies": []
+      }
+    }
+  ],
+  "markers": [],
+  "settings": {
+    "filter_seeded": true,
+    "known_devices": [],
+    "new_device_ids": []
+  }
+}
