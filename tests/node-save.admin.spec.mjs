@@ -10,13 +10,29 @@ import {useTool,toClient,centreOf,action,enterEditor} from './lib/plan.mjs';
 import {card} from './lib/ha-page.mjs';
 import {holdConfigReply} from './lib/held-config-reply.mjs';
 
-requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action');
+requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action','zoom-out');
 restoreSeedAfterEach(test);
 test.beforeEach(async()=>test.skip((await planConfig()).wall_node_merge_api!==1,'requires node merge capability; skip is not evidence'));
 const point=p=>p[0]==='l'?[Number(p[1])/240,Number(p[2])/240]:[Number(p[1])/Number(p[2]),Number(p[3])/Number(p[4])];
 const node=(config,p)=>{const n=config.spaces[0].plan_graph.nodes.find(n=>point(n.p).every((v,i)=>Math.abs(v-p[i])<1e-10));expect(n).toBeTruthy();return n;};
 const handle=(host,id)=>host.locator(hp('wall-node',{'data-node':id}));
+async function frameNodes(host){
+  const nodes=host.locator(hp('wall-node'));
+  await expect(nodes.first()).toBeVisible();
+  for(let step=0;step<10;step++){
+    const box=await host.locator(HP.stage??hp('stage')).first().boundingBox();
+    const inside=box&&await nodes.evaluateAll((items,b)=>items.length>0&&items.every(item=>{
+      const r=item.getBoundingClientRect();return r.left>=b.x+16&&r.top>=b.y+16&&r.right<=b.x+b.width-16&&r.bottom<=b.y+b.height-16;
+    }),box);
+    if(inside)return;
+    await host.locator(hp('zoom-out')).first().click();await settledViewport(host);
+  }
+  throw Error('fixture nodes did not fit the visible stage through native zoom controls');
+}
+
 async function drag(page,host,source,target,{offset=0,merge=false}={}){
+  await expect(handle(host,source).first()).toBeInViewport({ratio:1});
+  if(typeof target==='string')await expect(handle(host,target).first()).toBeInViewport({ratio:1});
   const from=await centreOf(handle(host,source).first()),to=typeof target==='string'?await centreOf(handle(host,target).first()):await toClient(host,target[0]*1000,target[1]*1000);
   await page.mouse.move(from.x,from.y);await page.mouse.down();await page.mouse.move(to.x+offset,to.y,{steps:8});
   if(merge)await expect.poll(async()=>{const box=await handle(host,source).last().boundingBox();return box?Math.hypot(box.x+box.width/2-to.x,box.y+box.height/2-to.y):Infinity;}).toBeLessThan(1);
@@ -25,6 +41,7 @@ async function drag(page,host,source,target,{offset=0,merge=false}={}){
 async function pending(page,host,hold,source,target,options={}){
   const reached=hold.arm({command:'houseplan/wall/node_move',staleRevision:!!options.staleRevision});
   await drag(page,host,source,target,options);
+  await expect.poll(()=>!!hold.pending?.reply,{message:'real HA node writer reply reached'}).toBe(true);
   const result=await reached;
   expect(result.request.type).toBe('houseplan/wall/node_move');
   await expect(action(host,'geometry-undo')).toBeDisabled();
@@ -33,7 +50,7 @@ async function pending(page,host,hold,source,target,options={}){
 async function reload(page){await page.reload();const host=card(page);await expect(host.locator(HP.ready)).toBeVisible();return host;}
 
 test('ordinary node save and independent merge wait for real ACK and retain exact history across spaces',async({page})=>{
-  const hold=await holdConfigReply(page);let host=await installFixture(page,'node-save-independent');await useTool(host,'select');
+  const hold=await holdConfigReply(page);let host=await installFixture(page,'node-save-independent');await frameNodes(host);await useTool(host,'select');
   const before=(await planConfig()).config,source=node(before,[.2,.2]).id,target=node(before,[.5,.5]).id,hidden=structuredClone(before.spaces[1]);
   try{
     const reply=await pending(page,host,hold,source,[.25,.3]);expect(reply.reply.success).toBe(true);hold.release();
@@ -55,7 +72,7 @@ test('ordinary node save and independent merge wait for real ACK and retain exac
 });
 
 test('adjacent merge removes its connecting edge atomically and stale CAS cannot enter history',async({page})=>{
-  const hold=await holdConfigReply(page);const host=await installFixture(page,'node-save-adjacent');await useTool(host,'select');
+  const hold=await holdConfigReply(page);const host=await installFixture(page,'node-save-adjacent');await frameNodes(host);await useTool(host,'select');
   const before=(await planConfig()).config,source=node(before,[.5,.2]).id,target=node(before,[.8,.2]).id;
   const connecting=before.spaces[0].plan_graph.edges.find(e=>[e.from,e.to].includes(source)&&[e.from,e.to].includes(target));expect(connecting).toBeTruthy();
   try{
@@ -64,7 +81,7 @@ test('adjacent merge removes its connecting edge atomically and stale CAS cannot
     await expect(host.locator(hp('toast')).last()).toBeVisible();expect((await planConfig()).config).toEqual(before);
     await expect(action(host,'geometry-undo')).toBeDisabled();
     // A fresh page/session avoids judging a still-retiring refusal gesture.
-    const current=await reload(page);await enterEditor(current,'plan');await useTool(current,'select');await settledViewport(current);
+    const current=await reload(page);await enterEditor(current,'plan');await frameNodes(current);await useTool(current,'select');await settledViewport(current);
     const accepted=await pending(page,current,hold,source,target,{offset:8,merge:true});expect(accepted.reply.success).toBe(true);hold.release();
     const after=await waitForConfig(c=>!c.spaces[0].plan_graph.nodes.some(n=>n.id===source));
     expect(after.spaces[0].plan_graph.edges.some(e=>e.id===connecting.id&&e.kind===connecting.kind)).toBe(false);
@@ -75,7 +92,7 @@ test('adjacent merge removes its connecting edge atomically and stale CAS cannot
 });
 
 test('unsafe foreign contact refuses the whole node gesture without a write',async({page})=>{
-  const hold=await holdConfigReply(page),host=await installFixture(page,'node-save-foreign');await useTool(host,'select');
+  const hold=await holdConfigReply(page),host=await installFixture(page,'node-save-foreign');await frameNodes(host);await useTool(host,'select');
   const before=(await planConfig()).config,source=node(before,[.2,.2]).id,target=node(before,[.5,.5]).id,count=hold.writes.length;
   await drag(page,host,source,target,{offset:8,merge:true});
   await expect(host.locator(hp('toast')).last()).toBeVisible();
