@@ -106,6 +106,7 @@ export class StaticSyncWire {
     throw new Error('House Plan websocket did not settle');
   }
   receipt() { return { connections: this.connections, commands: this.commands, results: this.results, events: this.events,
+    ...(this.readHold ? { readHoldTarget: { connection: this.readHold.connection ?? null, types: [...this.readHold.types] } } : {}),
     heldReads: (this.readHold?.pending ?? []).map(({ connection, type }) => ({ connection, type })),
     heldEvents: (this.eventHold?.pending ?? []).map(({ connection, type }) => ({ connection, type })),
   }; }
@@ -148,8 +149,16 @@ export const firePlanEvent = (type, data) => wsCall({ type: 'fire_event', event_
  */
 export async function ownStaticHosts(page) {
   return page.locator('houseplan-space-card').evaluateAll(all => {
+    if (all.length !== 2) throw new Error('connection handoff requires the original static pair');
     const source = all[0].hass, frames = all.map(host => host.getBoundingClientRect());
-    all.forEach(host => host.remove());
+    // #1302: removing only its card children lets the connected Lovelace
+    // application recreate an A-owned pair on its next HA update. Those
+    // extra cards can claim the shared store while the owned pair adopts B.
+    // Detach the page's application root, preserving its real connection A;
+    // detached descendants cannot rejoin the document. Reload restores HA.
+    const app = document.querySelector('home-assistant');
+    if (!app) throw new Error('static handoff fixture requires the HA application root');
+    app.remove();
     const wrapper = document.createElement('div');
     wrapper.id = 'e2e-static-sync-host-handoff';
     document.body.append(wrapper);

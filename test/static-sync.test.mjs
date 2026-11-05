@@ -45,6 +45,10 @@ test('only actual matching GET replies are held; receipts omit complete config p
   } };
   connection.response(reply);
   assert.equal(connection.client.length, 1);
+  assert.deepEqual(wire.receipt().readHoldTarget, {
+    connection: null, types: ['houseplan/config/get', 'houseplan/layout/get'],
+  });
+  assert.equal(JSON.stringify(wire.receipt()).includes('private-fixture'), false);
   assert.deepEqual(wire.counts(), { config: 1, layout: 0 });
   assert.deepEqual(wire.results, [{ connection: 1, type: 'houseplan/config/get', success: true,
     rev: 11, decorAssetsApi: 1, summaryPanelApi: 1 }]);

@@ -247,54 +247,60 @@ test('a real virtual-light event paints immediately and survives a layout-only r
 test('held old reads cannot replace newer events, and a real connection handoff drops the old revision high-water', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   const wire = await staticSyncWire(page);
-  await openPair(page, wire);
-  const before = await painted(page);
-  wire.holdReads();
-  await firePlanEvent('houseplan_config_updated', {});
-  await firePlanEvent('houseplan_layout_updated', {});
-  await wire.heldReads(2);
-  const oldConfig = await planConfig(), newer = structuredClone(oldConfig.config);
-  const raceTitle = `${newer.spaces.find(s => s.id === 'f1').title} race1112`;
-  newer.spaces.find(s => s.id === 'f1').title = raceTitle;
-  const configAck = await wsCall({ type: 'houseplan/config/set', expected_rev: oldConfig.rev, config: newer });
-  const raced = await writePosition();
-  await expect.poll(() => wire.events.some(e => e.type === 'houseplan_config_updated' && e.rev === configAck.rev)).toBe(true);
-  await expect.poll(() => wire.events.some(e => e.type === 'houseplan_layout_updated' && e.rev === raced.rev)).toBe(true);
-  wire.releaseReads();
-  await expectMoved(page, before);
-  await wire.settle(page);
-  expect(wire.counts().layout).toBeGreaterThanOrEqual(3); // initial + held + fresh generation
-  expect(wire.counts().config).toBeGreaterThanOrEqual(3);
-  for (const host of await statics(page).all()) await expect(host.getByText(raceTitle, { exact: true })).toBeVisible();
-  expect(await ownStaticHosts(page)).toEqual({ cards: 2, connectionUnchanged: true });
-  const owned = ownedStatics(page);
-  await openPairReady(page, wire, owned);
-  const afterRace = await painted(page, SOURCE, owned);
-  const connectionA = wire.connections, connectionB = connectionA + 1;
-  wire.holdReads(undefined, connectionB);
-  await expect(owned).toHaveCount(2);
-  expect(await handoffStaticConnection(owned)).toEqual({ cards: 2, authenticated: true });
-  await wire.heldReads(2);
-  expect(wire.connections).toBe(connectionB);
-  const highWater = (await planLayout()).rev + 100;
-  await firePlanEvent('houseplan_layout_updated', { rev: highWater });
-  await expect.poll(() => wire.events.some(e => e.connection === connectionA && e.rev === highWater)).toBe(true);
-  // B subscribes only after its config/layout replies finish. This real bus
-  // event therefore reaches the still-subscribed A while B reads are held.
-  // No B event is invented, suppressed, or delivered as current.
-  expect(wire.events.some(e => e.connection === connectionB && e.rev === highWater)).toBe(false);
-  await attachReceipt(testInfo, wire, 'old-A-event-while-B-replies-held.json');
-  wire.releaseReads();
-  await wire.settle(page);
-  expectSamePaint(await painted(page, SOURCE, owned), afterRace);
-  await attachReceipt(testInfo, wire, 'B-current-low-revision-adopted.json');
-  wire.reset();
-  const low = await writePosition(SOURCE, .025);
-  expect(low.rev).toBeLessThan(highWater);
-  await expectMoved(page, afterRace, SOURCE, owned);
-  await wire.settle(page);
-  expect(wire.counts(connectionB)).toEqual({ config: 0, layout: 1 });
-  await evidence(testInfo, page, 'real-connection-handoff-lower-revision');
-  await attachReceipt(testInfo, wire);
-  await assertReloadOracle(page, wire, low.position, SOURCE, true);
+  try {
+    await openPair(page, wire);
+    const before = await painted(page);
+    wire.holdReads();
+    await firePlanEvent('houseplan_config_updated', {});
+    await firePlanEvent('houseplan_layout_updated', {});
+    await wire.heldReads(2);
+    const oldConfig = await planConfig(), newer = structuredClone(oldConfig.config);
+    const raceTitle = `${newer.spaces.find(s => s.id === 'f1').title} race1112`;
+    newer.spaces.find(s => s.id === 'f1').title = raceTitle;
+    const configAck = await wsCall({ type: 'houseplan/config/set', expected_rev: oldConfig.rev, config: newer });
+    const raced = await writePosition();
+    await expect.poll(() => wire.events.some(e => e.type === 'houseplan_config_updated' && e.rev === configAck.rev)).toBe(true);
+    await expect.poll(() => wire.events.some(e => e.type === 'houseplan_layout_updated' && e.rev === raced.rev)).toBe(true);
+    wire.releaseReads();
+    await expectMoved(page, before);
+    await wire.settle(page);
+    expect(wire.counts().layout).toBeGreaterThanOrEqual(3); // initial + held + fresh generation
+    expect(wire.counts().config).toBeGreaterThanOrEqual(3);
+    for (const host of await statics(page).all()) await expect(host.getByText(raceTitle, { exact: true })).toBeVisible();
+    expect(await ownStaticHosts(page)).toEqual({ cards: 2, connectionUnchanged: true });
+    const owned = ownedStatics(page);
+    await openPairReady(page, wire, owned);
+    await expect(statics(page)).toHaveCount(2);
+    const afterRace = await painted(page, SOURCE, owned);
+    const connectionA = wire.connections, connectionB = connectionA + 1;
+    wire.holdReads(undefined, connectionB);
+    await expect(owned).toHaveCount(2);
+    expect(await handoffStaticConnection(owned)).toEqual({ cards: 2, authenticated: true });
+    await wire.heldReads(2);
+    expect(wire.connections).toBe(connectionB);
+    await expect(statics(page)).toHaveCount(2);
+    const highWater = (await planLayout()).rev + 100;
+    await firePlanEvent('houseplan_layout_updated', { rev: highWater });
+    await expect.poll(() => wire.events.some(e => e.connection === connectionA && e.rev === highWater)).toBe(true);
+    // B subscribes only after its config/layout replies finish. This real bus
+    // event therefore reaches the still-subscribed A while B reads are held.
+    // No B event is invented, suppressed, or delivered as current.
+    expect(wire.events.some(e => e.connection === connectionB && e.rev === highWater)).toBe(false);
+    await attachReceipt(testInfo, wire, 'old-A-event-while-B-replies-held.json');
+    wire.releaseReads();
+    await wire.settle(page);
+    expectSamePaint(await painted(page, SOURCE, owned), afterRace);
+    await attachReceipt(testInfo, wire, 'B-current-low-revision-adopted.json');
+    wire.reset();
+    const low = await writePosition(SOURCE, .025);
+    expect(low.rev).toBeLessThan(highWater);
+    await expectMoved(page, afterRace, SOURCE, owned);
+    await wire.settle(page);
+    expect(wire.counts(connectionB)).toEqual({ config: 0, layout: 1 });
+    await evidence(testInfo, page, 'real-connection-handoff-lower-revision');
+    await attachReceipt(testInfo, wire);
+    await assertReloadOracle(page, wire, low.position, SOURCE, true);
+  } finally {
+    await attachReceipt(testInfo, wire, 'handoff-finally.json');
+  }
 });
