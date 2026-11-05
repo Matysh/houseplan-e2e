@@ -10,7 +10,7 @@ import {useTool,toClient,centreOf,action,enterEditor} from './lib/plan.mjs';
 import {card} from './lib/ha-page.mjs';
 import {holdConfigReply} from './lib/held-config-reply.mjs';
 
-requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action','zoom-out','zoom-in','node-context-menu');
+requireHooks(test,'wall-node@data-node','wall-node-layer','stage','action','zoom-out','node-context-menu');
 restoreSeedAfterEach(test);
 test.beforeEach(async()=>test.skip((await planConfig()).wall_node_merge_api!==1,'requires node merge capability; skip is not evidence'));
 const point=p=>p[0]==='l'?[Number(p[1])/240,Number(p[2])/240]:[Number(p[1])/Number(p[2]),Number(p[3])/Number(p[4])];
@@ -115,11 +115,12 @@ test('painted node edge at high zoom moves only that endpoint and opens its menu
   let g;
   for(let step=0;step<18;step++){
     g=await geometry();if(g.r>14)break;
-    await host.locator(hp('zoom-in')).first().click();await settledViewport(host);
+    await page.mouse.move(g.x,g.y);await page.mouse.wheel(0,-120);await settledViewport(host);
   }
   expect(g.r,'the painted edge must exceed the old 12px picker').toBeGreaterThan(14);
   const fixed=await host.locator(hp('wall-node')).evaluateAll(items=>items.map(h=>{const r=h.getBoundingClientRect();return{id:h.dataset.node,x:r.x+r.width/2,y:r.y+r.height/2};}));
-  const edge={x:g.x+g.r+.25,y:g.y};
+  const edge={x:g.x+g.r+.25,y:g.y},stageBox=await host.locator(HP.stage??hp('stage')).first().boundingBox();
+  expect(stageBox).toBeTruthy();expect(edge.x).toBeGreaterThan(stageBox.x);expect(edge.x).toBeLessThan(stageBox.x+stageBox.width);expect(edge.y).toBeGreaterThan(stageBox.y);expect(edge.y+60).toBeLessThan(stageBox.y+stageBox.height);
   await page.mouse.move(edge.x,edge.y);await page.mouse.down();await page.mouse.move(g.x+40,g.y+60,{steps:8});
   await expect.poll(async()=>{const p=await centreOf(handle(host,source).last());return Math.hypot(p.x-g.x,p.y-g.y);}).toBeGreaterThan(8);
   for(const n of fixed.filter(n=>n.id!==source)){
