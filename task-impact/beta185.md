@@ -12,3 +12,10 @@
 Это основная пользовательская E2E-проверка новых швов, а не заявление о переносе каждой низкоуровневой комбинации из handoff в браузер. Матрицы topology/openings/capability retirement/authority refusal, границы hit targets и бюджеты удерживаемого кадра остаются в адресных TS/Python/native/harness тестах продукта. Ранее сохранённые факты S6 и ограничения исходных handoff не переписываются. Конвертеры и synthetic smoke не выданы за настоящий HA browser.
 
 Адресный прогон: empty View/area, attach и Straight/Spiral PASS; отдельный Shift прогон — все6семейств PASS (2026-11-06, HA2026.10.4, собственный loopback Docker lab). Окончательный frozen companion SHA и итог выполнения общей beta/remainder выборки фиксирует единый отчёт выпуска. Промежуточные отказы настройки сценариев сохранены в release evidence; продуктовые ожидания, visual baselines и допуски не ослаблялись.
+## Выпуск подтверждён
+
+[1.85.0-beta.1](https://github.com/Matysh/houseplan-card/releases/tag/v1.85.0-beta.1) опубликована 2026-11-06. Проверенный product SHA: `0ce2c7c7b8def6f7ef5dd6522d7d0816c107c28f`; проверенный companion SHA: `f46e8e37154ca1103a66da536c6a09ec88d5af9f`.
+
+Настоящий общий HA прогон: `20261106T171020508-61647dde`, **97/97 business PASS, 10/10 setup PASS, 0fail, 0skip, 0unexecuted**. Это10основных journeys +2first-run +1upgrade с выпущенной v1.84.0 +84remainder journeys (включая все4новых случая выше). Пустые remainder first-run/upgrade выборки правильно not-required, не зачтены как выполненные тесты.
+
+Итоговый единый beta report `20261106T173226025-ddb4e396`: schema1, event=beta, materialClean=true, exact product SHA выше, status=passed;38групп с34применимыми зачётами. Его публичная квитанция сохранена в [release state](https://github.com/Matysh/houseplan-card/blob/process-release-state/releases.json), кандидат `v1.85.0-beta.1-20261106`. Все326golden прошли после точечного принятия владельцем трёх кадров #1334. Проверка доставки подтвердила публичный feed и скачиваемый ZIP SHA256 `8fc4ae42b03e3f5dfaf0f0722880e4b328d634430deb55d2bc7f9af3cb5c96b5` (2063091bytes).
