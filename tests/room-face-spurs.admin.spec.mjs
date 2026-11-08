@@ -25,7 +25,12 @@ async function prepare(page,config){
  await enterEditor(host,'plan');await useTool(host,'select');await settle(host);
  return{host,id};
 }
-const geometry=s=>({nodes:s.plan_graph.nodes,edges:s.plan_graph.edges.map(e=>({id:e.id,from:e.from,to:e.to,cm:e.cm})),partitions:s.partitions,openings:s.openings});
+// Saving a room transfers its boundary edges from partitions to room walls.
+// Compare every exact node and physical edge by ID, plus the independent spur
+// and its opening; storage array order and boundary ownership are not geometry.
+const keyed=rows=>Object.fromEntries(rows.map(row=>[row.id,row]));
+const geometry=s=>({nodes:keyed(s.plan_graph.nodes),edges:keyed(s.plan_graph.edges.map(e=>({id:e.id,from:e.from,to:e.to,cm:e.cm}))),
+ partitions:s.partitions.filter(p=>p.id==='internal-dead-end'),openings:s.openings});
 test('a closed contour with a dangling wall creates one room without changing the wall or opening',async({page},info)=>{
  test.setTimeout(180000);const{host,id}=await prepare(page,fixture.closed);
  const before=await planConfig(),original=spaceOf(before.config,id),dialog=host.locator(HP.dialog('room'));
