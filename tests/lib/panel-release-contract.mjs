@@ -22,3 +22,7 @@ export function hasBeta5UiPolishContract(version = installedRecord()?.version) {
 export function hasHeaderActionsContract(contract = installedContract() ?? CONTRACT) {
   return !!contract?.hooks?.['header-actions-trigger'] && !!contract?.hooks?.['header-actions-menu'];
 }
+
+export function hasSingleRowHeaderContract(contract = installedContract() ?? CONTRACT) {
+  return hasHeaderActionsContract(contract) && !!contract?.hooks?.['space-name'];
+}

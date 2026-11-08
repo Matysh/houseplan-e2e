@@ -1,7 +1,18 @@
 // A household member (non-admin user) sees the plan and nothing that edits it.
 import { test, expect } from '@playwright/test';
 import { card, editorTabs, expectPlanDrawn } from './lib/ha-page.mjs';
-import { HP } from './lib/hooks.mjs';
+import { HP, hp } from './lib/hooks.mjs';
+import { expectSingleRowHeader, headerActionTarget } from './lib/header-actions.mjs';
+import { hasSingleRowHeaderContract } from './lib/panel-release-contract.mjs';
+
+async function checkNarrowReadOnly(page,host) {
+  if (!hasSingleRowHeaderContract()) return;
+  await page.setViewportSize({width:390,height:844});
+  await expectSingleRowHeader(host);
+  await headerActionTarget(host,hp('hidden-devices'));
+  await expect(host.locator('[data-hp="header-actions-menu"] [data-action="mode-plan"],[data-hp="header-actions-menu"] [data-action="settings"],[data-hp="header-actions-menu"] [data-action="space-add"]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+}
 
 test.describe('House Plan for a non-admin user', () => {
   test('the sidebar page shows the plan read-only', async ({ page }) => {
@@ -12,6 +23,7 @@ test.describe('House Plan for a non-admin user', () => {
     await expect(editorTabs(host)).toHaveCount(0);
     await expect(host.locator(HP.spaceAdd)).toHaveCount(0);
     await expect(host.locator(HP.settings)).toHaveCount(0);
+    await checkNarrowReadOnly(page,host);
   });
 
   test('the dashboard card is the same read-only plan', async ({ page }) => {
@@ -19,5 +31,6 @@ test.describe('House Plan for a non-admin user', () => {
     const host = card(page);
     await expectPlanDrawn(page, host);
     await expect(editorTabs(host)).toHaveCount(0);
+    await checkNarrowReadOnly(page,host);
   });
 });

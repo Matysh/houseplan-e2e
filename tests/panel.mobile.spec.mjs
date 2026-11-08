@@ -3,8 +3,8 @@
 import { test, expect } from '@playwright/test';
 import { expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP } from './lib/hooks.mjs';
-import { headerActionTarget } from './lib/header-actions.mjs';
-import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
+import { headerActionTarget, expectSingleRowHeader } from './lib/header-actions.mjs';
+import { hasBeta4PanelContract, hasSingleRowHeaderContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 
 test('sidebar page on a phone draws the plan and opens the drawer', async ({ page }) => {
@@ -20,6 +20,7 @@ test('sidebar page on a phone draws the plan and opens the drawer', async ({ pag
   expect(overflow).toBeLessThanOrEqual(1);
 
   const host = panel.locator('houseplan-card');
+  if (hasSingleRowHeaderContract()) await expectSingleRowHeader(host);
   const menu = await headerActionTarget(host, HP.panelMenu, { tap: true });
   if (hasBeta4PanelContract()) {
     // The menu belongs to the card; an outer title no longer reserves 56px.
