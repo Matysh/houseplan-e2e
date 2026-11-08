@@ -45,12 +45,19 @@ async function rectangle(page,host,name){
 }
 async function pointerFree(host){
  return stage(host).evaluate(svg=>{
-  const r=svg.getBoundingClientRect(),occupied=[...svg.querySelectorAll('[data-hp="wall"],[data-hp="room"],[data-hp="stair"],[data-hp="device"]')].filter(n=>!n.closest('.hp-stair-placement-preview')).map(n=>n.getBoundingClientRect());
+  const r=svg.getBoundingClientRect(),matrix=svg.getScreenCTM();
+  if(!matrix)throw Error('The visible stage has no floor transform');
+  const sameBox=node=>{const b=node.getBoundingClientRect();return ['left','top','width','height'].every(k=>Math.abs(b[k]-r[k])<1);};
+  const planes=[...svg.getRootNode().querySelectorAll('svg')].filter(node=>{
+   const m=node.getScreenCTM();return m&&sameBox(node)&&['a','b','c','d','e','f'].every(k=>Math.abs(m[k]-matrix[k])<1e-6);
+  });
+  const occupied=planes.flatMap(plane=>[...plane.querySelectorAll('[data-hp="wall"],[data-hp="room"],[data-hp="stair"],[data-hp="device"]')])
+   .filter(n=>!n.closest('.hp-stair-placement-preview')).map(n=>n.getBoundingClientRect()).filter(b=>b.width>0&&b.height>0);
   for(const fy of [.8,.65,.5,.35,.2,.1,.9])for(const fx of [.75,.55,.35,.2,.1,.9]){
    const p={x:r.x+r.width*fx,y:r.y+r.height*fy};
    if(occupied.some(b=>p.x>=b.left-20&&p.x<=b.right+20&&p.y>=b.top-20&&p.y<=b.bottom+20))continue;
    let hit=document.elementFromPoint(p.x,p.y);while(hit?.shadowRoot){const next=hit.shadowRoot.elementFromPoint(p.x,p.y);if(!next||next===hit)break;hit=next;}
-   if(hit&&(hit===svg||svg.contains(hit))&&!hit.closest('button,input,select,[data-hp="wall-node"]'))return p;
+   if(hit&&(planes.some(plane=>plane===hit||plane.contains(hit))||hit.contains(svg)&&sameBox(hit))&&!hit.closest('button,input,select,aside,[role="dialog"],[data-hp="wall-node"],[data-hp="device"],[data-hp="wall"],[data-hp="opening"]'))return p;
   }throw Error('No visible empty client target');
  });
 }
