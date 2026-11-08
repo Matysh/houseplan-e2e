@@ -14,7 +14,9 @@ async function prepare(page,config){
  const seed=await snapshotPlan(),document=structuredClone(seed.document),id=config.spaces[0].id;
  document.model_version=config.model_version;document.payload.config=structuredClone(config);
  document.payload.config.settings=structuredClone(seed.config.settings);document.payload.layout={};
- await importDocument(document,{duplicatePolicy:'replace',confirmMissingContent:true});
+ // The synthetic fixture has no placed markers or content references.
+ document.placement_manifest=[];document.content_manifest=[];
+ await importDocument(document,{confirmMissingContent:true});
  await waitForConfig(c=>!!spaceOf(c,id),{message:'synthetic current-model fixture stored by HA'});
  const host=await openPlan(page,{space:id});await enterEditor(host,'plan');await useTool(host,'select');await settle(host);
  return{host,id};
