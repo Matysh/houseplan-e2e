@@ -1,0 +1,447 @@
+{
+  "sourceIssue": 1346,
+  "description": "Synthetic closed/open room boundary with a dangling wall and glass-door flag; converted once through the current model writer.",
+  "closed": {
+    "model_version": 11,
+    "settings": {},
+    "markers": [],
+    "spaces": [
+      {
+        "id": "room-face-spurs",
+        "title": "Room with a dangling wall",
+        "cell_cm": 5,
+        "view_box": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "rooms": [],
+        "wall_segments": [],
+        "openings": [
+          {
+            "id": "spur-glass-door",
+            "type": "door",
+            "x": 0.7,
+            "y": 0.5,
+            "angle": 0,
+            "length": 0.1,
+            "host": {
+              "kind": "partition",
+              "id": "internal-dead-end",
+              "t": 0.5,
+              "tq": [
+                "1",
+                "2"
+              ]
+            },
+            "light_transparent": true
+          }
+        ],
+        "partitions": [
+          {
+            "id": "bottom",
+            "a": [
+              0.1,
+              0.9
+            ],
+            "b": [
+              0.9,
+              0.9
+            ],
+            "cm": 15
+          },
+          {
+            "id": "internal-dead-end",
+            "a": [
+              0.5,
+              0.5
+            ],
+            "b": [
+              0.9,
+              0.5
+            ],
+            "cm": 15
+          },
+          {
+            "id": "left",
+            "a": [
+              0.1,
+              0.1
+            ],
+            "b": [
+              0.1,
+              0.9
+            ],
+            "cm": 15
+          },
+          {
+            "id": "right",
+            "a": [
+              0.9,
+              0.1
+            ],
+            "b": [
+              0.9,
+              0.5
+            ],
+            "cm": 15
+          },
+          {
+            "id": "right~1",
+            "a": [
+              0.9,
+              0.5
+            ],
+            "b": [
+              0.9,
+              0.9
+            ],
+            "cm": 15
+          },
+          {
+            "id": "top",
+            "a": [
+              0.1,
+              0.1
+            ],
+            "b": [
+              0.9,
+              0.1
+            ],
+            "cm": 15
+          }
+        ],
+        "walls": [],
+        "plan_graph": {
+          "version": 1,
+          "nodes": [
+            {
+              "id": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "p": [
+                "l",
+                "24",
+                "216"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "p": [
+                "l",
+                "216",
+                "216"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C0%5D",
+              "p": [
+                "l",
+                "120",
+                "120"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "p": [
+                "l",
+                "216",
+                "120"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22left%22%2C0%5D",
+              "p": [
+                "l",
+                "24",
+                "24"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+              "p": [
+                "l",
+                "216",
+                "24"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "bottom",
+              "from": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "internal-dead-end",
+              "from": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "left",
+              "from": "n:%5B%22partition%22%2C%22left%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "right",
+              "from": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "right~1",
+              "from": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "top",
+              "from": "n:%5B%22partition%22%2C%22left%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+              "kind": "partition",
+              "cm": 15
+            }
+          ],
+          "rooms": [],
+          "dependencies": [
+            {
+              "node": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "on-edge",
+              "refs": [
+                {
+                  "from": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+                  "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D"
+                }
+              ],
+              "parameters": [
+                [
+                  "1",
+                  "2"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "open": {
+    "model_version": 11,
+    "settings": {},
+    "markers": [],
+    "spaces": [
+      {
+        "id": "room-face-spurs-open",
+        "title": "Room with a dangling wall",
+        "cell_cm": 5,
+        "view_box": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "rooms": [],
+        "wall_segments": [],
+        "openings": [
+          {
+            "id": "spur-glass-door",
+            "type": "door",
+            "x": 0.7,
+            "y": 0.5,
+            "angle": 0,
+            "length": 0.1,
+            "host": {
+              "kind": "partition",
+              "id": "internal-dead-end",
+              "t": 0.5,
+              "tq": [
+                "1",
+                "2"
+              ]
+            },
+            "light_transparent": true
+          }
+        ],
+        "partitions": [
+          {
+            "id": "bottom",
+            "a": [
+              0.1,
+              0.9
+            ],
+            "b": [
+              0.9,
+              0.9
+            ],
+            "cm": 15
+          },
+          {
+            "id": "internal-dead-end",
+            "a": [
+              0.5,
+              0.5
+            ],
+            "b": [
+              0.9,
+              0.5
+            ],
+            "cm": 15
+          },
+          {
+            "id": "left",
+            "a": [
+              0.1,
+              0.1
+            ],
+            "b": [
+              0.1,
+              0.9
+            ],
+            "cm": 15
+          },
+          {
+            "id": "right",
+            "a": [
+              0.9,
+              0.1
+            ],
+            "b": [
+              0.9,
+              0.5
+            ],
+            "cm": 15
+          },
+          {
+            "id": "right~1",
+            "a": [
+              0.9,
+              0.5
+            ],
+            "b": [
+              0.9,
+              0.9
+            ],
+            "cm": 15
+          }
+        ],
+        "walls": [],
+        "plan_graph": {
+          "version": 1,
+          "nodes": [
+            {
+              "id": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "p": [
+                "l",
+                "24",
+                "216"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "p": [
+                "l",
+                "216",
+                "216"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C0%5D",
+              "p": [
+                "l",
+                "120",
+                "120"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "p": [
+                "l",
+                "216",
+                "120"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22left%22%2C0%5D",
+              "p": [
+                "l",
+                "24",
+                "24"
+              ]
+            },
+            {
+              "id": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+              "p": [
+                "l",
+                "216",
+                "24"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "bottom",
+              "from": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "internal-dead-end",
+              "from": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "left",
+              "from": "n:%5B%22partition%22%2C%22left%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C0%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "right",
+              "from": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+              "to": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            },
+            {
+              "id": "right~1",
+              "from": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D",
+              "kind": "partition",
+              "cm": 15
+            }
+          ],
+          "rooms": [],
+          "dependencies": [
+            {
+              "node": "n:%5B%22partition%22%2C%22internal-dead-end%22%2C1%5D",
+              "kind": "on-edge",
+              "refs": [
+                {
+                  "from": "n:%5B%22partition%22%2C%22right%22%2C0%5D",
+                  "to": "n:%5B%22partition%22%2C%22bottom%22%2C1%5D"
+                }
+              ],
+              "parameters": [
+                [
+                  "1",
+                  "2"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

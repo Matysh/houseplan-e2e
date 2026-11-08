@@ -12,6 +12,7 @@ import { readCurrentSpace } from './current-space.mjs';
 import { card, expectPlanDrawn } from './ha-page.mjs';
 import { HP, hp } from './hooks.mjs';
 import { hasBeta4PanelContract } from './panel-release-contract.mjs';
+import { headerActionTarget } from './header-actions.mjs';
 
 /** Open the sidebar page and wait for the drawn plan; returns the card host. */
 export async function openPlan(page, { space } = {}) {
@@ -61,13 +62,13 @@ export async function selectSpace(host, spaceId) {
 }
 
 export async function enterEditor(host, mode) {
-  await host.locator(HP.modeTab(mode)).first().click();
+  await (await headerActionTarget(host, HP.modeTab(mode))).click();
   await expect(host.locator(HP.mode(mode))).toBeVisible();
   await settle(host);
 }
 
 export async function leaveEditor(host) {
-  await host.locator(HP.editorClose).first().click();
+  await (await headerActionTarget(host, HP.editorClose)).click();
   await expect(host.locator(HP.mode('view'))).toBeVisible();
   await settle(host);
 }
@@ -93,7 +94,8 @@ export async function zoomInVisible(host, clicks = 3) {
   // Keep the real editor and native gesture; never reveal hidden controls or
   // mutate the camera. Header-specific journeys retain their own assertions.
   expect(hasBeta4PanelContract(), 'compact native zoom belongs to the panel contract').toBe(true);
-  await expect(host.locator(HP.editorClose).first()).toBeVisible();
+  const exit = host.locator(HP.editorClose).first();
+  await expect(await exit.isVisible() ? exit : host.locator(hp('header-actions-trigger')).first()).toBeVisible();
   const svg = stage(host), page = host.page();
   const scale = () => svg.evaluate(node => {
     const matrix = node.getScreenCTM();
