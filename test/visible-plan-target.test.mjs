@@ -52,3 +52,14 @@ test('a room target cannot enclose an existing wall even when its perimeter is f
   assert.ok(obstacle.x < Math.min(...xs) - 12 || obstacle.x > Math.max(...xs) + 12
     || obstacle.y < Math.min(...ys) - 12 || obstacle.y > Math.max(...ys) + 12);
 });
+
+test('layered floor uses its real canvas hit while preserving sibling obstacles and dialog occlusion', async t => {
+ const browser=await chromium.launch({headless:true});t.after(()=>browser.close());
+ const page=await browser.newPage({viewport:{width:800,height:600}});
+ await page.setContent('<style>body{margin:0}main{position:absolute;inset:0}svg{position:absolute;inset:0;width:800px;height:600px;pointer-events:none}</style><main><svg id="semantic" viewBox="0 0 800 600"></svg><svg viewBox="0 0 800 600"><rect data-hp="wall" x="100" y="100" width="170" height="300"/></svg></main>');
+ const result=await page.locator('#semantic').evaluate(visiblePlanSegment,{step:10});
+ assert.ok(result.samples.every(p=>p.x<88||p.x>282||p.y<88||p.y>412),'sibling wall remains excluded');
+ assert.equal(await page.evaluate(p=>document.elementFromPoint(p.x,p.y).tagName,result.from),'MAIN');
+ await page.evaluate(()=>{const overlay=document.createElement('aside');overlay.style.cssText='position:fixed;inset:0;background:white';document.body.append(overlay);});
+ await assert.rejects(page.locator('#semantic').evaluate(visiblePlanSegment,{step:10}),/No unobscured snapped segment/);
+});

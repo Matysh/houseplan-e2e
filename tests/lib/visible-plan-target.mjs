@@ -12,7 +12,13 @@ export function visiblePlanSegment(svg, { step, pixels = 90, clearInterior = fal
   // First migration uses free canvas, not a cut across an existing room or a
   // magnet close to one of its walls. Conservative DOM boxes are sufficient:
   // failing to find free room is explicit, never permission to change the seed.
-  const occupied = [...svg.querySelectorAll('[data-hp="room"],[data-hp="wall"],[data-hp="device"]')]
+  // Layered scenes share one floor transform; input may hit a sibling paint
+  // layer or the containing canvas instead of this semantic coordinate SVG.
+  const sameBox = node => { const r=node.getBoundingClientRect();return ['left','top','width','height'].every(k=>Math.abs(r[k]-box[k])<1); };
+  const planes = [...svg.getRootNode().querySelectorAll('svg')].filter(node => {
+    const m=node.getScreenCTM();return m && sameBox(node) && ['a','b','c','d','e','f'].every(k=>Math.abs(m[k]-matrix[k])<1e-6);
+  });
+  const occupied = planes.flatMap(plane => [...plane.querySelectorAll('[data-hp="room"],[data-hp="wall"],[data-hp="device"]')])
     .map(node => node.getBoundingClientRect()).filter(rect => rect.width > 0 && rect.height > 0);
   const client = p => { const q = new DOMPoint(p.x, p.y).matrixTransform(matrix); return { x: q.x, y: q.y }; };
   const available = p => {
@@ -25,8 +31,8 @@ export function visiblePlanSegment(svg, { step, pixels = 90, clearInterior = fal
       if (!next || next === hit) break;
       hit = next;
     }
-    return !!hit && (hit === svg || svg.contains(hit)) && !hit.closest(
-      'button,input,select,[data-hp="device"],[data-hp="wall-node"],[data-hp="wall"],[data-hp="opening"]');
+    return !!hit && (planes.some(plane => plane === hit || plane.contains(hit)) || hit.contains(svg) && sameBox(hit)) && !hit.closest(
+      'button,input,select,aside,[role="dialog"],[data-hp="device"],[data-hp="wall-node"],[data-hp="wall"],[data-hp="opening"]');
   };
   const cells = Math.max(1, Math.ceil(pixels / (step * scale)));
   for (const fy of [.35, .5, .65, .2, .8]) for (const fx of [.2, .35, .5, .65, .8]) {
