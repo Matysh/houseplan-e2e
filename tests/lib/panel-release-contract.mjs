@@ -2,7 +2,7 @@
 // Source snapshots may carry beta.3 until the candidate bump: an old-version
 // skip is never new-contract proof. Source snapshots with #1120's explicit
 // retirement and the eventual exact beta.4 candidate must execute these checks.
-import { installedContract, installedRecord } from './contract.mjs';
+import { CONTRACT, installedContract, installedRecord } from './contract.mjs';
 import { compareTags } from '../../scripts/tags.mjs';
 export function hasBeta4PanelContract(version = installedRecord()?.version, contract = installedContract()) {
   // A source snapshot retains beta.3 until release preparation. The installed
@@ -16,4 +16,9 @@ export function hasBeta4PanelContract(version = installedRecord()?.version, cont
 // #1132 is shipped by beta.5; older release runs keep their own assertions.
 export function hasBeta5UiPolishContract(version = installedRecord()?.version) {
   return !!version && compareTags(`v${version}`, 'v1.83.0-beta.5') >= 0;
+}
+
+// #1347 declares the new presentation explicitly, including source snapshots.
+export function hasHeaderActionsContract(contract = installedContract() ?? CONTRACT) {
+  return !!contract?.hooks?.['header-actions-trigger'] && !!contract?.hooks?.['header-actions-menu'];
 }

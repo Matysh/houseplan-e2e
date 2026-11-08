@@ -6,9 +6,10 @@ import { test, expect } from '@playwright/test';
 import { historicalHp, requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
-import { hasBeta4PanelContract, hasBeta5UiPolishContract } from './lib/panel-release-contract.mjs';
+import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasHeaderActionsContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
+import { headerActionTarget } from './lib/header-actions.mjs';
 
 requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab', 'mode-tab@data-mode', 'editor-close', 'properties-panel');
 
@@ -38,8 +39,10 @@ async function ordinaryPanel(page) {
 async function menuTarget(menu) {
   await expect(menu).toBeVisible();
   const box = await menu.boundingBox();
-  expect(box.width).toBeGreaterThanOrEqual(44);
-  expect(box.height).toBeGreaterThanOrEqual(44);
+  // Compositor transforms can return 43.999996 px for a 44 px target.
+  // Normalize sub-millipixel arithmetic noise, retaining the 44 CSS px contract.
+  expect(Math.round(box.width * 1000) / 1000).toBeGreaterThanOrEqual(44);
+  expect(Math.round(box.height * 1000) / 1000).toBeGreaterThanOrEqual(44);
   return box;
 }
 const sidebarEntry = page => page.locator('ha-sidebar a[href="/houseplan"]');
@@ -62,16 +65,21 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     // A real HA viewport transition reaches the existing panel without a new
     // page, injected state, or a fixed-width rule in the test implementation.
     await page.setViewportSize({ width: 390, height: 844 });
-    await menuTarget(menu);
+    const narrowMenu = await headerActionTarget(host, HP.panelMenu);
+    await menuTarget(narrowMenu);
     await expectPlanDrawn(page, host);
     if (hasBeta5UiPolishContract()) {
-      for (const action of [HP.modeTab('plan'),HP.modeTab('devices'),HP.modeTab('decor'),HP.settings,'[data-hp="pdf"]','[data-hp="support"]'])
-        await expect(host.locator(action)).toBeVisible();
+      for (const action of [HP.modeTab('plan'),HP.modeTab('devices'),HP.modeTab('decor'),HP.settings,'[data-hp="pdf"]','[data-hp="support"]']) {
+        if (hasHeaderActionsContract() && await host.locator('[data-hp="header-actions-menu"]:not([inert])').isVisible()) {
+          const label = await host.locator(action).first().getAttribute('aria-label');
+          await expect(host.locator('[data-hp="header-actions-menu"]:not([inert])').getByRole('menuitem', {name:label,exact:true})).toBeVisible();
+        } else await expect(host.locator(action)).toBeVisible();
+      }
       expect(await host.locator('.hdr').evaluate(e=>e.scrollWidth<=e.getBoundingClientRect().width+1)).toBe(true);
       await expect(host.locator(historicalHp('header-menu'))).toBeHidden();
     }
     await expect(sidebarEntry(page)).not.toBeInViewport();
-    await menu.click();
+    await narrowMenu.click();
     await expectNativeDrawerEntry(page);
     await page.keyboard.press('Escape');
     await expect(sidebarEntry(page)).not.toBeInViewport();
@@ -148,11 +156,16 @@ test('the native HA menu follows width and the real sidebar preference, and stay
 test('editor close glyph stays centered in full and compact modes with real HA icons', async ({ page }, testInfo) => {
   test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
   test.setTimeout(180_000);
-  const receipts = [];
+  const receipts = [], toolbarHeights = [];
   for (const modeName of ['plan', 'devices', 'decor']) {
     await page.setViewportSize({ width: 2560, height: 1000 });
     const { host } = await ordinaryPanel(page);
+    const sharedBefore = await host.locator(HP.settings).boundingBox();
     await enterEditor(host, modeName);
+    await expect.poll(async () => Math.abs((await host.locator(HP.settings).boundingBox()).y - sharedBefore.y)).toBeLessThanOrEqual(0.5);
+    const toolbar = host.locator(HP.toolbar(modeName === 'devices' ? 'device' : modeName));
+    await expect(toolbar).toBeVisible();
+    toolbarHeights.push({mode:modeName,height:(await toolbar.boundingBox()).height});
     const mode = host.locator(HP.modeTab(modeName));
     const group = mode.locator('..');
     const close = group.locator(HP.editorClose);
@@ -169,6 +182,7 @@ test('editor close glyph stays centered in full and compact modes with real HA i
       const path = icon.locator('path').first();
       await expect.poll(() => path.getAttribute('d')).toBeTruthy();
       let observed;
+      const checkCentered = async (state) => {
       await expect.poll(async () => {
         const button = await close.boundingBox(), tab = await mode.boundingBox();
         const painted = await path.evaluate(node => {
@@ -179,15 +193,19 @@ test('editor close glyph stays centered in full and compact modes with real HA i
           return { x: center.x, y: center.y };
         });
         if (!button || !tab || !painted) return Number.POSITIVE_INFINITY;
-        observed = { mode: modeName, width, presentation, button, tab, painted };
+        observed = { mode: modeName, width, presentation, state, button, tab, painted };
         return Math.max(Math.abs(painted.x - button.x - button.width / 2),
           Math.abs(painted.y - button.y - button.height / 2),
           Math.abs(button.y + button.height / 2 - tab.y - tab.height / 2));
       }, { message: 'painted SVG and close target share the active editor center' }).toBeLessThanOrEqual(0.5);
+      receipts.push(observed);
+      };
+      await checkCentered('normal');await close.hover();await checkCentered('hover');
+      await close.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');
+      await expect(close).toBeFocused();await checkCentered('keyboard-focus');
       const target=hasBeta5UiPolishContract()?44:24;
       expect(observed.button.width).toBeCloseTo(target, 1);
       expect(observed.button.height).toBeCloseTo(target, 1);
-      receipts.push(observed);
       await testInfo.attach(`close-${modeName}-${presentation}`, {
         body: await group.screenshot(), contentType: 'image/png',
       });
@@ -195,6 +213,9 @@ test('editor close glyph stays centered in full and compact modes with real HA i
     await close.click();
     await expect(host.locator(HP.mode('view'))).toBeVisible();
   }
+  expect(Math.max(...toolbarHeights.map(v=>v.height))-Math.min(...toolbarHeights.map(v=>v.height))).toBeLessThanOrEqual(0.5);
+  for(const value of toolbarHeights)expect(value.height).toBeCloseTo(57,0);
+  await testInfo.attach('real-ha-toolbar-heights',{body:JSON.stringify(toolbarHeights,null,2),contentType:'application/json'});
   await testInfo.attach('real-ha-close-centres', {
     body: JSON.stringify(receipts, null, 2), contentType: 'application/json',
   });
