@@ -6,7 +6,7 @@ import {HP,hp} from './lib/hooks.mjs';
 import {card,evidence} from './lib/ha-page.mjs';
 import {snapshotPlan,importDocument,planConfig,spaceOf,waitForConfig} from './lib/ha-ws.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
-import {openPlan,enterEditor,leaveEditor,useTool,clickFloor,toClient,settle,field} from './lib/plan.mjs';
+import {openPlan,enterEditor,leaveEditor,useTool,clickFloor,toClient,settle,field,selectSpace} from './lib/plan.mjs';
 const fixture=JSON.parse(readFileSync(new URL('../fixtures/backups/1346-room-face-spurs-current.json',import.meta.url),'utf8'));
 requireHooks(test,'mode-tab','stage','dialog','field','action','room-label');
 restoreSeedAfterEach(test);
@@ -18,7 +18,11 @@ async function prepare(page,config){
  document.placement_manifest=[];document.content_manifest=[];
  await importDocument(document,{confirmMissingContent:true});
  await waitForConfig(c=>!!spaceOf(c,id),{message:'synthetic current-model fixture stored by HA'});
- const host=await openPlan(page,{space:id});await enterEditor(host,'plan');await useTool(host,'select');await settle(host);
+ // This fixture intentionally has no rooms before the action under test.
+ await page.goto('/houseplan');const host=card(page);
+ await expect(host.locator(HP.ready)).toBeVisible({timeout:60000});
+ await selectSpace(host,id);await expect(host.locator(hp('stage')).first()).toBeVisible();
+ await enterEditor(host,'plan');await useTool(host,'select');await settle(host);
  return{host,id};
 }
 const geometry=s=>({nodes:s.plan_graph.nodes,edges:s.plan_graph.edges.map(e=>({id:e.id,from:e.from,to:e.to,cm:e.cm})),partitions:s.partitions,openings:s.openings});
@@ -26,7 +30,7 @@ test('a closed contour with a dangling wall creates one room without changing th
  test.setTimeout(180000);const{host,id}=await prepare(page,fixture.closed);
  const before=await planConfig(),original=spaceOf(before.config,id),dialog=host.locator(HP.dialog('room'));
  expect(original.openings.find(o=>o.id==='spur-glass-door').light_transparent).toBe(true);
- const point=await toClient(host,300,300);await page.mouse.move(point.x,point.y);await evidence(info,page,'dangling-wall-room-hover');
+ const point=await toClient(host,300,300);await page.mouse.move(point.x,point.y);await evidence(info,page,'dangling-wall-room-hover',{keepPointer:true});
  await clickFloor(page,host,300,300);await expect(dialog).toBeVisible();
  await dialog.locator(HP.dialogCancel).first().click();await expect(dialog).toBeHidden();await settle(host);
  expect(spaceOf((await planConfig()).config,id)).toEqual(original);
