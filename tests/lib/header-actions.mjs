@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { hp } from './hooks.mjs';
-import { hasHeaderActionsContract } from './panel-release-contract.mjs';
+import { hasHeaderActionsContract, hasSingleRowHeaderContract } from './panel-release-contract.mjs';
 
 /** #1364: measure the actual narrow header on real HA, without product fields. */
 export async function expectSingleRowHeader(host) {
@@ -41,6 +41,10 @@ export async function headerActionTarget(host, selector, { tap = false } = {}) {
   const sheet = host.locator(hp('header-actions-menu') + ':not([inert])');
   if (!await sheet.isVisible()) await (tap ? trigger.tap() : trigger.click());
   await expect(sheet).toBeVisible();
+  if (hasSingleRowHeaderContract()) await expect.poll(async () => {
+    const menu = await sheet.boundingBox(), head = await host.locator('.hdr>.head').boundingBox();
+    return !!menu && !!head && menu.x >= head.x-1 && menu.x+menu.width <= head.x+head.width+1;
+  }, {message:'header commands remain inside their field beside Properties'}).toBe(true);
   const target = sheet.getByRole('menuitem', { name: label, exact: true });
   await expect(target).toBeVisible();
   return target;
