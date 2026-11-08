@@ -39,8 +39,10 @@ async function ordinaryPanel(page) {
 async function menuTarget(menu) {
   await expect(menu).toBeVisible();
   const box = await menu.boundingBox();
-  expect(box.width).toBeGreaterThanOrEqual(44);
-  expect(box.height).toBeGreaterThanOrEqual(44);
+  // Compositor transforms can return 43.999996 px for a 44 px target.
+  // Normalize sub-millipixel arithmetic noise, retaining the 44 CSS px contract.
+  expect(Math.round(box.width * 1000) / 1000).toBeGreaterThanOrEqual(44);
+  expect(Math.round(box.height * 1000) / 1000).toBeGreaterThanOrEqual(44);
   return box;
 }
 const sidebarEntry = page => page.locator('ha-sidebar a[href="/houseplan"]');
