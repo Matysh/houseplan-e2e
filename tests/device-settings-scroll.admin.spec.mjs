@@ -44,7 +44,9 @@ test('device settings keep navigation and draft while native pane scroll and dro
   await section('basics');await expect(field(dialog,'marker-name')).toHaveValue('Scroll E2E draft');
   // #1354: review a genuine invalid draft from another, scrolled section.
   // The footer must reveal the actual field through the new scroll owner.
-  await dialog.locator(HP.field('bmode','virtual')).check();
+  const virtualBinding=dialog.locator(HP.field('bmode','virtual'));
+  await virtualBinding.locator('..').click({timeout:20000});
+  await expect(virtualBinding).toBeChecked();
   await field(dialog,'marker-name').fill('');
   await expect(field(dialog,'marker-name')).toHaveAttribute('aria-invalid','true');
   await expect(dialog.locator(HP.dialogConfirm).first()).toBeDisabled();
