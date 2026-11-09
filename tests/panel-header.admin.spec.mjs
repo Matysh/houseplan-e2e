@@ -154,7 +154,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
   }
 });
 
-test('editor close glyph stays centered in full and compact modes with real HA icons', async ({ page }, testInfo) => {
+test('editor close follows full, icon-only and menu presentations with real HA icons', async ({ page }, testInfo) => {
   test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
   test.setTimeout(180_000);
   const receipts = [], toolbarHeights = [];
@@ -170,7 +170,7 @@ test('editor close glyph stays centered in full and compact modes with real HA i
     const mode = host.locator(HP.modeTab(modeName));
     const group = mode.locator('..');
     const close = group.locator(HP.editorClose);
-    for (const [width, presentation] of [[2560, 'full'], [1280, 'compact']]) {
+    for (const [width, presentation] of [[2560, 'full'], [hasSingleRowHeaderContract() ? 1600 : 1280, 'compact']]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(host.locator('[data-hp="properties-panel"]')).toBeVisible();
       await expect(close).toBeVisible();
@@ -211,7 +211,17 @@ test('editor close glyph stays centered in full and compact modes with real HA i
         body: await group.screenshot(), contentType: 'image/png',
       });
     }
-    await close.click();
+    if (hasSingleRowHeaderContract()) {
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await expectSingleRowHeader(host);
+      await expect(close).toBeHidden();
+      const menuClose = await headerActionTarget(host, HP.editorClose);
+      receipts.push({mode:modeName,width:1280,presentation:'actions-menu',target:await menuTarget(menuClose)});
+      await testInfo.attach(`close-${modeName}-actions-menu`, {
+        body: await host.locator('[data-hp="header-actions-menu"]').screenshot(), contentType:'image/png',
+      });
+    }
+    await (await headerActionTarget(host, HP.editorClose)).click();
     await expect(host.locator(HP.mode('view'))).toBeVisible();
   }
   expect(Math.max(...toolbarHeights.map(v=>v.height))-Math.min(...toolbarHeights.map(v=>v.height))).toBeLessThanOrEqual(0.5);
