@@ -23,6 +23,12 @@ export function hasHeaderActionsContract(contract = installedContract() ?? CONTR
   return !!contract?.hooks?.['header-actions-trigger'] && !!contract?.hooks?.['header-actions-menu'];
 }
 
-export function hasSingleRowHeaderContract(contract = installedContract() ?? CONTRACT) {
+export function hasNamedSpaceHeaderContract(contract = installedContract() ?? CONTRACT) {
   return hasHeaderActionsContract(contract) && !!contract?.hooks?.['space-name'];
+}
+
+// #1371 shipped disclosure and stacked controls with the reflected drawer contract.
+export function hasHeaderPolishContract(contract = installedContract() ?? CONTRACT) {
+  const states = contract?.hooks?.['panel-menu']?.attributes?.['aria-expanded'];
+  return Array.isArray(states) && states.includes('true') && states.includes('false');
 }

@@ -2,13 +2,16 @@
 import { test, expect } from '@playwright/test';
 import { card, editorTabs, expectPlanDrawn } from './lib/ha-page.mjs';
 import { HP, hp } from './lib/hooks.mjs';
-import { expectSingleRowHeader, headerActionTarget } from './lib/header-actions.mjs';
-import { hasSingleRowHeaderContract } from './lib/panel-release-contract.mjs';
+import { expectIntrinsicHeader, headerActionTarget } from './lib/header-actions.mjs';
+import { hasNamedSpaceHeaderContract } from './lib/panel-release-contract.mjs';
 
 async function checkNarrowReadOnly(page,host) {
-  if (!hasSingleRowHeaderContract()) return;
+  if (!hasNamedSpaceHeaderContract()) return;
   await page.setViewportSize({width:390,height:844});
-  await expectSingleRowHeader(host);
+  await expectIntrinsicHeader(host);
+  await expect(editorTabs(host)).toHaveCount(0);
+  await expect(host.locator(HP.spaceAdd)).toHaveCount(0);
+  await expect(host.locator(HP.settings)).toHaveCount(0);
   await headerActionTarget(host,hp('hidden-devices'));
   await expect(host.locator('[data-hp="header-actions-menu"] [data-action="mode-plan"],[data-hp="header-actions-menu"] [data-action="settings"],[data-hp="header-actions-menu"] [data-action="space-add"]')).toHaveCount(0);
   await page.keyboard.press('Escape');
