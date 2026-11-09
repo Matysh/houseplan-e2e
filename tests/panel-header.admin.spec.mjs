@@ -6,10 +6,10 @@ import { test, expect } from '@playwright/test';
 import { historicalHp, requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
-import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasHeaderActionsContract, hasSingleRowHeaderContract } from './lib/panel-release-contract.mjs';
+import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasNamedSpaceHeaderContract, hasHeaderPolishContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
-import { headerActionTarget, expectSingleRowHeader } from './lib/header-actions.mjs';
+import { headerActionTarget, expectIntrinsicHeader } from './lib/header-actions.mjs';
 
 requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab', 'mode-tab@data-mode', 'editor-close', 'properties-panel');
 
@@ -65,20 +65,18 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     // A real HA viewport transition reaches the existing panel without a new
     // page, injected state, or a fixed-width rule in the test implementation.
     await page.setViewportSize({ width: 390, height: 844 });
-    if (hasSingleRowHeaderContract()) await expectSingleRowHeader(host);
+    if (hasNamedSpaceHeaderContract()) await expectIntrinsicHeader(host);
     const narrowMenu = await headerActionTarget(host, HP.panelMenu);
     await menuTarget(narrowMenu);
     await expectPlanDrawn(page, host);
     if (hasBeta5UiPolishContract()) {
       for (const action of [HP.modeTab('plan'),HP.modeTab('devices'),HP.modeTab('decor'),HP.settings,'[data-hp="pdf"]','[data-hp="support"]']) {
-        if (hasHeaderActionsContract() && await host.locator('[data-hp="header-actions-menu"]:not([inert])').isVisible()) {
-          const label = await host.locator(action).first().getAttribute('aria-label');
-          await expect(host.locator('[data-hp="header-actions-menu"]:not([inert])').getByRole('menuitem', {name:label,exact:true})).toBeVisible();
-        } else await expect(host.locator(action)).toBeVisible();
+        await expect(await headerActionTarget(host, action)).toBeVisible();
       }
       expect(await host.locator('.hdr').evaluate(e=>e.scrollWidth<=e.getBoundingClientRect().width+1)).toBe(true);
       await expect(host.locator(historicalHp('header-menu'))).toBeHidden();
     }
+    await page.keyboard.press('Escape'); // Close commands before exercising the separate native drawer control.
     await expect(sidebarEntry(page)).not.toBeInViewport();
     await narrowMenu.click();
     await expectNativeDrawerEntry(page);
@@ -157,77 +155,71 @@ test('the native HA menu follows width and the real sidebar preference, and stay
 test('editor close glyph stays centered in full and compact modes with real HA icons', async ({ page }, testInfo) => {
   test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
   test.setTimeout(180_000);
-  const receipts = [], toolbarHeights = [];
-  for (const modeName of ['plan', 'devices', 'decor']) {
-    await page.setViewportSize({ width: 2560, height: 1000 });
-    const { host } = await ordinaryPanel(page);
-    const sharedBefore = await host.locator(HP.settings).boundingBox();
-    await enterEditor(host, modeName);
-    await expect.poll(async () => Math.abs((await host.locator(HP.settings).boundingBox()).y - sharedBefore.y)).toBeLessThanOrEqual(0.5);
-    const toolbar = host.locator(HP.toolbar(modeName === 'devices' ? 'device' : modeName));
-    await expect(toolbar).toBeVisible();
-    toolbarHeights.push({mode:modeName,height:(await toolbar.boundingBox()).height});
-    const mode = host.locator(HP.modeTab(modeName));
-    const group = mode.locator('..');
-    const close = group.locator(HP.editorClose);
-    for (const [width, presentation] of [[2560, 'full'], [hasSingleRowHeaderContract() ? 1600 : 1280, 'compact']]) {
-      await page.setViewportSize({ width, height: 1000 });
-      await expect(host.locator('[data-hp="properties-panel"]')).toBeVisible();
+  const receipts=[],toolbarHeights=[];
+  for(const modeName of ['plan','devices','decor']) {
+    await page.setViewportSize({width:2560,height:1000});
+    const {host}=await ordinaryPanel(page),sharedBefore=await host.locator(HP.settings).boundingBox();
+    await enterEditor(host,modeName);
+    await expect.poll(async()=>Math.abs((await host.locator(HP.settings).boundingBox()).y-sharedBefore.y)).toBeLessThanOrEqual(.5);
+    const toolbar=host.locator(HP.toolbar(modeName==='devices'?'device':modeName));
+    await expect(toolbar).toBeVisible();toolbarHeights.push({mode:modeName,height:(await toolbar.boundingBox()).height});
+    const mode=host.locator(HP.modeTab(modeName)),group=mode.locator('..'),ordinaryClose=group.locator(HP.editorClose);
+    let iconWidth;
+    for(const width of [1920,1800,1600,1440,1280,1100]) {
+      await page.setViewportSize({width,height:1000});
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      if(await mode.isVisible() && !await mode.innerText().then(s=>s.trim().length>0)){iconWidth=width;break;}
+    }
+    expect(iconWidth,'a real icons-only ordinary layout is exercised').toBeTruthy();
+    const centered=async(close,tab,{width,presentation,size})=>{
       await expect(close).toBeVisible();
-      // These are test inputs, not product breakpoints. Observe the actual
-      // captions so each case really exercises the promised presentation.
-      await expect.poll(() => mode.evaluate(el => el.innerText.trim().length > 0))
-        .toBe(presentation === 'full');
-      const icon = close.locator('ha-icon');
-      await expect(icon).toHaveAttribute('icon', 'mdi:close');
-      const path = icon.locator('path').first();
-      await expect.poll(() => path.getAttribute('d')).toBeTruthy();
-      let observed;
-      const checkCentered = async (state) => {
-      await expect.poll(async () => {
-        const button = await close.boundingBox(), tab = await mode.boundingBox();
-        const painted = await path.evaluate(node => {
-          const bounds = node.getBBox(), matrix = node.getScreenCTM();
-          if (!matrix || !(bounds.width > 0 && bounds.height > 0)) return null;
-          const center = new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
-            .matrixTransform(matrix);
-          return { x: center.x, y: center.y };
-        });
-        if (!button || !tab || !painted) return Number.POSITIVE_INFINITY;
-        observed = { mode: modeName, width, presentation, state, button, tab, painted };
-        return Math.max(Math.abs(painted.x - button.x - button.width / 2),
-          Math.abs(painted.y - button.y - button.height / 2),
-          Math.abs(button.y + button.height / 2 - tab.y - tab.height / 2));
-      }, { message: 'painted SVG and close target share the active editor center' }).toBeLessThanOrEqual(0.5);
-      receipts.push(observed);
-      };
-      await checkCentered('normal');await close.hover();await checkCentered('hover');
-      await close.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');
-      await expect(close).toBeFocused();await checkCentered('keyboard-focus');
-      const target=hasBeta5UiPolishContract()?44:24;
-      expect(observed.button.width).toBeCloseTo(target, 1);
-      expect(observed.button.height).toBeCloseTo(target, 1);
-      await testInfo.attach(`close-${modeName}-${presentation}`, {
-        body: await group.screenshot(), contentType: 'image/png',
-      });
+      const icon=close.locator('ha-icon');await expect(icon).toHaveAttribute('icon','mdi:close');
+      const path=icon.locator('path').first();await expect.poll(()=>path.getAttribute('d')).toBeTruthy();
+      for(const state of ['normal','hover','keyboard-focus']) {
+        if(state==='hover')await close.hover();
+        if(state==='keyboard-focus'){await close.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');await expect(close).toBeFocused();}
+        let observed;
+        await expect.poll(async()=>{
+          const button=await close.boundingBox(),tabBox=tab&&await tab.boundingBox();
+          const painted=await path.evaluate(node=>{const b=node.getBBox(),m=node.getScreenCTM();if(!m||!b.width||!b.height)return null;const c=new DOMPoint(b.x+b.width/2,b.y+b.height/2).matrixTransform(m);return{x:c.x,y:c.y};});
+          if(!button||!painted||tab&&!tabBox)return Infinity;
+          observed={mode:modeName,width,presentation,state,button,tab:tabBox||null,painted};
+          return Math.max(Math.abs(painted.x-button.x-button.width/2),Math.abs(painted.y-button.y-button.height/2),
+            tabBox?Math.abs(button.y+button.height/2-tabBox.y-tabBox.height/2):0);
+        },{message:'painted SVG stays centered in its owning close target'}).toBeLessThanOrEqual(.5);
+        expect(observed.button.width).toBeCloseTo(size,1);expect(observed.button.height).toBeCloseTo(size,1);receipts.push(observed);
+      }
+    };
+    for(const [width,presentation] of [[2560,'full'],[iconWidth,'compact-icons']]) {
+      await page.setViewportSize({width,height:1000});await expect(host.locator('[data-hp="properties-panel"]')).toBeVisible();
+      await expect(ordinaryClose).toBeVisible();
+      await expect.poll(()=>mode.evaluate(el=>el.innerText.trim().length>0)).toBe(presentation==='full');
+      await centered(ordinaryClose,mode,{width,presentation,size:hasBeta5UiPolishContract()?44:24});
+      await testInfo.attach('close-'+modeName+'-'+presentation,{body:await group.screenshot(),contentType:'image/png'});
     }
-    if (hasSingleRowHeaderContract()) {
-      await page.setViewportSize({ width: 1280, height: 1000 });
-      await expectSingleRowHeader(host);
-      await expect(close).toBeHidden();
-      const menuClose = await headerActionTarget(host, HP.editorClose);
-      receipts.push({mode:modeName,width:1280,presentation:'actions-menu',target:await menuTarget(menuClose)});
-      await testInfo.attach(`close-${modeName}-actions-menu`, {
-        body: await host.locator('[data-hp="header-actions-menu"]').screenshot(), contentType:'image/png',
-      });
+    if(hasNamedSpaceHeaderContract()) {
+      let layout;
+      for(const width of [700,500,390,320]){await page.setViewportSize({width,height:1000});layout=await expectIntrinsicHeader(host);if(layout.compact)break;}
+      expect(layout.compact,'the actual disclosure presentation is exercised').toBe(true);
+      await expect(ordinaryClose).toBeHidden();
+      if(hasHeaderPolishContract()) {
+        const close=host.locator('.editbar-end '+HP.editorClose);
+        await centered(close,null,{width:page.viewportSize().width,presentation:'stacked-controls',size:40});
+        await expect.poll(()=>close.evaluate(button=>{
+          const rows=[...button.parentElement.querySelectorAll('button')].map(el=>({close:el===button,r:el.getBoundingClientRect()}))
+            .filter(v=>v.r.width).sort((a,b)=>a.r.y-b.r.y);
+          return rows.length===3&&rows[0].close&&rows.every((v,i)=>Math.abs(v.r.width-40)<.01&&Math.abs(v.r.height-40)<.01
+            &&Math.abs(v.r.x-rows[0].r.x)<.01&&(i===0||Math.abs(v.r.y-rows[i-1].r.y-44)<.01));
+        }),{message:'Close/Undo/Redo keep40px targets on one axis with4px gaps'}).toBe(true);
+        const box=await close.boundingBox(),owner=await host.boundingBox();
+        expect(box.x).toBeGreaterThanOrEqual(owner.x);expect(box.x+box.width).toBeLessThanOrEqual(owner.x+owner.width+1);
+        await testInfo.attach('close-'+modeName+'-stacked',{body:await close.locator('..').screenshot(),contentType:'image/png'});
+      } else await menuTarget(await headerActionTarget(host,HP.editorClose));
     }
-    await (await headerActionTarget(host, HP.editorClose)).click();
-    await expect(host.locator(HP.mode('view'))).toBeVisible();
+    await (await headerActionTarget(host,HP.editorClose)).click();await expect(host.locator(HP.mode('view'))).toBeVisible();
   }
-  expect(Math.max(...toolbarHeights.map(v=>v.height))-Math.min(...toolbarHeights.map(v=>v.height))).toBeLessThanOrEqual(0.5);
+  expect(Math.max(...toolbarHeights.map(v=>v.height))-Math.min(...toolbarHeights.map(v=>v.height))).toBeLessThanOrEqual(.5);
   for(const value of toolbarHeights)expect(value.height).toBeCloseTo(57,0);
   await testInfo.attach('real-ha-toolbar-heights',{body:JSON.stringify(toolbarHeights,null,2),contentType:'application/json'});
-  await testInfo.attach('real-ha-close-centres', {
-    body: JSON.stringify(receipts, null, 2), contentType: 'application/json',
-  });
+  await testInfo.attach('real-ha-close-centres',{body:JSON.stringify(receipts,null,2),contentType:'application/json'});
 });

@@ -9,8 +9,8 @@ import {installedRecord} from '../lib/contract.mjs';
 import {compareTags} from '../../scripts/tags.mjs';
 import {exactGraphFirstSpace} from '../lib/exact-graph-first-space.mjs';
 import {planConfig} from '../lib/ha-ws.mjs';
-import {expectSingleRowHeader} from '../lib/header-actions.mjs';
-import {hasSingleRowHeaderContract} from '../lib/panel-release-contract.mjs';
+import {expectIntrinsicHeader} from '../lib/header-actions.mjs';
+import {hasNamedSpaceHeaderContract} from '../lib/panel-release-contract.mjs';
 
 test.skip(() => seedVariant() !== 'empty', 'needs the empty seed variant');
 
@@ -48,10 +48,10 @@ test('from the sidebar page to a saved first space without any image', async ({ 
   await expect(editorTabs(host)).toHaveCount(3);
   await evidence(testInfo, page, 'first-space-created.png');
 
-  if (hasSingleRowHeaderContract()) {
+  if (hasNamedSpaceHeaderContract()) {
     const originalViewport = page.viewportSize();
     await page.setViewportSize({width:390,height:844});
-    await expectSingleRowHeader(host);
+    await expectIntrinsicHeader(host);
     await expect(host.locator('[data-hp="space-name"]')).toHaveText('Ground floor');
     await evidence(testInfo,page,'single-space-narrow-header.png');
     await page.setViewportSize(originalViewport);

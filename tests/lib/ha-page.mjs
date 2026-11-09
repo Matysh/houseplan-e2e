@@ -9,7 +9,7 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { missingHooks } from './contract.mjs';
 import { HP, hp } from './hooks.mjs';
-import { hasSingleRowHeaderContract } from './panel-release-contract.mjs';
+import { hasNamedSpaceHeaderContract } from './panel-release-contract.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -86,7 +86,7 @@ export const spaceTabs = (host) => host.locator(HP.spaceTab);
  * or a plain sole-space name. Intrinsic layout uses actual content and host
  * width. These forms never show together.
  */
-export const spaceEntries = (host) => host.locator(`${HP.spaceTab}, ${hp('space-select-value')} option${hasSingleRowHeaderContract() ? ', '+hp('space-name') : ''}`);
+export const spaceEntries = (host) => host.locator(`${HP.spaceTab}, ${hp('space-select-value')} option${hasNamedSpaceHeaderContract() ? ', '+hp('space-name') : ''}`);
 export const spaceEntry = (host, spaceId) => host.locator(
   `${hp('space-tab', { space: spaceId })}, ${hp('space-select-value')} option[value="${spaceId}"]`);
 /** The three editor mode tabs. */
