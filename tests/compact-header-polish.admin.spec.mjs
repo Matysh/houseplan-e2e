@@ -2,7 +2,6 @@ import {test,expect} from '@playwright/test';
 import {requireHooks} from './lib/contract.mjs';
 import {expectPlanDrawn,evidence} from './lib/ha-page.mjs';
 import {expectNativeDrawerEntry} from './lib/panel-shell.mjs';
-import {headerActionTarget} from './lib/header-actions.mjs';
 import {enterEditor} from './lib/plan.mjs';
 requireHooks(test,'panel-menu@aria-expanded','header-actions-menu','header-actions-trigger','stage');
 const panelHost=page=>page.locator('houseplan-panel houseplan-card');
@@ -15,6 +14,10 @@ test('#1371 native HA sidebar icon follows scrim and Escape without a second tog
  await page.mouse.click(388,900);await expect(drawer).not.toHaveAttribute('open','');await expect(button).toHaveAttribute('aria-expanded','false');
  await button.click();await expectNativeDrawerEntry(page);await expect(button).toHaveAttribute('aria-expanded','true');
  await page.keyboard.press('Escape');await expect(drawer).not.toHaveAttribute('open','');await expect(button).toHaveAttribute('aria-expanded','false');
+ await button.click();await expectNativeDrawerEntry(page);
+ const settings=page.locator('ha-sidebar a[href="/config/dashboard"]');await settings.scrollIntoViewIfNeeded();await settings.click();
+ await expect(page).toHaveURL(/\/config\/dashboard/);await expect(drawer).not.toHaveAttribute('open','');
+ await page.goBack();await expectPlanDrawn(page,host);await expect(button).toHaveAttribute('aria-expanded','false');
  await button.hover();await expect(button).toHaveAttribute('aria-expanded','false');
  await evidence(info,page,'sidebar-native-closed');
  await page.goto('/house-plan');const card=page.locator('houseplan-card').first();await expectPlanDrawn(page,card);await expect(card.locator('[data-hp="panel-menu"]')).toHaveCount(0);
