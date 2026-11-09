@@ -154,7 +154,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
   }
 });
 
-test('editor close follows full, icon-only and menu presentations with real HA icons', async ({ page }, testInfo) => {
+test('editor close glyph stays centered in full and compact modes with real HA icons', async ({ page }, testInfo) => {
   test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
   test.setTimeout(180_000);
   const receipts = [], toolbarHeights = [];
