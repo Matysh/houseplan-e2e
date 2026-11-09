@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { historicalHp, hp, missingHooks } from '../tests/lib/contract.mjs';
-import { hasBeta4PanelContract, hasBeta5UiPolishContract } from '../tests/lib/panel-release-contract.mjs';
+import { CONTRACT, historicalHp, hp, missingHooks } from '../tests/lib/contract.mjs';
+import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasNamedSpaceHeaderContract, hasHeaderPolishContract } from '../tests/lib/panel-release-contract.mjs';
 import { lintText } from '../scripts/contract-lint.mjs';
 
 const previous = { hooks: { 'panel-title': {} } };
@@ -45,4 +45,10 @@ test('lint validates the explicit historical selector while live requirements re
 test('#1132 routes only the shipped beta.5/stable UI expectations, retaining older releases',()=>{
   for(const v of ['1.82.0','1.83.0-beta.4','']) assert.equal(hasBeta5UiPolishContract(v),false);
   for(const v of ['1.83.0-beta.5','1.83.0-beta.6','1.83.0','1.84.0']) assert.equal(hasBeta5UiPolishContract(v),true);
+});
+test('#1371 distinguishes the installed disclosure contract from earlier named-space headers',()=>{
+  const legacy=structuredClone(CONTRACT);delete legacy.hooks['panel-menu'].attributes;
+  assert.equal(hasNamedSpaceHeaderContract(legacy),true);
+  assert.equal(hasHeaderPolishContract(legacy),false);
+  assert.equal(hasHeaderPolishContract(CONTRACT),true);
 });
