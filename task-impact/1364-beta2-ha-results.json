@@ -1,0 +1,113 @@
+{
+  "productVersion": "1.85.1-beta.2",
+  "productSha": "0db5a9f7c2b2d9381a1dbc7d640ae51f91f0bb8f",
+  "notes": [
+    "No skipped business scenarios and retries=0.",
+    "The fixed beta selection has unchanged tests at the addressed E2E SHA.",
+    "Native S6 and 75 golden frames are separate product evidence."
+  ],
+  "canonicalBeta": {
+    "status": "passed",
+    "suites": [
+      {
+        "id": "e2e-beta-journeys",
+        "name": "HA E2E beta: journeys",
+        "status": "passed",
+        "counts": {
+          "tests": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "unexecuted": 0,
+          "setupTests": 3,
+          "setupPassed": 3,
+          "setupFailed": 0,
+          "setupSkipped": 0,
+          "setupUnexecuted": 0
+        }
+      },
+      {
+        "id": "e2e-beta-first-run",
+        "name": "HA E2E beta: first-run",
+        "status": "passed",
+        "counts": {
+          "tests": 2,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "unexecuted": 0,
+          "setupTests": 2,
+          "setupPassed": 2,
+          "setupFailed": 0,
+          "setupSkipped": 0,
+          "setupUnexecuted": 0
+        }
+      },
+      {
+        "id": "e2e-beta-upgrade",
+        "name": "HA E2E beta: upgrade",
+        "status": "passed",
+        "counts": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "unexecuted": 0,
+          "setupTests": 2,
+          "setupPassed": 2,
+          "setupFailed": 0,
+          "setupSkipped": 0,
+          "setupUnexecuted": 0
+        }
+      }
+    ],
+    "reportId": "20261109T014826864-fbad31a4",
+    "e2eSha": "b0e1ec53d6d6569c15e11a5bf7b0e7ee2cfc03c9"
+  },
+  "addressed": {
+    "workspace": "/home/matysh/houseplan-audits/beta1851b2-20261109/labs/hp-addressed-rWynnv",
+    "productSha": "0db5a9f7c2b2d9381a1dbc7d640ae51f91f0bb8f",
+    "e2eSha": "afc209b6f809d6d8e172886bb37ec1f845887598",
+    "exitCode": 0,
+    "tests": [
+      {
+        "file": "tests/auth.setup.mjs",
+        "title": "login as admin (demo)",
+        "project": "setup",
+        "status": "passed"
+      },
+      {
+        "file": "tests/auth.setup.mjs",
+        "title": "login as viewer (viewer)",
+        "project": "setup",
+        "status": "passed"
+      },
+      {
+        "file": "tests/plan-model.setup.mjs",
+        "title": "the seed plan reaches the current plan model through one undone edit",
+        "project": "plan-model",
+        "status": "passed"
+      },
+      {
+        "file": "tests/device-settings-scroll.admin.spec.mjs",
+        "title": "device settings keep navigation and draft while native pane scroll and dropdowns remain usable",
+        "project": "admin",
+        "status": "passed"
+      },
+      {
+        "file": "tests/panel-header.admin.spec.mjs",
+        "title": "the native HA menu follows width and the real sidebar preference, and stays outside Lovelace",
+        "project": "admin",
+        "status": "passed"
+      },
+      {
+        "file": "tests/panel-header.admin.spec.mjs",
+        "title": "editor close glyph stays centered in full and compact modes with real HA icons",
+        "project": "admin",
+        "status": "passed"
+      }
+    ]
+  },
+  "date": "2026-11-09",
+  "haVersion": "2026.10.4"
+}

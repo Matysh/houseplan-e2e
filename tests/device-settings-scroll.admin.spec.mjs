@@ -42,6 +42,25 @@ test('device settings keep navigation and draft while native pane scroll and dro
   await enhanced.getByRole('option',{name:choice.label,exact:true}).click();
   await expect(enhanced.locator('select')).toHaveValue(choice.value);
   await section('basics');await expect(field(dialog,'marker-name')).toHaveValue('Scroll E2E draft');
+  // #1354: review a genuine invalid draft from another, scrolled section.
+  // The footer must reveal the actual field through the new scroll owner.
+  const virtualBinding=dialog.locator(HP.field('bmode','virtual'));
+  await virtualBinding.locator('..').click({timeout:20000});
+  await expect(virtualBinding).toBeChecked();
+  await field(dialog,'marker-name').fill('');
+  await expect(field(dialog,'marker-name')).toHaveAttribute('aria-invalid','true');
+  await expect(dialog.locator(HP.dialogConfirm).first()).toBeDisabled();
+  await section('appearance');
+  await pane.hover({position:{x:6,y:35}});await page.mouse.wheel(0,900);
+  await expect.poll(()=>pane.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+  await expect(field(dialog,'marker-name')).toBeHidden();
+  await dialog.locator(HP.action('review-fields')).click();
+  await expect(field(dialog,'marker-name')).toBeVisible();
+  await expect(field(dialog,'marker-name')).toBeFocused();
+  const invalidBox=await field(dialog,'marker-name').boundingBox(),paneBox=await pane.boundingBox();
+  expect(invalidBox.y).toBeGreaterThanOrEqual(paneBox.y);
+  expect(invalidBox.y+invalidBox.height).toBeLessThanOrEqual(paneBox.y+paneBox.height);
+  await field(dialog,'marker-name').fill('Scroll E2E draft');
   await evidence(info,page,'device-scroll-'+viewport.width);
  }
  expect((await planConfig()).config).toEqual(before.config);expect((await planLayout()).layout).toEqual(layout.layout);

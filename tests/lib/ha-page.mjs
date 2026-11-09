@@ -9,6 +9,7 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { missingHooks } from './contract.mjs';
 import { HP, hp } from './hooks.mjs';
+import { hasSingleRowHeaderContract } from './panel-release-contract.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -81,14 +82,11 @@ export const deviceMarker = (host, entityId) => host.locator(HP.device(entityId)
 export const spaceTabs = (host) => host.locator(HP.spaceTab);
 /**
  * The spaces the header offers, in whichever form it settled on
- * (houseplan-card#997, 1.83.0): a tab per space on a header wider than
- * 1024 px, the options of one compact select (`space-select-value`, its values
- * are space ids, its labels their titles) at 1024 px or narrower — and the
- * journeys' 1280 px window with HA's sidebar open is exactly that. The two
- * forms never show together; tabs drawn for a moment before the select's
- * element has loaded count the same spaces.
+ * (houseplan-card#997/#1364): tabs, options of the shared compact select,
+ * or a plain sole-space name. Intrinsic layout uses actual content and host
+ * width. These forms never show together.
  */
-export const spaceEntries = (host) => host.locator(`${HP.spaceTab}, ${hp('space-select-value')} option`);
+export const spaceEntries = (host) => host.locator(`${HP.spaceTab}, ${hp('space-select-value')} option${hasSingleRowHeaderContract() ? ', '+hp('space-name') : ''}`);
 export const spaceEntry = (host, spaceId) => host.locator(
   `${hp('space-tab', { space: spaceId })}, ${hp('space-select-value')} option[value="${spaceId}"]`);
 /** The three editor mode tabs. */

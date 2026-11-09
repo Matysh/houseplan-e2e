@@ -6,10 +6,10 @@ import { test, expect } from '@playwright/test';
 import { historicalHp, requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
-import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasHeaderActionsContract } from './lib/panel-release-contract.mjs';
+import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasHeaderActionsContract, hasSingleRowHeaderContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
-import { headerActionTarget } from './lib/header-actions.mjs';
+import { headerActionTarget, expectSingleRowHeader } from './lib/header-actions.mjs';
 
 requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab', 'mode-tab@data-mode', 'editor-close', 'properties-panel');
 
@@ -65,6 +65,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     // A real HA viewport transition reaches the existing panel without a new
     // page, injected state, or a fixed-width rule in the test implementation.
     await page.setViewportSize({ width: 390, height: 844 });
+    if (hasSingleRowHeaderContract()) await expectSingleRowHeader(host);
     const narrowMenu = await headerActionTarget(host, HP.panelMenu);
     await menuTarget(narrowMenu);
     await expectPlanDrawn(page, host);
@@ -169,7 +170,7 @@ test('editor close glyph stays centered in full and compact modes with real HA i
     const mode = host.locator(HP.modeTab(modeName));
     const group = mode.locator('..');
     const close = group.locator(HP.editorClose);
-    for (const [width, presentation] of [[2560, 'full'], [1280, 'compact']]) {
+    for (const [width, presentation] of [[2560, 'full'], [hasSingleRowHeaderContract() ? 1600 : 1280, 'compact']]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(host.locator('[data-hp="properties-panel"]')).toBeVisible();
       await expect(close).toBeVisible();
@@ -210,7 +211,17 @@ test('editor close glyph stays centered in full and compact modes with real HA i
         body: await group.screenshot(), contentType: 'image/png',
       });
     }
-    await close.click();
+    if (hasSingleRowHeaderContract()) {
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await expectSingleRowHeader(host);
+      await expect(close).toBeHidden();
+      const menuClose = await headerActionTarget(host, HP.editorClose);
+      receipts.push({mode:modeName,width:1280,presentation:'actions-menu',target:await menuTarget(menuClose)});
+      await testInfo.attach(`close-${modeName}-actions-menu`, {
+        body: await host.locator('[data-hp="header-actions-menu"]').screenshot(), contentType:'image/png',
+      });
+    }
+    await (await headerActionTarget(host, HP.editorClose)).click();
     await expect(host.locator(HP.mode('view'))).toBeVisible();
   }
   expect(Math.max(...toolbarHeights.map(v=>v.height))-Math.min(...toolbarHeights.map(v=>v.height))).toBeLessThanOrEqual(0.5);
