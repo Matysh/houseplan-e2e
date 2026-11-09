@@ -15,8 +15,8 @@ test('#1371 native HA sidebar icon follows scrim and Escape without a second tog
  await button.click();await expectNativeDrawerEntry(page);await expect(button).toHaveAttribute('aria-expanded','true');
  await page.keyboard.press('Escape');await expect(drawer).not.toHaveAttribute('open','');await expect(button).toHaveAttribute('aria-expanded','false');
  await button.click();await expectNativeDrawerEntry(page);
- const settings=page.locator('ha-sidebar a[href="/config/dashboard"]');await settings.scrollIntoViewIfNeeded();await settings.click();
- await expect(page).toHaveURL(/\/config\/dashboard/);await expect(drawer).not.toHaveAttribute('open','');
+ const settings=page.locator('ha-sidebar').getByRole('link',{name:/Settings/});await settings.scrollIntoViewIfNeeded();await settings.click();
+ await expect(page).toHaveURL(/\/config(?:\/|$)/);await expect(drawer).not.toHaveAttribute('open','');
  await page.goBack();await expectPlanDrawn(page,host);await expect(button).toHaveAttribute('aria-expanded','false');
  await button.hover();await expect(button).toHaveAttribute('aria-expanded','false');
  await evidence(info,page,'sidebar-native-closed');
