@@ -31,7 +31,7 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
   expect(label,`option ${id}=${value}`).toBeTruthy();
   const select=dialog().locator('hp-settings-select').filter({has:input});
   await select.locator(hp('select-trigger')).click();
-  await page.getByRole('option',{name:label,exact:true}).click();
+  await page.locator(hp('select-option',{id:value})).filter({visible:true}).click();
  };
  await open();
  expect(await dialog().locator(HP.action('opening-leaf-edit')).count()).toBe(2);
@@ -47,7 +47,9 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
  expect(source).toBeTruthy();
  await choose('opening-leaf-contact',source);
  await expect(field(dialog(),'opening-leaf-position')).toBeDisabled();
- await dialog().locator(HP.dialogConfirm).click();await dialog().locator(HP.dialogConfirm).click();
+ await dialog().locator(HP.dialogConfirm).click();
+ await expect(dialog().locator(HP.action('opening-leaf-edit'))).toHaveCount(2);
+ await dialog().locator(HP.dialogConfirm).click();
  await expect(dialog()).toBeHidden();
  const find=c=>spaceOf(c,space.id).openings.find(o=>o.id===opening.id);
  const saved=await waitForConfig(c=>find(c)?.opening_features?.leaves?.[0]?.hinge==='top');
@@ -60,7 +62,9 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
  await dialog().locator(HP.action('opening-leaf-edit')).first().click();
  await expect(field(dialog(),'opening-leaf-hinge')).toHaveValue('top');
  await expect(field(dialog(),'opening-shade-position')).toHaveValue('closed');
- await dialog().locator(HP.dialogCancel).click();await dialog().locator(HP.dialogCancel).click();
+ await dialog().locator(HP.dialogCancel).last().click();
+ await expect(dialog().locator(HP.action('opening-leaf-edit'))).toHaveCount(2);
+ await dialog().locator(HP.dialogCancel).last().click();
  // The old writer cannot remove/rewrite an extended opening, even with a current rev.
  const fresh=await planConfig(),old=structuredClone(fresh.config);
  delete find(old).opening_features;
