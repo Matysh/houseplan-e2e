@@ -104,7 +104,8 @@ export async function restorePlan(snapshot) {
     for (let attempt = 0; ; attempt++) {
       try {
         const config = await connection.call({ type: 'houseplan/config/get' });
-        await connection.call({ type: 'houseplan/config/set', config: snapshot.config, expected_rev: config.rev });
+        await connection.call({ type: 'houseplan/config/set', config: snapshot.config, expected_rev: config.rev,
+          ...(config.opening_features_api === 1 ? {opening_features_api:1} : {}) });
         const layout = await connection.call({ type: 'houseplan/layout/get' });
         await connection.call({ type: 'houseplan/layout/set', layout: snapshot.layout, expected_rev: layout.rev });
         return 'documents';
