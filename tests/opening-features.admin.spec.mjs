@@ -99,8 +99,9 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
  await dialog().locator(HP.dialogConfirm).click();await expect(dialog()).toBeHidden();
  const doorOf=c=>spaceOf(c,space.id).openings.find(o=>o.id===door.id);
  await waitForConfig(c=>doorOf(c)?.opening_features?.mechanism==='slide');
- expect(doorOf((await planConfig()).config)).toMatchObject({lock:door.lock,
-  opening_features:{version:1,mechanism:'slide',manual:'closed'}});
+ const savedDoor=doorOf((await planConfig()).config);
+ expect(savedDoor.lock).toEqual(door.lock);
+ expect(savedDoor).toMatchObject({opening_features:{version:1,mechanism:'slide',manual:'closed'}});
  await page.reload();host=await openPlan(page,{space:space.id});await enterEditor(host,'plan');
  const afterReload=await toClient(host,door.x*1000,door.y*1000);await page.mouse.dblclick(afterReload.x,afterReload.y);
  await expect(field(dialog(),'opening-mechanism')).toHaveValue('slide');
