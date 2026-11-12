@@ -15,7 +15,7 @@ test.skip(!!installedContract()&&!declaresValue(installedContract(),'action@data
 restoreSeedAfterEach(test);
 
 test('independent window leaves survive real HA Save/ACK/reload and follow their assigned source',async({page},testInfo)=>{
- test.setTimeout(120000);
+ test.setTimeout(180000);
  const initial=await planConfig();
  expect(initial.opening_features_api).toBe(1);
  const space=initial.config.spaces.find(s=>(s.openings||[]).some(o=>o.type==='window'));
@@ -86,4 +86,24 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
   expect((await planConfig()).rev).toBe(rev,'live entity updates do not write config');
   expect(find((await planConfig()).config)).toEqual(expected);
  }finally{await state(original.state);}
+ await dialog().locator(HP.dialogCancel).last().click();
+ await expect(dialog().locator(HP.action('opening-leaf-edit'))).toHaveCount(2);
+ await dialog().locator(HP.dialogCancel).last().click();
+ const door=spaceOf((await planConfig()).config,space.id).openings.find(o=>o.type==='door');
+ expect(door,'the real seed also has a door').toBeTruthy();
+ const at=await toClient(host,door.x*1000,door.y*1000);await page.mouse.dblclick(at.x,at.y);
+ await expect(dialog()).toBeVisible();
+ await dialog().locator(HP.action('opening-entity-open')).first().click();
+ await dialog().locator(hp('field-option',{field:'opening-contact-entity',value:''})).click();
+ await choose('opening-mechanism','slide');await choose('opening-position','closed');
+ await dialog().locator(HP.dialogConfirm).click();await expect(dialog()).toBeHidden();
+ const doorOf=c=>spaceOf(c,space.id).openings.find(o=>o.id===door.id);
+ await waitForConfig(c=>doorOf(c)?.opening_features?.mechanism==='slide');
+ expect(doorOf((await planConfig()).config)).toMatchObject({lock:door.lock,
+  opening_features:{version:1,mechanism:'slide',manual:'closed'}});
+ await page.reload();host=await openPlan(page,{space:space.id});await enterEditor(host,'plan');
+ const afterReload=await toClient(host,door.x*1000,door.y*1000);await page.mouse.dblclick(afterReload.x,afterReload.y);
+ await expect(field(dialog(),'opening-mechanism')).toHaveValue('slide');
+ await expect(field(dialog(),'opening-position')).toHaveValue('closed');
+ await evidence(testInfo,page,'sliding-manual-door-after-reload');
 });
