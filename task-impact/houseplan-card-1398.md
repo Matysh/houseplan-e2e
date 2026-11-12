@@ -1,9 +1,9 @@
-# Houseplan-card #1398  HA E2E impact
+# Houseplan-card #1398 - HA E2E impact
 
 Source: https://github.com/Matysh/houseplan-card/issues/1398
 
 Decision: no new real-HA E2E scenario needed.
 
-This task unifies transient editor dimension presentation for openings, decor lines and equal device intervals. It changes no schema, HA entity/action contract, transport or persisted history. Native fake-hass tests drive actual selection, drag, field commit/cancel/Undo, camera frames and spacing writes; existing HA editor scenarios remain applicable. The 180-degree opening-reference fix is covered at the physical resolver and native drag levels.
+Unifies transient editor dimension presentation for openings, decor lines and equal device intervals. No schema, HA entity/action, transport or persisted-history contract changes. Native fake-hass tests cover actual selection, drag, field commit/cancel/Undo, camera frames and spacing writes. The 180-degree opening-reference fix is covered by resolver and native drag cases.
 
-Before the next beta, retain the normal editor/visual suite. Any changed editor image must be compared with the owner-approved UI-058 reference in houseplan-card #1398; this record does not accept or overwrite golden baselines.
+Before the next beta, keep the normal editor/visual suite. Compare changed editor images with the owner-approved UI-058 reference in #1398; this record does not accept or overwrite golden baselines.
