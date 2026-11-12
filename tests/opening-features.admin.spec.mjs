@@ -16,6 +16,7 @@ restoreSeedAfterEach(test);
 
 test('independent window leaves survive real HA Save/ACK/reload and follow their assigned source',async({page},testInfo)=>{
  test.setTimeout(180000);
+ page.setDefaultTimeout(15000);
  const initial=await planConfig();
  expect(initial.opening_features_api).toBe(1);
  const space=initial.config.spaces.find(s=>(s.openings||[]).some(o=>o.type==='window'));
@@ -29,8 +30,8 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
   const input=field(dialog(),id),label=await input.locator('option').evaluateAll((options,value)=>
     options.find(o=>o.value===value)?.textContent,value);
   expect(label,`option ${id}=${value}`).toBeTruthy();
-  const select=dialog().locator('hp-settings-select').filter({has:input});
-  await select.locator(hp('select-trigger')).click();
+  const select=dialog().locator('hp-settings-select').filter({has:page.locator(HP.field(id))});
+  await select.locator(hp('select-trigger')).click({timeout:10000});
   await page.locator(hp('select-option',{id:value})).filter({visible:true}).click();
  };
  await open();
@@ -65,6 +66,7 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
  await dialog().locator(HP.dialogCancel).last().click();
  await expect(dialog().locator(HP.action('opening-leaf-edit'))).toHaveCount(2);
  await dialog().locator(HP.dialogCancel).last().click();
+ await expect(dialog()).toBeHidden();
  // The old writer cannot remove/rewrite an extended opening, even with a current rev.
  const fresh=await planConfig(),old=structuredClone(fresh.config);
  delete find(old).opening_features;
@@ -89,6 +91,7 @@ test('independent window leaves survive real HA Save/ACK/reload and follow their
  await dialog().locator(HP.dialogCancel).last().click();
  await expect(dialog().locator(HP.action('opening-leaf-edit'))).toHaveCount(2);
  await dialog().locator(HP.dialogCancel).last().click();
+ await expect(dialog()).toBeHidden();
  const door=spaceOf((await planConfig()).config,space.id).openings.find(o=>o.type==='door');
  expect(door,'the real seed also has a door').toBeTruthy();
  const at=await toClient(host,door.x*1000,door.y*1000);await page.mouse.dblclick(at.x,at.y);
