@@ -62,11 +62,15 @@ test('#1278 #1267 opening Escape is inert; own-wall centre snap with Shift survi
  await page.mouse.move(restart.x,restart.y);await page.mouse.down();await page.mouse.move(centre.x,centre.y,{steps:8});
  await page.keyboard.down('Shift');await page.mouse.move(centre.x+1,centre.y);await evidence(info,page,'held-centre-shoulders-and-tick',{keepPointer:true});
  // #1398/#1399 keeps one stable reference while dragging. Its drafting row
- // replaces the retired two bubbles; verify the physical 210cm gap, not a class.
+ // replaces the retired axis bubbles. The room is480cm between wall axes,
+ //465cm between finished faces (15cm walls), and the window is60cm wide:
+ // each clear shoulder is(465-60)/2=202.5cm. Saved axis distances stay210cm.
  if(compareTags('v'+installedRecord().version,'v1.85.2-beta.1')>=0){
   const gap=host.locator('[data-hp="wall-side-dimension"][data-role="opening-gap"]');
-  await expect(gap).toHaveCount(1);await expect(gap.locator('text')).toHaveText('2.100 m');
-  await expect(gap).toHaveAttribute('data-length-cm','210');
+  await expect(gap).toHaveCount(1);await expect(gap.locator('text')).toHaveText('2.025 m');
+  await expect(gap).toHaveAttribute('data-length-cm','202.5');
+  await expect(gap).toHaveAttribute('data-reference-source','room-face');
+  await expect(gap).toHaveAttribute('data-room','left');
   await expect(gap.locator('[data-hp="dimension-rail"] line')).toBeVisible();
  }else await expect(host.locator('.measurelabel.opshoulder')).toHaveText(['2.10 m','2.10 m']);
  await expect(host.locator('.opcentertick')).toHaveCount(1);
