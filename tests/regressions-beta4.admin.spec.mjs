@@ -71,7 +71,14 @@ test('#1278 #1267 opening Escape is inert; own-wall centre snap with Shift survi
   await expect(gap).toHaveAttribute('data-length-cm','202.5');
   await expect(gap).toHaveAttribute('data-reference-source','room-face');
   await expect(gap).toHaveAttribute('data-room','left');
-  await expect(gap.locator('[data-hp="dimension-rail"] line')).toBeVisible();
+  await expect(gap).toBeVisible();
+  // A horizontal SVG line has a zero-height DOM box; Playwright's HTML
+  // visibility predicate rejects it even when its stroke is painted.
+  expect(await gap.locator('[data-hp="dimension-rail"] line').evaluate(line=>{
+   const style=getComputedStyle(line),a=Number(line.getAttribute('x1')),b=Number(line.getAttribute('x2'));
+   return !!line.getScreenCTM()&&Math.abs(b-a)>1&&style.visibility==='visible'
+    &&style.stroke!=='none'&&Number.parseFloat(style.strokeWidth)>0;
+  })).toBe(true);
  }else await expect(host.locator('.measurelabel.opshoulder')).toHaveText(['2.10 m','2.10 m']);
  await expect(host.locator('.opcentertick')).toHaveCount(1);
  await page.mouse.up();await page.keyboard.up('Shift');
