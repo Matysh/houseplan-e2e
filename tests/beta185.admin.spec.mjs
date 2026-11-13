@@ -199,7 +199,14 @@ test('Shift rotation is absolute 45 degrees for all decor families and backdrop 
   await select();const box=await stage(host).boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);for(let z=0;z<8;z++){await page.mouse.wheel(0,120);await settle(host);}const frame=host.locator(kind==='backdrop'?'.bdframe':'.dtframe').last(),handle=frame.locator('.dtrot');await expect(handle).toBeVisible();
   const shown=()=>frame.evaluate(n=>Number(n.getAttribute('transform').match(/rotate\(([^ ,]+)/)[1]));
   const gesture=async(delta)=>{
-   const start=await centreOf(handle),pivot=await frame.evaluate(n=>{const a=n.getAttribute('transform').match(/rotate\(([^)]+)\)/)[1].split(/[ ,]+/).map(Number);const p=new DOMPoint(a[1],a[2]).matrixTransform(n.getScreenCTM());return{x:p.x,y:p.y};});
+   // #1405: rotate's pivot is in parent coordinates. The backdrop frame also
+   // scales its paint units; applying its own CTM would scale that pivot twice.
+   const start=await centreOf(handle),pivot=await frame.evaluate(n=>{
+    const a=n.getAttribute('transform').match(/rotate\(([^)]+)\)/)[1].split(/[ ,]+/).map(Number);
+    const p=new DOMPoint(a[1],a[2]).matrixTransform(n.parentElement.getScreenCTM());
+    const box=n.querySelector('.bdbox');if(box){const b=box.getBBox(),painted=new DOMPoint(b.x+b.width/2,b.y+b.height/2).matrixTransform(box.getScreenCTM());
+     if(Math.hypot(p.x-painted.x,p.y-painted.y)>.5)throw Error('Backdrop gesture pivot differs from its painted centre');}
+    return{x:p.x,y:p.y};});
    const a=delta*Math.PI/180,v={x:start.x-pivot.x,y:start.y-pivot.y},end={x:pivot.x+v.x*Math.cos(a)-v.y*Math.sin(a),y:pivot.y+v.x*Math.sin(a)+v.y*Math.cos(a)};
    await handle.hover();await expect(handle).toBeVisible();await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(end.x,end.y,{steps:8});
   };
