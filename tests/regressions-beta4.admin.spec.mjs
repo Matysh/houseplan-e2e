@@ -61,12 +61,21 @@ test('#1278 #1267 opening Escape is inert; own-wall centre snap with Shift survi
  const restart=await toClient(host,opening.x*1000,opening.y*1000),centre=await toClient(host,301,100);
  await page.mouse.move(restart.x,restart.y);await page.mouse.down();await page.mouse.move(centre.x,centre.y,{steps:8});
  await page.keyboard.down('Shift');await page.mouse.move(centre.x+1,centre.y);await evidence(info,page,'held-centre-shoulders-and-tick',{keepPointer:true});
- await expect(host.locator('.measurelabel.opshoulder')).toHaveText(['2.10 m','2.10 m']);
+ // #1398/#1399 keeps one stable reference while dragging. Its drafting row
+ // replaces the retired two bubbles; verify the physical 210cm gap, not a class.
+ if(compareTags('v'+installedRecord().version,'v1.85.2-beta.1')>=0){
+  const gap=host.locator('[data-hp="wall-side-dimension"][data-role="opening-gap"]');
+  await expect(gap).toHaveCount(1);await expect(gap.locator('text')).toHaveText('2.100 m');
+  await expect(gap).toHaveAttribute('data-length-cm','210');
+  await expect(gap.locator('[data-hp="dimension-rail"] line')).toBeVisible();
+ }else await expect(host.locator('.measurelabel.opshoulder')).toHaveText(['2.10 m','2.10 m']);
  await expect(host.locator('.opcentertick')).toHaveCount(1);
  await page.mouse.up();await page.keyboard.up('Shift');
  const saved=await waitForConfig(c=>c.spaces[0].openings[0].x!==opening.x);
  const moved=saved.spaces[0].openings[0];expect(moved.x).toBe(.3);expect(moved.y).toBe(.1);
  expect(moved.host.id).toBe(opening.host.id);expect(moved.host.t).toBe(.5);expect(moved.host.tq).toEqual(['1','2']);
+ expect((moved.x-.1-moved.length/2)*1200).toBeCloseTo(210,6);
+ expect((.5-moved.x-moved.length/2)*1200).toBeCloseTo(210,6);
  await history(host,'undo');await waitForConfig(c=>equal(c.spaces[0],space));
  await history(host,'redo');await waitForConfig(c=>equal(c.spaces[0],saved.spaces[0]));
  await reloadUnchanged(page,saved);await evidence(info,page,'opening-after-reload');
