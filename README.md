@@ -94,6 +94,13 @@ npm run ha:down
 эталону: `node scripts/evidence-diff.mjs --current=evidence-out --stable=evidence/stable --out=evidence-diff`,
 галерея — `evidence-diff/index.html`.
 
+Адресный `tests/device-tooltip.admin.spec.mjs` (#50) проверяет настоящие
+HA state updates и переподключение tooltip в основной панели и masonry,
+pointer dwell/fade, соседние устройства, resize/reduced motion, клавиатуру,
+режим/пространство и настоящую навигацию HA (pagehide). Используется объявленный
+test-only `live-tooltip` (1.85.2-beta.2); приватное состояние карточки не служит
+оракулом. План и состояния тестового света возвращаются после сценария.
+
 ## CI
 
 `.github/workflows/e2e.yml`: по кнопке (`houseplan_ref`, `upgrade_from`,
