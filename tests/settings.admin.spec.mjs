@@ -7,6 +7,7 @@ import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
 import { planConfig, spaceOf, waitForConfig, wsCall } from './lib/ha-ws.mjs';
 import { hasSingleBorderFocus, tabTo, oneBorder } from './lib/button-focus.mjs';
+import { headerActionTarget } from './lib/header-actions.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { centreOf, enterEditor, field, openPlan, settle, toFloor, zoomInVisible } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
@@ -178,7 +179,8 @@ test('#1428 real settings chips and compass retain one native Tab border',async(
       await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');await oneBorder(remove,{size:28});
     }
     await dialog.locator(HP.dialogCancel).first().click();await expect(dialog).toHaveCount(0);
-    await page.keyboard.press('Escape');await expect(host.locator(HP.mode('view'))).toBeVisible();
+    await (await headerActionTarget(host,HP.editorClose)).click();
+    await expect(host.locator(HP.mode('view'))).toBeVisible();
     await host.locator(hp('space-settings',{id:GROUND})).click();
     const space=host.locator(HP.dialog('space'));
     await space.locator(hp('settings-section',{kind:'space',section:'sun'})).click();
