@@ -10,6 +10,8 @@ import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasNamedSpaceHeaderCon
 import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
 import { headerActionTarget, expectIntrinsicHeader } from './lib/header-actions.mjs';
+import { hasSingleBorderFocus, tabTo, oneBorder, noOuterFocus } from './lib/button-focus.mjs';
+import { createStaticDashboard } from './lib/static-sync.mjs';
 
 requireHooks(test, 'panel-menu', 'stage', 'space-select', 'space-tab', 'mode-tab@data-mode', 'editor-close', 'properties-panel');
 
@@ -222,4 +224,72 @@ test('editor close glyph stays centered in full and compact modes with real HA i
   for(const value of toolbarHeights)expect(value.height).toBeCloseTo(57,0);
   await testInfo.attach('real-ha-toolbar-heights',{body:JSON.stringify(toolbarHeights,null,2),contentType:'application/json'});
   await testInfo.attach('real-ha-close-centres',{body:JSON.stringify(receipts,null,2),contentType:'application/json'});
+});
+
+test('#1428 native editor/dialog return and composite keyboard focus use one border', async ({page}, info) => {
+  test.skip(!hasSingleBorderFocus(), 'single-border focus ships in 1.85.3-beta.1; an old release is not this contract');
+  test.setTimeout(180_000);
+  await page.setViewportSize({width:1920,height:1000});
+  const {host}=await ordinaryPanel(page);
+  for(const dark of [false,true]) {
+    // Presentation inputs only; retain the real HA connection and real icons.
+    await host.evaluate((el,dark)=>{
+      el.style.setProperty('--primary-color',dark?'#64b5f6':'#1976d2');
+      el.style.setProperty('--card-background-color',dark?'#202020':'#fff');
+      el.style.setProperty('--primary-text-color',dark?'#eee':'#212121');
+    },dark);
+    for(const mode of ['plan','devices','decor']) {
+      const launcher=host.locator(HP.modeTab(mode));
+      await enterEditor(host,mode);
+      await page.keyboard.press('Escape');
+      await expect(host.locator(HP.mode('view'))).toBeVisible();
+      await expect(launcher).toBeFocused();await noOuterFocus(launcher);
+      await tabTo(page,launcher);await oneBorder(launcher);
+      await page.keyboard.press('Escape');await page.keyboard.press('Escape');await noOuterFocus(launcher);
+    }
+    for(const [selector,kind] of [[HP.settings,'settings'],['[data-hp="support"]','support']]) {
+      const launcher=host.locator(selector).first();
+      await tabTo(page,launcher);await page.keyboard.press('Enter');
+      const dialog=host.locator(HP.dialog(kind));await expect(dialog).toBeVisible();
+      const close=dialog.locator('button.close');await tabTo(page,close);await oneBorder(close);
+      await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);
+      await expect(launcher).toBeFocused();await noOuterFocus(launcher);
+      await page.keyboard.press('Escape');await tabTo(page,launcher);await oneBorder(launcher);
+    }
+    await page.setViewportSize({width:320,height:900});
+    const trigger=host.locator('[data-hp="header-actions-trigger"]');
+    await expect(trigger).toBeVisible();await tabTo(page,trigger);await page.keyboard.press('Enter');
+    const menu=host.locator('[data-hp="header-actions-menu"]:not([inert])');
+    for(const key of [null,'ArrowDown','End','Home','ArrowUp']) {
+      if(key)await page.keyboard.press(key);
+      const current=menu.locator('button.hpf-keyboard-current');
+      await expect(current).toHaveCount(1);await expect(current).toBeFocused();await oneBorder(current,{composite:true});
+    }
+    await page.keyboard.press('Escape');await expect(trigger).toBeFocused();await noOuterFocus(trigger);
+    await tabTo(page,trigger);await oneBorder(trigger);
+    await page.setViewportSize({width:1920,height:1000});
+    await enterEditor(host,'decor');
+    const shapes=host.locator('[data-editor-group="shapes"]');
+    await tabTo(page,shapes);await page.keyboard.press('ArrowDown');
+    for(const key of [null,'ArrowRight','End','Home']) {
+      if(key)await page.keyboard.press(key);
+      const item=host.locator('.editor-group-item.hpf-keyboard-current');
+      await expect(item).toBeFocused();await oneBorder(item,{composite:true});
+    }
+    await page.keyboard.press('Escape');await expect(shapes).toBeFocused();await noOuterFocus(shapes);
+    await page.keyboard.press('Escape');await expect(host.locator(HP.mode('view'))).toBeVisible();
+    await evidence(info,page,dark?'single-border-dark':'single-border-light');
+  }
+  const dashboard=await createStaticDashboard({showButton:true});
+  try {
+    await page.goto(`/${dashboard.path}/mixed`);
+    const full=card(page);await expectPlanDrawn(page,full);
+    const staticButton=page.locator('houseplan-space-card button.hp-static-btn.on').first();
+    await expect(staticButton).toBeVisible();
+    await tabTo(page,full.locator(HP.settings).first());
+    await tabTo(page,staticButton);await oneBorder(staticButton);
+    await page.keyboard.press('Escape');await noOuterFocus(staticButton);
+    await tabTo(page,staticButton);await oneBorder(staticButton);
+    await evidence(info,page,'full-and-static-native-focus');
+  } finally {await dashboard.remove();}
 });

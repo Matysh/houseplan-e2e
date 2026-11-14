@@ -5,7 +5,9 @@
 import { test, expect } from '@playwright/test';
 import { requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn, spaceEntry } from './lib/ha-page.mjs';
-import { planConfig, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
+import { planConfig, spaceOf, waitForConfig, wsCall } from './lib/ha-ws.mjs';
+import { hasSingleBorderFocus, tabTo, oneBorder } from './lib/button-focus.mjs';
+import { headerActionTarget } from './lib/header-actions.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { centreOf, enterEditor, field, openPlan, settle, toFloor, zoomInVisible } from './lib/plan.mjs';
 import { restoreSeedAfterEach } from './lib/seed-guard.mjs';
@@ -145,4 +147,47 @@ test('Device on the plan: a new display is saved and shown again', async ({ page
   await reopened.locator(hp('settings-section', { kind: 'marker', section: 'appearance' })).first().click();
   await expect(field(reopened, 'marker-display')).toHaveValue(next);
   await evidence(testInfo, page, 'marker-after-reload');
+});
+
+test('#1428 real settings chips and compass retain one native Tab border',async({page},info)=>{
+  test.skip(!hasSingleBorderFocus(),'single-border fields ship in 1.85.3-beta.1');
+  test.setTimeout(120_000);
+  const before=await planConfig(), config=structuredClone(before.config);
+  const marker=config.markers.find(m=>m.id===THERMO);
+  marker.controls=['light.wall_lamp_1'];
+  marker.pdfs=[{name:'E2E guide.pdf',url:'/local/houseplan/files/e2e-guide.pdf'}];
+  spaceOf(config,GROUND).settings={...spaceOf(config,GROUND).settings,north_deg:0};
+  await wsCall({type:'houseplan/config/set',config,expected_rev:before.rev,
+    ...(before.opening_features_api===1?{opening_features_api:1}:{})});
+  await page.setViewportSize({width:1800,height:1000});
+  const host=await openPlan(page,{space:GROUND});
+  for(const dark of [false,true]){
+    await host.evaluate((el,dark)=>{
+      el.style.setProperty('--primary-color',dark?'#64b5f6':'#1976d2');
+      el.style.setProperty('--card-background-color',dark?'#202020':'#fff');
+      el.style.setProperty('--primary-text-color',dark?'#eee':'#212121');
+    },dark);
+    await enterEditor(host,'devices');await zoomInVisible(host);await settle(host);
+    const centre=await centreOf(host.locator(hp('device',{id:THERMO})).first());
+    await page.mouse.dblclick(centre.x,centre.y);
+    const dialog=host.locator(HP.dialog('marker'));await expect(dialog).toBeVisible();
+    for(const [section,action] of [['actions','marker-control-remove'],['details','marker-attachment-remove']]){
+      await dialog.locator(hp('settings-section',{kind:'marker',section})).click();
+      const remove=dialog.locator(`[data-hp="action"][data-action="${action}"]`).first();
+      await expect(remove).toBeVisible();await page.mouse.move(0,0);
+      await tabTo(page,remove);await oneBorder(remove,{size:28});
+      await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');await oneBorder(remove,{size:28});
+    }
+    await dialog.locator(HP.dialogCancel).first().click();await expect(dialog).toHaveCount(0);
+    await (await headerActionTarget(host,HP.editorClose)).click();
+    await expect(host.locator(HP.mode('view'))).toBeVisible();
+    await host.locator(hp('space-settings',{id:GROUND})).click();
+    const space=host.locator(HP.dialog('space'));
+    await space.locator(hp('settings-section',{kind:'space',section:'sun'})).click();
+    const dial=space.locator('.hpf-north-dial');await expect(dial).toBeVisible();
+    await tabTo(page,dial);await oneBorder(dial);
+    await evidence(info,page,dark?'settings-focus-dark':'settings-focus-light');
+    await space.locator(HP.dialogCancel).first().click();await expect(space).toHaveCount(0);
+  }
+  expect((await planConfig()).config).toEqual(config);
 });
