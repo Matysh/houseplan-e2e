@@ -24,15 +24,9 @@ export async function oneBorder(target, { size, composite = false } = {}) {
     const accent = s.getPropertyValue('--hpf-accent').trim() || s.getPropertyValue('--primary-color').trim();
     const probe = document.createElement('span'); probe.style.color = accent; el.append(probe);
     const expected = getComputedStyle(probe).color; probe.remove();
-    return { border:s.borderTopWidth, color:s.borderTopColor, expected, outline:s.outlineStyle, shadow:s.boxShadow,
+    return { border:s.borderLeftWidth, colorMatches:s.borderLeftColor===expected, outline:s.outlineStyle, shadow:s.boxShadow,
       width:r.width, height:r.height };
-  })).toMatchObject({ border:'1px', outline:'none', shadow:'none', ...(size ? {width:size,height:size} : {}) });
-  const colors = await target.evaluate(el => {
-    const s=getComputedStyle(el), probe=document.createElement('span');
-    probe.style.color='var(--hpf-accent,var(--primary-color))'; el.append(probe);
-    const pair=[s.borderTopColor,getComputedStyle(probe).color]; probe.remove(); return pair;
-  });
-  expect(colors[0]).toBe(colors[1]);
+  })).toMatchObject({ border:'1px', colorMatches:true, outline:'none', shadow:'none', ...(size ? {width:size,height:size} : {}) });
 }
 
 export async function noOuterFocus(target) {

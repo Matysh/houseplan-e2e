@@ -153,7 +153,7 @@ test('#1428 real settings chips and compass retain one native Tab border',async(
   test.setTimeout(120_000);
   const before=await planConfig(), config=structuredClone(before.config);
   const marker=config.markers.find(m=>m.id===THERMO);
-  marker.controls=['sensor.ground_floor_temperature'];
+  marker.controls=['light.wall_lamp_1'];
   marker.pdfs=[{name:'E2E guide.pdf',url:'/local/houseplan/files/e2e-guide.pdf'}];
   spaceOf(config,GROUND).settings={...spaceOf(config,GROUND).settings,north_deg:0};
   await wsCall({type:'houseplan/config/set',config,expected_rev:before.rev,
