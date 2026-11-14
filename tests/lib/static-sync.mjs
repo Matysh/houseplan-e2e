@@ -118,12 +118,12 @@ export async function staticSyncWire(page) {
 }
 
 /** Create/delete only our temporary dashboard through HA's native WS API. */
-export async function createStaticDashboard() {
+export async function createStaticDashboard({showButton=false}={}) {
   const path = `e2e-static-sync-${Date.now().toString(36)}`;
   const dashboard = await wsCall({ type: 'lovelace/dashboards/create', url_path: path,
     title: 'E2E static sync', icon: 'mdi:floor-plan', show_in_sidebar: false, require_admin: true });
   const staticCards = () => ({ type: 'horizontal-stack', cards: [0, 1].map(() => ({
-    type: 'custom:houseplan-space-card', space: 'f1', show_button: false,
+    type: 'custom:houseplan-space-card', space: 'f1', show_button: showButton,
   })) });
   try {
     await wsCall({ type: 'lovelace/config/save', url_path: path, config: { views: [
