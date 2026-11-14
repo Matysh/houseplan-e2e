@@ -177,7 +177,7 @@ test('#1428 real settings chips and compass retain one native Tab border',async(
       await tabTo(page,remove);await oneBorder(remove,{size:28});
       await page.keyboard.press('Shift+Tab');await page.keyboard.press('Tab');await oneBorder(remove,{size:28});
     }
-    await dialog.locator(HP.dialogCancel).click();await expect(dialog).toHaveCount(0);
+    await dialog.locator(HP.dialogCancel).first().click();await expect(dialog).toHaveCount(0);
     await page.keyboard.press('Escape');await expect(host.locator(HP.mode('view'))).toBeVisible();
     await host.locator(hp('space-settings',{id:GROUND})).click();
     const space=host.locator(HP.dialog('space'));
@@ -185,7 +185,7 @@ test('#1428 real settings chips and compass retain one native Tab border',async(
     const dial=space.locator('.hpf-north-dial');await expect(dial).toBeVisible();
     await tabTo(page,dial);await oneBorder(dial);
     await evidence(info,page,dark?'settings-focus-dark':'settings-focus-light');
-    await space.locator(HP.dialogCancel).click();await expect(space).toHaveCount(0);
+    await space.locator(HP.dialogCancel).first().click();await expect(space).toHaveCount(0);
   }
   expect((await planConfig()).config).toEqual(config);
 });
