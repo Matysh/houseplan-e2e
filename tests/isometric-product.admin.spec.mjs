@@ -105,7 +105,7 @@ async function chooseDecor(page,host,id){
 }
 
 async function history(host,direction){
-  const button=host.locator(HP.action('geometry-'+direction)).first();
+  const button=host.locator(direction==='undo'?HP.action('geometry-undo'):HP.action('geometry-redo')).first();
   await expect(button).toBeEnabled();await button.click();await settle(host);
 }
 

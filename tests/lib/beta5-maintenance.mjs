@@ -19,7 +19,10 @@ export async function nativeDiagonalMaintenance(page,host,info,spaceId){
  await settle(host);
  await enterEditor(host,'plan');await useTool(host,'draw');
  const targets=await stage(host).evaluate(visiblePlanSegment,{step:await gridStep(host),pixels:45,clearInterior:true,
-  pattern:[[[0,0],[3,2]],[[1.5,1],[1.5,5]]]});
+  // Do not align the free endpoint vertically with the rational intersection:
+  // that deliberately places it off-grid, for which Optimize legitimately
+  // offers a grid move. This journey measures exact dependent-node no-op.
+  pattern:[[[0,0],[3,2]],[[1.5,1],[4,5]]]});
  const [support,branch]=targets.segments;
  await info.attach('beta5-native-diagonal-targets.json',{body:JSON.stringify(targets,null,2),contentType:'application/json'});
  const before=(await planConfig()).config,old=spaceOf(before,spaceId).plan_graph;
@@ -35,6 +38,9 @@ export async function nativeDiagonalMaintenance(page,host,info,spaceId){
  const dependent=graph.dependencies.filter(d=>!oldIds.has(d.node));
  expect(dependent.length,'real native Draw creates a dependent T').toBeGreaterThan(0);
  expect(dependent.some(d=>graph.nodes.find(n=>n.id===d.node)?.p[0]==='q'),'diagonal T keeps exact rational coordinates').toBe(true);
+ const independent=graph.nodes.filter(n=>!oldIds.has(n.id)&&!dependent.some(d=>d.node===n.id));
+ expect(independent.length).toBeGreaterThan(0);
+ expect(independent.every(n=>n.p[0]==='l'),'the no-op fixture has no off-grid free endpoints').toBe(true);
  const portable=await wsCall({type:'houseplan/export/create',kind:'full'});
  expect(spaceOf(portable.document.payload.config,spaceId).plan_graph).toEqual(graph);
  await evidence(info,page,'beta5-native-diagonal-saved');
