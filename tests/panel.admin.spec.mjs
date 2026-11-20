@@ -9,11 +9,13 @@ import { hasBeta4PanelContract } from './lib/panel-release-contract.mjs';
 import { expectPanelShell } from './lib/panel-shell.mjs';
 import { card, deviceMarker, editorTabs, expectPlanDrawn, spaceEntries, spaceTabs } from './lib/ha-page.mjs';
 import { hp } from './lib/hooks.mjs';
+import { checkReleaseRaster } from './lib/iso-raster-release.mjs';
 
 const LAMP = 'light.wall_lamp_1';
 
 test.describe('House Plan sidebar panel', () => {
-  test('is listed in the sidebar and shows the plan on the very first open', async ({ page }) => {
+  test('is listed in the sidebar and shows the plan on the very first open', async ({ page }, info) => {
+    test.setTimeout(180000);
     await page.goto('/houseplan');
     const panel = page.locator('houseplan-panel');
     await expect(panel).toBeVisible({ timeout: 60_000 });
@@ -32,6 +34,7 @@ test.describe('House Plan sidebar panel', () => {
     await expect(editorTabs(host)).toHaveCount(3);
     await expect(panel.locator('[role="heading"]')).toHaveCount(hasBeta4PanelContract() ? 0 : 1);
     if (hasBeta4PanelContract()) await expectPanelShell(panel, host);
+    await checkReleaseRaster(page, info);
   });
 
   test('lists the spaces in one select on this window and as tabs on a wide one', async ({ page }) => {
