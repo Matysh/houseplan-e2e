@@ -5,12 +5,18 @@ import { hasHeaderActionsContract, hasNamedSpaceHeaderContract, hasHeaderPolishC
 /** Measure the actual presentation, rather than choosing it from viewport width. */
 export async function expectIntrinsicHeader(host) {
   const label = host.locator(hp('space-name')), picker = host.locator(hp('space-select'));
-  await expect.poll(async () => Number(await label.isVisible()) + Number(await picker.isVisible())).toBe(1);
-  const space = await label.isVisible() ? label : picker;
-  if (await label.isVisible()) {
-    await expect(label).toHaveText(/\S/);
-    await expect(picker).toHaveCount(0);
-  } else expect(await picker.locator('option').count()).toBeGreaterThan(1);
+  let named;
+  // A ResizeObserver can replace the transient single-option picker after
+  // the viewport changes. Poll the complete invariant instead of sampling
+  // its mutually exclusive branches across separate animation frames.
+  await expect.poll(async () => {
+    named = await label.isVisible();
+    const selected = await picker.isVisible();
+    if (named === selected) return false;
+    return named ? /\S/.test(await label.textContent()) && await picker.count() === 0
+      : await picker.locator('option').count() > 1;
+  }, {message:'the header has one complete named-space or multi-space presentation'}).toBe(true);
+  const space = named ? label : picker;
   let layout;
   await expect.poll(async () => {
     layout = await host.locator('.head').evaluate(head => {
