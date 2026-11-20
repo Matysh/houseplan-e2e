@@ -24,7 +24,11 @@ export async function checkReleaseRaster(page,info){
   }));
   try{
     const current=await planConfig(),config=structuredClone(current.config),floor=spaceOf(config,'f1');
-    expect(floor.plan_url,'the real seed must retain an installed floor-plan image').toBeTruthy();
+    // The seed stores the installed image on a different floor. Reuse that
+    // real HA asset on the measured floor, without creating or mocking one.
+    const backdrop=config.spaces.find(space=>space.plan_url);
+    expect(backdrop?.plan_url,'the real seed must retain an installed floor-plan image').toBeTruthy();
+    floor.plan_url=backdrop.plan_url;
     floor.settings={...floor.settings,show_borders:true,room_color:'#481477',room_opacity:1,
       wall_fill:{c:'#246844',a:1},opening_accent_3d:{c:'#a32a59',a:1}};
     config.settings={...config.settings,volumetric_view:true};
