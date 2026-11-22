@@ -11,6 +11,7 @@ import {HP,hp} from './lib/hooks.mjs';
 import {headerActionTarget} from './lib/header-actions.mjs';
 import {enterEditor,field,leaveEditor,openPlan,selectSpace,settle,stage} from './lib/plan.mjs';
 import {watchWrites} from './lib/beta4-regressions.mjs';
+import {compareTags} from '../scripts/tags.mjs';
 
 requireHooks(test,'stage@data-projection','stage@data-yaw','stage@data-rotation','stage@data-floor-scale-y',
   'decor@data-hp-furniture-volume','action','field','settings-section','rotate-right','mode-tab');
@@ -82,7 +83,8 @@ async function turn(host){
 async function assertProfile(host,rotation,profile='iso'){
   await expect(stage(host)).toHaveAttribute('data-projection',profile);
   await expect(stage(host)).toHaveAttribute('data-rotation',String(rotation));
-  expect(Number(await stage(host).getAttribute('data-yaw'))).toBe(profile==='iso'?35+rotation:rotation);
+  const yaw = { 0:35, 45:90, 90:125, 135:180, 180:215, 225:270, 270:305, 315:0 };
+  expect(Number(await stage(host).getAttribute('data-yaw'))).toBe(profile==='iso'?yaw[rotation]:rotation);
   expect(Number(await stage(host).getAttribute('data-floor-scale-y'))).toBeCloseTo(profile==='iso'?Math.sin(40*Math.PI/180):1,8);
 }
 
@@ -109,7 +111,7 @@ async function history(host,direction){
   await expect(button).toBeEnabled();await button.click();await settle(host);
 }
 
-for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses four accepted camera sides and a read-only Flat editor round-trip`,async({page},info)=>{
+for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses the accepted camera sides and a read-only Flat editor round-trip`,async({page},info)=>{
   test.setTimeout(180000);await page.setViewportSize({width:1480,height:1080});
   await installFurniture();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -130,12 +132,14 @@ for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses four acc
     await enableVolume(host);
     expect(await page.locator('html').getAttribute('data-ui-lab-camera1451')).toBeNull();
     expect(new URL(page.url()).searchParams.has('view1451')).toBe(false);
-    for(let i=0;i<4&&await stage(host).getAttribute('data-rotation')!=='0';i++)await turn(host);
+    const version = installedRecord()?.version;
+    const step = version && compareTags('v'+version, 'v1.86.1-beta.1') < 0 ? 90 : 45;
+    for(let i=0;i<360/step&&await stage(host).getAttribute('data-rotation')!=='0';i++)await turn(host);
     const before=await pair(),writeCount=writes.length;
-    for(const rotation of [0,90,180,270]){
+    for(let rotation=0;rotation<360;rotation+=step){
       await assertProfile(host,rotation);
       for(const id of ids)await expect(volume(host,id).first()).toBeVisible();
-      await evidence(info,page,`${surface}-volume-${35+rotation}`);
+      await evidence(info,page,`${surface}-volume-${rotation}`);
       await turn(host);
     }
     await assertProfile(host,0);

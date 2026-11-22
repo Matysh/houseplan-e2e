@@ -92,8 +92,8 @@ test('a hook newer than the installed release skips; a hook its version should h
   // a prerelease of the version that introduced it counts as older
   const since = sinceOf('summary-metric@data-id');
   assert.deepEqual(gate(['summary-metric@data-id'], installed, `${since}-beta.1`).lost, []);
-  // an unknown product version: nothing is called a regression
-  assert.deepEqual(gate(['summary-metric@data-id'], installed, undefined), { newer: ['summary-metric@data-id'], lost: [] });
+  // Explicitly unknown; undefined would read the local installed record.
+  assert.deepEqual(gate(['summary-metric@data-id'], installed, null), { newer: ['summary-metric@data-id'], lost: [] });
 });
 
 test('the latest stable contract (v1.82.0) never turns a journey of this suite into a regression', () => {

@@ -7,7 +7,7 @@ import {card, expectPlanDrawn} from './lib/ha-page.mjs';
 import {accessToken, getState} from './lib/ha-api.mjs';
 import {importDocument, planConfig, snapshotPlan, wsCall} from './lib/ha-ws.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
-import {screenDefaults, viewDefaults} from './lib/profile-fixtures.mjs';
+import {currentProfile, profileNamespace, screenDefaults, viewDefaults} from './lib/profile-fixtures.mjs';
 import {installedRecord} from './lib/contract.mjs';
 import {compareTags} from '../scripts/tags.mjs';
 
@@ -16,7 +16,17 @@ test.beforeEach(() => {
   test.skip(!!version && compareTags('v' + version, 'v1.86.1-beta.2') < 0,
     'Server startup previews first ship in 1.86.1-beta.2; an older release skip is not evidence');
 });
-restoreSeedAfterEach(test);
+restoreSeedAfterEach(test, { prepareConfig(seed, current) {
+  // A restored plan must not roll back the number of a profile allocated by
+  // these journeys. Remove the fixture rows, preserving the namespace epoch.
+  const now = profileNamespace(current), before = profileNamespace(seed);
+  if (!now) return seed;
+  const version = Math.max(before?.version ?? 1, now.version);
+  return { ...seed, settings: { ...seed.settings, external_screens: {
+    version, next_id: Math.max(before?.next_id ?? 1, now.next_id),
+    screens: version >= 2 ? (before?.screens ?? []).map(currentProfile) : (before?.screens ?? []),
+  } } };
+} });
 const authOnly = () => {
   const state = JSON.parse(readFileSync(USERS.admin.storageState, 'utf8'));
   for (const origin of state.origins) {
@@ -63,13 +73,18 @@ async function setHouse(projection, rotation, profile, centered = profile) {
     {id:'t1522-cabinet',kind:'furniture',symbol:'cabinet_tv',x:.25,y:.275,w:.15,h:.06,color:'#627783'},
   );
   config.settings.volumetric_view = projection === 'iso';
+  let profileId;
   if (profile) {
-    const row = {...screenDefaults(2),default_view:{...viewDefaults(),view:projection,rotation,
+    const existing = profileNamespace(config);
+    profileId = existing?.next_id ?? 1;
+    const row = {...screenDefaults(profileId),default_view:{...viewDefaults(),view:projection,rotation,
       ...(centered?{center_summary:true,summary:'show'}:{})}};
-    config.settings.external_screens = {version:3,next_id:3,screens:[row]};
+    config.settings.external_screens = {version:3,next_id:profileId+1,
+      screens:[...(existing?.screens ?? []).map(currentProfile),row]};
   }
   await wsCall({type:'houseplan/config/set',config,expected_rev:current.rev,
     opening_features_api:1,furniture_workstation_api:1});
+  return profileId;
 }
 
 function measure(root, elements) {
@@ -127,8 +142,8 @@ const sample = async (host, preview) => host.evaluate(async (c, {preview,measure
 
 async function checkScene(browser, projection, rotation, profile, testInfo) {
   expect(new URL(HA_URL).hostname).toBe('127.0.0.1');
-  await setHouse(projection,rotation,profile);
-  const path = profile ? '/houseplan?hpprofile=2&hpspace=1' : '/houseplan';
+  const profileId = await setHouse(projection,rotation,profile);
+  const path = profile ? `/houseplan?hpprofile=${profileId}&hpspace=1` : '/houseplan';
   const warm = await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport});
   let put;
   try {
@@ -137,8 +152,12 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
     await page.goto(path,{waitUntil:'domcontentloaded'});
     const host=card(page);
     await expectPlanDrawn(page,host);
-    await expect.poll(async()=> (await facts(host))?.remote,
-      {timeout:10_000,message:JSON.stringify(await status(host))}).toBe('stored');
+    try {
+      await expect.poll(async()=> (await facts(host))?.remote,{timeout:10_000}).toBe('stored');
+    } catch (error) {
+      error.message += '\nFinal startup state: ' + JSON.stringify(await status(host));
+      throw error;
+    }
   } finally { await warm.close(); }
   expect(put).toBeTruthy();
   const key=(({id,type,packet,...a})=>a)(put);
@@ -220,9 +239,9 @@ for (const [projection,rotation,profile] of [['flat',0,false],['iso',0,false],['
 
 test('#1522 local #1520 preview waits for a late centred summary instead of being discarded', async({browser})=>{
   expect(new URL(HA_URL).hostname).toBe('127.0.0.1');
-  await setHouse('iso',45,true,true);
+  const profileId = await setHouse('iso',45,true,true);
   const context=await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport,reducedMotion:'reduce'});
-  const url='/houseplan?hpprofile=2&hpspace=1';
+  const url=`/houseplan?hpprofile=${profileId}&hpspace=1`;
   try {
     const warm=await context.newPage();
     await warm.goto(url);
@@ -366,8 +385,10 @@ async function timings(browser, mode, optional) {
   } finally { await context.close(); }
 }
 
-for (const view of ['flat','iso']) test(`#1522 real cold performance ${view}`, async({browser},info)=>{
-  test.skip(!process.env.STARTUP_PERFORMANCE,'Use STARTUP_PERFORMANCE=1 for measurement');
+// Diagnostic timing is not a journey with a skipped result in the release
+// profile. Register it only for the explicitly requested timing run.
+if (process.env.STARTUP_PERFORMANCE === '1') for (const view of ['flat','iso'])
+  test(`#1522 real cold performance ${view}`, async({browser},info)=>{
   test.setTimeout(240_000);
   await largeFloor(view);
   const warm=await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport,reducedMotion:'reduce'});

@@ -6,8 +6,8 @@
  */
 import { restorePlan, snapshotPlan } from './ha-ws.mjs';
 
-export function restoreSeedAfterEach(test) {
+export function restoreSeedAfterEach(test, options) {
   let seed;
   test.beforeAll(async () => { seed = await snapshotPlan(); });
-  test.afterEach(async () => { if (seed) await restorePlan(seed); });
+  test.afterEach(async () => { if (seed) await restorePlan(seed, options); });
 }
