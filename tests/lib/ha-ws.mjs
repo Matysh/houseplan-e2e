@@ -98,13 +98,13 @@ export async function importDocument(document, { duplicatePolicy = 'skip', confi
  * walls (`wall_model_client_outdated`). Then the snapshot goes back the way a
  * user restores a backup: the product's own full import of its own export.
  */
-export async function restorePlan(snapshot) {
+export async function restorePlan(snapshot, { prepareConfig = config => config } = {}) {
   const connection = await connect('admin');
   try {
     for (let attempt = 0; ; attempt++) {
       try {
         const config = await connection.call({ type: 'houseplan/config/get' });
-        await connection.call({ type: 'houseplan/config/set', config: snapshot.config, expected_rev: config.rev,
+        await connection.call({ type: 'houseplan/config/set', config: prepareConfig(snapshot.config, config.config), expected_rev: config.rev,
           ...(config.opening_features_api === 1 ? {opening_features_api:1} : {}) });
         const layout = await connection.call({ type: 'houseplan/layout/get' });
         await connection.call({ type: 'houseplan/layout/set', layout: snapshot.layout, expected_rev: layout.rev });

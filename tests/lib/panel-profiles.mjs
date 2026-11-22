@@ -21,14 +21,14 @@ export class ProfileFixture {
   constructor() { this.contexts = []; this.seed = null; this.viewer = null; this.mutated = false; this.createdIds = new Set(); }
   async setup({ legacy = false } = {}) {
     const saved = await planConfig();
-    expect([1, 2], 'actual HA backend supports an explicit known profile API').toContain(saved.external_screens_api);
+    expect([1, 2, 3], 'actual HA backend supports an explicit known profile API').toContain(saved.external_screens_api);
     this.api = saved.external_screens_api;
     expect(saved.external_screens_events_api, 'actual HA backend supports authenticated profile events').toBe(1);
     this.seed = structuredClone(saved.config);
     const previous = profileNamespace(this.seed) || { version: legacy ? 1 : this.api, next_id: 1, screens: [] };
-    expect([1, 2], 'profile fixture requires a supported namespace').toContain(previous.version);
+    expect([1, 2, 3], 'profile fixture requires a supported namespace').toContain(previous.version);
     const version = legacy ? 1 : this.api;
-    if (legacy) expect(previous.version, 'legacy migration fixture runs before any native v2 profile Save').toBe(1);
+    if (legacy) expect(previous.version, 'legacy migration fixture runs before any native profile Save').toBe(1);
     expect(previous.screens.length).toBeLessThanOrEqual(18);
     const config = structuredClone(this.seed), id = previous.next_id;
     expect(Number.isSafeInteger(id) && id < Number.MAX_SAFE_INTEGER - 2, 'fixture has two fresh IDs available').toBe(true);
@@ -36,9 +36,9 @@ export class ProfileFixture {
     this.createdIds.add(id); this.createdIds.add(id + 1);
     const legacyProfile = { ...legacyScreenDefaults(id), space: 'f2', rotation: 90, summary: 'show',
       hidden_devices: 'show', icon_scale: 1.75, font_scale: 1.5, controls: false };
-    this.profile = version === 2 ? currentProfile(legacyProfile) : legacyProfile;
+    this.profile = version >= 2 ? currentProfile(legacyProfile) : legacyProfile;
     config.settings.external_screens = { ...previous, version, next_id: id + 2,
-      screens: [...previous.screens.map(row => version === 2 ? currentProfile(row) : row), this.profile,
+      screens: [...previous.screens.map(row => version >= 2 ? currentProfile(row) : row), this.profile,
         { ...screenDefaults(id + 1, version), space: 'f2' }] };
     const hidden = config.markers.find(marker => marker.id === HIDDEN_MARKER);
     expect(hidden?.space).toBe('f2');
@@ -99,7 +99,7 @@ export class ProfileFixture {
           const unowned = (now?.screens || []).filter(row => !this.createdIds.has(row.id) && !originalIds.has(row.id));
           const screens = [...(original?.screens || []), ...unowned];
           const version = Math.max(original?.version || 1, now?.version || 1);
-          const restoredScreens = version === 2 ? screens.map(currentProfile) : screens;
+          const restoredScreens = version >= 2 ? screens.map(currentProfile) : screens;
           config.settings.external_screens = { ...(original || {}), version, next_id, screens: restoredScreens };
           try {
             await wsCall({ type: 'houseplan/config/set', expected_rev: current.rev, config });
