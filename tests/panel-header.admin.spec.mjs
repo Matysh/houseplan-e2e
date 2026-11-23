@@ -286,7 +286,11 @@ test('#1428 native editor/dialog return and composite keyboard focus use one bor
     const full=card(page);await expectPlanDrawn(page,full);
     const staticButton=page.locator('houseplan-space-card button.hp-static-btn.on').first();
     await expect(staticButton).toBeVisible();
-    await tabTo(page,full.locator(HP.settings).first());
+    // Masonry can present the actions behind the native overflow trigger.
+    const fullAction=full.locator(HP.settings+':visible')
+      .or(full.locator('[data-hp="header-actions-trigger"]:visible')).first();
+    await expect(fullAction).toBeVisible();
+    await tabTo(page,fullAction);await oneBorder(fullAction);
     await tabTo(page,staticButton);await oneBorder(staticButton);
     await page.keyboard.press('Escape');await noOuterFocus(staticButton);
     await tabTo(page,staticButton);await oneBorder(staticButton);

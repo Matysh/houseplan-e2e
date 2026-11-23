@@ -6,7 +6,7 @@ import {openPlan,enterEditor,leaveEditor,selectSpace,spaceTab} from './lib/plan.
 import {headerActionTarget} from './lib/header-actions.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
 import {wsCall} from './lib/ha-ws.mjs';
-import {callService,getState,waitForState} from './lib/ha-api.mjs';
+import {callService,config as haConfig,getState,waitForState} from './lib/ha-api.mjs';
 import {HP} from './lib/hooks.mjs';
 import {A,B,ENTITY,NAMES,marker,tooltip,installTooltipFixture,placeMarkers,observeMotion,
  point,move,outside,shown,painted,openTip,readTip,sameAnchor} from './lib/device-tooltip-50.mjs';
@@ -15,6 +15,10 @@ requireHooks(test,'live-tooltip','device','mode-tab','editor-close','space-tab')
 restoreSeedAfterEach(test);
 let dashboardId,initialLight;
 test.beforeAll(async()=>{
+ // The addressed suite can run this file before HA finishes starting integrations.
+ await expect.poll(async () => (await haConfig()).state, {
+  timeout: 150_000, message: 'Home Assistant core is still starting',
+ }).toBe('RUNNING');
  const dashboard=await wsCall({type:'lovelace/dashboards/create',url_path:'tooltip-50',title:'Tooltip 50',
   show_in_sidebar:false,require_admin:false});dashboardId=dashboard.id;
  const config={views:[{title:'Masonry',path:'masonry',type:'masonry',cards:[
@@ -66,17 +70,31 @@ for(const surface of ['panel','masonry'])test(`device tooltip holds its anchor t
 test('device tooltip dwell and motion retire neighbouring visits, resize and reduced motion',async({page},testInfo)=>{
  let host=await openPlan(page,{space:'f1'});const a=await point(host),b=await point(host,B);
  await outside(page,host);const before=await readTip(host);
- await move(page,a);await page.waitForTimeout(45);expect((await readTip(host)).active).toBe(false);
+ // Keep transitions native. Use actual incoming pointer events to time the
+ // dwell, so real-HA browser work between protocol calls cannot age a sample.
+ await move(page,a);
  await move(page,{x:3,y:3});await page.waitForTimeout(230);
  expect((await readTip(host)).motionCount).toBe(before.motionCount);await expect(tooltip(host)).toBeHidden();
- const start=await page.evaluate(()=>performance.now());await move(page,a);await shown(host);
- const entering=await readTip(host);expect(entering.motions.at(-1).at-start).toBeGreaterThanOrEqual(100);
+ await move(page,a);await shown(host);
+ const entering=await readTip(host);
+ const motionAt=(events,point)=>events.findLast(event=>event.type==='pointermove'&&event.trusted
+  &&Math.abs(event.x-point.x)<1&&Math.abs(event.y-point.y)<1);
+ const firstVisit=motionAt(entering.events,a);
+ expect(firstVisit,'native pointer entered the first marker').toBeTruthy();
+ expect(entering.motions.at(-1).at-firstVisit.at).toBeGreaterThanOrEqual(100);
  expect(entering.running.some(m=>m.duration===180&&m.frames[0].opacity===0&&m.frames.at(-1).opacity===1)).toBe(true);
  await painted(host);await page.mouse.move(3,3);const leaving=await readTip(host);
  expect(leaving.hidden).toBe(false);expect(leaving.running.some(m=>m.duration===140&&m.frames.at(-1).opacity===0)).toBe(true);
  await expect(tooltip(host)).toBeHidden();
- await move(page,a);await page.waitForTimeout(70);await move(page,b);await page.waitForTimeout(80);
- expect((await readTip(host)).active).toBe(false);await shown(host,B);await painted(host);
+ const beforeHandoff=await readTip(host);
+ await move(page,a);await move(page,b);
+ await shown(host,B);
+ const handoff=await readTip(host);
+ const visit=motionAt(handoff.events,b);
+ expect(visit,'native pointer entered the neighbouring marker').toBeTruthy();
+ expect(handoff.motionCount).toBe(beforeHandoff.motionCount+1);
+ expect(handoff.motions.at(-1).at-visit.at).toBeGreaterThanOrEqual(100);
+ await painted(host);
  await move(page,a);await shown(host);await painted(host);await page.waitForTimeout(230);
  await expect(tooltip(host).locator('b').first()).toHaveText(NAMES[A]);
  await outside(page,host);await placeMarkers({[A]:{s:'f1',x:.93,y:.84}});

@@ -26,7 +26,7 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   await expectFloor(host, fixture, 'f2');
   const profileAngle = await planDirection(host, fixture.rooms.f2[0]);
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  if (fixture.api >= 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
   else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expect(host.locator(hp('summary-toggle'))).toHaveCount(0);
   await expect(host.locator(hp('summary-settings'))).toHaveCount(0);
@@ -49,8 +49,8 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
   expect(profileOf((await planConfig()).config, fixture.id)).toEqual(fixture.profile);
   expect(wire.receipt.commands.filter(command => command.type === 'houseplan/config/set')).toHaveLength(0);
   await attachProfileReceipt(testInfo, 'cold-profile-real-ws.json', wire);
-  if (fixture.api === 2) {
-    // The legacy reader is intentionally tested before current-v2 fixtures.
+  if (fixture.api >= 2) {
+    // The legacy reader is exercised before saving the current schema.
     // Read and both cancellation paths must not eagerly write a migration.
     const legacy = await planConfig();
     expect(profileNamespace(legacy.config).version).toBe(1);
@@ -93,14 +93,14 @@ test('a cold saved profile opens its floor, rotation, sizes and display defaults
       const migrated = await planConfig();
       expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
       expect(ack.rev).toBe(migrated.rev); expect(migrated.rev).toBeGreaterThan(legacy.rev);
-      expect(profileNamespace(migrated.config).version).toBe(2);
+      expect(profileNamespace(migrated.config).version).toBe(fixture.api);
       expect(profileOf(migrated.config, fixture.id)).toEqual(currentProfile(fixture.profile));
       await page.reload(); await expectPlanDrawn(page, card(page));
       const reloaded = await planConfig();
       expect(reloaded.config).toEqual(migrated.config); expect(reloaded.rev).toBe(migrated.rev);
       await wire.settle();
       expect(configSetCount()).toBe(1); expect(wire.saveAcks()).toHaveLength(1);
-      await evidence(testInfo, page, 'legacy-profile-native-v2-migration');
+      await evidence(testInfo, page, 'legacy-profile-native-migration');
     } finally {
       await attachProfileReceipt(testInfo, 'legacy-profile-cancel-save-real-ws.json', wire);
     }
@@ -194,7 +194,7 @@ test('URL overrides outrank profile and native local choices without persisting 
 
   host = await openProfile(page, fixture.id, 'hpkiosk=0');
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  if (fixture.api >= 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
   else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expectSizes(page, host, 175, 150);
   const profileAngle = await planDirection(host, fixture.rooms.f2[0]);
@@ -210,9 +210,9 @@ test('URL overrides outrank profile and native local choices without persisting 
 
   // Invalid values fall through to the saved profile rather than to locals.
   host = await openProfile(page, fixture.id,
-    'hprotate=45&hpsummary=no&hphidden=2&hpicons=NaN&hptext=301&hpcontrols=maybe&hpcycle=-1&hpidle=bad');
+    'hprotate=44&hpsummary=no&hphidden=2&hpicons=NaN&hptext=301&hpcontrols=maybe&hpcycle=-1&hpidle=bad');
   await expect(host.locator(hp('summary-panel'))).toBeVisible();
-  if (fixture.api === 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
+  if (fixture.api >= 2) await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toHaveCount(0);
   else await expect(host.locator(hp('device', { id: HIDDEN_MARKER }))).toBeVisible();
   await expectSizes(page, host, 175, 150);
   expectQuarterTurn(profileAngle, await planDirection(host, fixture.rooms.f2[0]), 0);
