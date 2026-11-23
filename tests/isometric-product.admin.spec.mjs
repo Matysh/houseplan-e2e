@@ -4,6 +4,7 @@
 import {test,expect} from '@playwright/test';
 import {isDeepStrictEqual} from 'node:util';
 import {HA_URL} from '../scripts/users.mjs';
+import {compareTags} from '../scripts/tags.mjs';
 import {installedRecord,requireHooks} from './lib/contract.mjs';
 import {card,evidence,expectPlanDrawn} from './lib/ha-page.mjs';
 import {importDocument,planConfig,planLayout,snapshotPlan,spaceOf,waitForConfig,wsCall} from './lib/ha-ws.mjs';
@@ -79,10 +80,14 @@ async function turn(host){
   await expect(stage(host)).not.toHaveAttribute('data-rotation',before);await settle(host);
 }
 
+const hasStraightViews=()=>!installedRecord()?.version
+  || compareTags('v'+installedRecord().version,'v1.86.1-beta.1')>=0;
+const cameraYaw=rotation=>hasStraightViews()&&rotation%90!==0 ? (rotation+45)%360 : 35+rotation;
+
 async function assertProfile(host,rotation,profile='iso'){
   await expect(stage(host)).toHaveAttribute('data-projection',profile);
   await expect(stage(host)).toHaveAttribute('data-rotation',String(rotation));
-  expect(Number(await stage(host).getAttribute('data-yaw'))).toBe(profile==='iso'?35+rotation:rotation);
+  expect(Number(await stage(host).getAttribute('data-yaw'))).toBe(profile==='iso'?cameraYaw(rotation):rotation);
   expect(Number(await stage(host).getAttribute('data-floor-scale-y'))).toBeCloseTo(profile==='iso'?Math.sin(40*Math.PI/180):1,8);
 }
 
@@ -109,7 +114,7 @@ async function history(host,direction){
   await expect(button).toBeEnabled();await button.click();await settle(host);
 }
 
-for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses four accepted camera sides and a read-only Flat editor round-trip`,async({page},info)=>{
+for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses all camera sides and a read-only Flat editor round-trip`,async({page},info)=>{
   test.setTimeout(180000);await page.setViewportSize({width:1480,height:1080});
   await installFurniture();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -130,12 +135,13 @@ for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses four acc
     await enableVolume(host);
     expect(await page.locator('html').getAttribute('data-ui-lab-camera1451')).toBeNull();
     expect(new URL(page.url()).searchParams.has('view1451')).toBe(false);
-    for(let i=0;i<4&&await stage(host).getAttribute('data-rotation')!=='0';i++)await turn(host);
+    const angles=hasStraightViews()?[0,45,90,135,180,225,270,315]:[0,90,180,270];
+    for(let i=0;i<angles.length&&await stage(host).getAttribute('data-rotation')!=='0';i++)await turn(host);
     const before=await pair(),writeCount=writes.length;
-    for(const rotation of [0,90,180,270]){
+    for(const rotation of angles){
       await assertProfile(host,rotation);
       for(const id of ids)await expect(volume(host,id).first()).toBeVisible();
-      await evidence(info,page,`${surface}-volume-${35+rotation}`);
+      await evidence(info,page,`${surface}-volume-${cameraYaw(rotation)}`);
       await turn(host);
     }
     await assertProfile(host,0);

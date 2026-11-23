@@ -29,8 +29,10 @@ export async function observeMotion(page) {
   window.__tooltip50Events=[];
   for(const type of ['pointerover','pointermove','pointerleave','focusin'])document.addEventListener(type,event=>{
    const target=event.composedPath().find(node=>node instanceof Element&&node.matches('[data-hp="device"]'));
-   if(target)window.__tooltip50Events.push({type,at:performance.now(),trusted:event.isTrusted,
-    x:event.clientX,y:event.clientY,id:target.getAttribute('data-id')});
+   // View can route a hit through the plan surface while keeping the icon
+   // pointer-transparent. Record the native motion even for delegated hits.
+   if(target||type==='pointermove')window.__tooltip50Events.push({type,at:performance.now(),trusted:event.isTrusted,
+    x:event.clientX,y:event.clientY,id:target?.getAttribute('data-id')??null});
   },true);
   const animate=Element.prototype.animate;
   Element.prototype.animate=function(frames,options){
