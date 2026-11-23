@@ -244,9 +244,27 @@ export async function saveProfileSettings(dialog, wire) {
   return wire?.saveAcks().at(-1);
 }
 export async function sizeDialog(page, host) {
-  const surface = stage(host); await surface.scrollIntoViewIfNeeded();
-  const box = await surface.boundingBox();
-  await page.mouse.move(box.x + 8, box.y + 8);
+  const surface = stage(host); await surface.scrollIntoViewIfNeeded(); await settle(host);
+  let point;
+  await expect.poll(async () => {
+    point = await surface.evaluate(svg => {
+      const stage = svg.closest('.stage');
+      if (!stage || svg.closest('[inert]')) return null;
+      const root = svg.getRootNode();
+      const box = svg.getBoundingClientRect();
+      const exclusion = '[data-scene-surface],.summary-overlay,.summary-control,.recoveryoverlay,.dev,.roomlabel,.oplock,[inert]';
+      // The header, summary and floor status can cover a fixed corner. Hold
+      // an empty, visible point of the live plan, as a user would.
+      for (const [u,v] of [[.05,.05],[.95,.05],[.05,.9],[.95,.9],[.5,.9]]) {
+        const x=box.left+u*box.width, y=box.top+v*box.height;
+        const hit=root.elementFromPoint(x,y);
+        if (hit && stage.contains(hit) && !hit.closest(exclusion)) return {x,y};
+      }
+      return null;
+    });
+    return point !== null;
+  }, {message:'find an unobscured plan point for the native kiosk hold'}).toBe(true);
+  await page.mouse.move(point.x, point.y);
   const dialog = host.locator(HP.dialog('kiosk')).first();
   await page.mouse.down();
   // The browser may deliver its 3s hold callback after 3100ms under load.
