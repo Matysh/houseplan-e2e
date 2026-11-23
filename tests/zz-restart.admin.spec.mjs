@@ -2,7 +2,7 @@
 // blip): the plan must come back alive without the user reloading anything.
 // Runs last in the main suite because it takes HA down for ~15 s.
 import { test, expect } from '@playwright/test';
-import { callService, waitForState } from './lib/ha-api.mjs';
+import { callService, config, waitForState } from './lib/ha-api.mjs';
 import { restartHa } from './lib/ha-ctl.mjs';
 import { card, deviceMarker, evidence, expectPlanDrawn } from './lib/ha-page.mjs';
 
@@ -18,6 +18,11 @@ test('an open plan survives a Home Assistant restart and is live again', async (
   await expect(marker).toHaveAttribute('data-state', 'neutral');
 
   restartHa();
+  // HTTP routes and the House Plan bundle can be live while HA is still
+  // starting integrations. Drive the demo light only once core is running.
+  await expect.poll(async () => (await config()).state, {
+    timeout: 150_000, message: 'Home Assistant core has not finished the restart',
+  }).toBe('RUNNING');
   // HA's frontend reconnects its websocket on its own; the card must resume
   // without a page reload — no reload here on purpose
   await expect(host).toBeVisible();
