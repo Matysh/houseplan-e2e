@@ -63,13 +63,17 @@ async function setHouse(projection, rotation, profile, centered = profile) {
     {id:'t1522-cabinet',kind:'furniture',symbol:'cabinet_tv',x:.25,y:.275,w:.15,h:.06,color:'#627783'},
   );
   config.settings.volumetric_view = projection === 'iso';
+  let screenId;
   if (profile) {
-    const row = {...screenDefaults(2),default_view:{...viewDefaults(),view:projection,rotation,
+    const previous = config.settings.external_screens ?? {next_id:1,screens:[]};
+    screenId = previous.next_id;
+    const row = {...screenDefaults(screenId),default_view:{...viewDefaults(),view:projection,rotation,
       ...(centered?{center_summary:true,summary:'show'}:{})}};
-    config.settings.external_screens = {version:3,next_id:3,screens:[row]};
+    config.settings.external_screens = {version:3,next_id:screenId+1,screens:[...previous.screens,row]};
   }
   await wsCall({type:'houseplan/config/set',config,expected_rev:current.rev,
     opening_features_api:1,furniture_workstation_api:1});
+  return screenId;
 }
 
 function measure(root, elements) {
@@ -127,8 +131,8 @@ const sample = async (host, preview) => host.evaluate(async (c, {preview,measure
 
 async function checkScene(browser, projection, rotation, profile, testInfo) {
   expect(new URL(HA_URL).hostname).toBe('127.0.0.1');
-  await setHouse(projection,rotation,profile);
-  const path = profile ? '/houseplan?hpprofile=2&hpspace=1' : '/houseplan';
+  const screenId = await setHouse(projection,rotation,profile);
+  const path = profile ? `/houseplan?hpprofile=${screenId}&hpspace=1` : '/houseplan';
   const warm = await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport});
   let put;
   try {
@@ -220,9 +224,9 @@ for (const [projection,rotation,profile] of [['flat',0,false],['iso',0,false],['
 
 test('#1522 local #1520 preview waits for a late centred summary instead of being discarded', async({browser})=>{
   expect(new URL(HA_URL).hostname).toBe('127.0.0.1');
-  await setHouse('iso',45,true,true);
+  const screenId = await setHouse('iso',45,true,true);
   const context=await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport,reducedMotion:'reduce'});
-  const url='/houseplan?hpprofile=2&hpspace=1';
+  const url=`/houseplan?hpprofile=${screenId}&hpspace=1`;
   try {
     const warm=await context.newPage();
     await warm.goto(url);
@@ -272,9 +276,25 @@ test('#1522 a delayed 2.5D packet cannot show after a value badge changes footpr
   try {
     await change('19');
     warm=await browser.newContext(options);
-    const warmPage=await warm.newPage(); await warmPage.goto('/houseplan');
+    const warmPage=await warm.newPage();
+    let warmWrite;
+    await downlink(warmPage, message => {
+      if (message.type === 'houseplan/startup_floor/put') warmWrite = message;
+      return false;
+    });
+    await warmPage.goto('/houseplan');
     const warmHost=card(warmPage); await expectPlanDrawn(warmPage,warmHost);
     await expect.poll(async()=> (await facts(warmHost))?.remote,{timeout:10_000}).toBe('stored');
+    expect(warmWrite).toBeTruthy();
+    const {id: writeId, type: writeType, packet, ...address} = warmWrite;
+    const read = {type:'houseplan/startup_floor/get', ...address};
+    // Take a genuine server hit before introducing the delayed reply. A
+    // transient cache miss must not stand in for the packet under test.
+    let serverReply;
+    await expect.poll(async () => {
+      serverReply = await wsCall(read);
+      return serverReply.packet === packet;
+    }, {timeout:10_000, message:'The server returns the exact warmed packet'}).toBe(true);
     await warmHost.evaluate(c=>{
       const variant=c._startupRemoteVariant;
       c.__warmedStartupVariantReads=0;
@@ -296,11 +316,8 @@ test('#1522 a delayed 2.5D packet cannot show after a value badge changes footpr
       if(request.type!=='houseplan/startup_floor/get'||!first) return false;
       first=false;
       const {id,...command}=request;
-      void wsCall(command).then(async response=>{
-        loadedReply({response,request});
-        await held;
-        route.send(JSON.stringify({id,type:'result',success:true,result:response}));
-      });
+      loadedReply(command);
+      void held.then(() => route.send(JSON.stringify({id,type:'result',success:true,result:serverReply})));
       return true;
     });
     await page.route('**/floor-worker-*.js',async route=>{
@@ -309,10 +326,10 @@ test('#1522 a delayed 2.5D packet cannot show after a value badge changes footpr
     await page.goto('/houseplan',{waitUntil:'domcontentloaded'});
     const host=card(page);
     const stale=await pending;
-    expect(typeof stale.response.packet).toBe('string');
+    expect(stale).toEqual(read);
     await change('12345.67');
     await expect.poll(async()=> (await status(host)).selection?.remote?.variant,{timeout:2_600})
-      .not.toBe(stale.request.variant);
+      .not.toBe(stale.variant);
     closeReply();
     await expectPlanDrawn(page,host);
     expect((await facts(host)).shown).toBe(0);

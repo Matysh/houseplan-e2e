@@ -104,7 +104,15 @@ export async function restorePlan(snapshot) {
     for (let attempt = 0; ; attempt++) {
       try {
         const config = await connection.call({ type: 'houseplan/config/get' });
-        await connection.call({ type: 'houseplan/config/set', config: snapshot.config, expected_rev: config.rev,
+        const savedScreens = snapshot.config.settings?.external_screens;
+        const liveScreens = config.config.settings?.external_screens;
+        // Teardown restores the saved rows and retains the server's allocated ID counter.
+        const restored = liveScreens?.next_id > (savedScreens?.next_id ?? 1)
+          ? { ...snapshot.config, settings: { ...snapshot.config.settings,
+            external_screens: { version: liveScreens.version, screens: [], ...savedScreens, next_id: liveScreens.next_id },
+          } }
+          : snapshot.config;
+        await connection.call({ type: 'houseplan/config/set', config: restored, expected_rev: config.rev,
           ...(config.opening_features_api === 1 ? {opening_features_api:1} : {}) });
         const layout = await connection.call({ type: 'houseplan/layout/get' });
         await connection.call({ type: 'houseplan/layout/set', layout: snapshot.layout, expected_rev: layout.rev });
