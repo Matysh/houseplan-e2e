@@ -36,9 +36,12 @@ export async function observeMotion(page) {
   },true);
   const animate=Element.prototype.animate;
   Element.prototype.animate=function(frames,options){
-   if(this.matches('[data-hp="live-tooltip"]'))window.__tooltip50.push({at:performance.now(),
-    duration:options?.duration,frames:Array.isArray(frames)?frames.map(f=>({...f})):frames});
-   return animate.call(this,frames,options);
+   const at=performance.now();
+   const animation=animate.call(this,frames,options);
+   if(this.matches('[data-hp="live-tooltip"]'))window.__tooltip50.push({at,
+    hiddenAtCreation:this.hidden,duration:animation.effect.getTiming().duration,
+    frames:animation.effect.getKeyframes().map(f=>({opacity:Number(f.opacity),translate:f.translate}))});
+   return animation;
   };
  });
 }
