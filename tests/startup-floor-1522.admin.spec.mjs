@@ -366,8 +366,9 @@ async function timings(browser, mode, optional) {
   } finally { await context.close(); }
 }
 
-for (const view of ['flat','iso']) test(`#1522 real cold performance ${view}`, async({browser},info)=>{
-  test.skip(!process.env.STARTUP_PERFORMANCE,'Use STARTUP_PERFORMANCE=1 for measurement');
+// Opt-in diagnostics are listed only for the explicit startup measurement.
+const performanceViews = process.env.STARTUP_PERFORMANCE ? ['flat', 'iso'] : [];
+for (const view of performanceViews) test(`#1522 real cold performance ${view}`, async({browser},info)=>{
   test.setTimeout(240_000);
   await largeFloor(view);
   const warm=await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport,reducedMotion:'reduce'});
