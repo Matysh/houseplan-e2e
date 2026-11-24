@@ -82,9 +82,16 @@ test('device tooltip dwell and motion retire neighbouring visits, resize and red
  const firstVisit=motionAt(entering.events,a);
  expect(firstVisit,'native pointer entered the first marker').toBeTruthy();
  expect(entering.motions.at(-1).at-firstVisit.at).toBeGreaterThanOrEqual(100);
- expect(entering.running.some(m=>m.duration===180&&m.frames[0].opacity===0&&m.frames.at(-1).opacity===1)).toBe(true);
- await painted(host);await page.mouse.move(3,3);const leaving=await readTip(host);
- expect(leaving.hidden).toBe(false);expect(leaving.running.some(m=>m.duration===140&&m.frames.at(-1).opacity===0)).toBe(true);
+ // The ordinary browser animation can finish before the next Playwright
+ // round-trip. Assert the actual effect at creation, not its later playState.
+ const fadeIn=entering.motions.at(-1);
+ expect(fadeIn).toMatchObject({duration:180,hiddenAtCreation:false});
+ expect(fadeIn.frames[0].opacity).toBe(0);expect(fadeIn.frames.at(-1).opacity).toBe(1);
+ await painted(host);await page.mouse.move(3,3);
+ await expect.poll(async()=>(await readTip(host)).motionCount).toBe(entering.motionCount+1);
+ const leaving=await readTip(host),fadeOut=leaving.motions.at(-1);
+ expect(fadeOut).toMatchObject({duration:140,hiddenAtCreation:false});
+ expect(fadeOut.frames.at(-1).opacity).toBe(0);
  await expect(tooltip(host)).toBeHidden();
  const beforeHandoff=await readTip(host);
  await move(page,a);await move(page,b);
@@ -106,8 +113,10 @@ test('device tooltip dwell and motion retire neighbouring visits, resize and red
  if(resized.active){expect(resized.right).toBeLessThanOrEqual(resized.width-7);expect(resized.motionCount).toBe(edge.motionCount);}
  else await expect(tooltip(host)).toBeHidden(); // a real relocation can move the target out from under the pointer
  await outside(page,host);await page.emulateMedia({reducedMotion:'reduce'});
+ const beforeReduced=await readTip(host);
  const reduced=await openTip(page,host);expect(reduced.opacity).toBe(1);expect(reduced.running).toEqual([]);
  await page.mouse.move(3,3);await expect(tooltip(host)).toBeHidden();
+ expect((await readTip(host)).motionCount).toBe(beforeReduced.motionCount);
  await evidence(testInfo,page,'tooltip-at-edge');
  await testInfo.attach('tooltip-motion',{body:JSON.stringify({entering,leaving,edge,resized,reduced},null,2),contentType:'application/json'});
 });
