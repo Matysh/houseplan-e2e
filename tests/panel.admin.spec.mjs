@@ -10,6 +10,7 @@ import { expectPanelShell } from './lib/panel-shell.mjs';
 import { card, deviceMarker, editorTabs, expectPlanDrawn, spaceEntries, spaceTabs } from './lib/ha-page.mjs';
 import { hp } from './lib/hooks.mjs';
 import { checkReleaseRaster } from './lib/iso-raster-release.mjs';
+import { checkWallBaseRelease } from './lib/wall-base-release.mjs';
 
 const LAMP = 'light.wall_lamp_1';
 
@@ -35,6 +36,7 @@ test.describe('House Plan sidebar panel', () => {
     await expect(panel.locator('[role="heading"]')).toHaveCount(hasBeta4PanelContract() ? 0 : 1);
     if (hasBeta4PanelContract()) await expectPanelShell(panel, host);
     await checkReleaseRaster(page, info);
+    await checkWallBaseRelease(page, info);
   });
 
   test('lists the spaces in one select on this window and as tabs on a wide one', async ({ page }) => {
