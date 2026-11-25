@@ -9,6 +9,42 @@ import {importDocument,planConfig,snapshotPlan,spaceOf,wsCall} from './ha-ws.mjs
 import {stage,selectSpace,settle} from './plan.mjs';
 import {pair,watchWrites} from './beta4-regressions.mjs';
 
+// A settled, painted canvas beside the declared plan stage witnesses the
+// live 3D renderer. The old gesture-only raster does not occupy this surface.
+// Test the actual visible output; a canvas element alone can be blank.
+export function liveFrame(svg,{green=true}={}) {
+  // The 3D canvas sits beside the scene wrapper, not inside its hit SVG.
+  for(const source of svg.parentElement.parentElement.children){
+    if(!(source instanceof HTMLCanvasElement)||!source.width||!source.height)continue;
+    const rect=source.getBoundingClientRect(),style=getComputedStyle(source);
+    if(!rect.width||!rect.height||style.visibility==='hidden'||style.display==='none'||Number(style.opacity)===0)continue;
+    const small=document.createElement('canvas');
+    small.width=160;small.height=Math.max(1,Math.round(160*source.height/source.width));
+    const ctx=small.getContext('2d');ctx.drawImage(source,0,0,small.width,small.height);
+    const data=ctx.getImageData(0,0,small.width,small.height).data;
+    let wall=0,painted=0,signature=0;
+    for(let i=0;i<data.length;i+=4){
+      if(data[i+3]>=246&&data[i+1]>data[i]+12&&data[i+1]>data[i+2]+8)wall++;
+      if(data[i+3]>=246)painted++;
+      signature=(Math.imul(signature,31)+data[i]+3*data[i+1]+5*data[i+2]+7*data[i+3])|0;
+    }
+    if((green?wall:painted)>30)return {wall,painted,signature,view:svg.getAttribute('viewBox'),size:[source.width,source.height]};
+  }
+  return null;
+}
+
+export async function observeNativeWheel(host,options={}){
+  const frames=[];
+  const until=Date.now()+3500;
+  while(Date.now()<until){
+    const frame=await stage(host).evaluate(liveFrame,options);
+    if(frame)frames.push(frame);
+    await new Promise(resolve=>setTimeout(resolve,45));
+  }
+  return {active:frames.length,coloured:Math.max(0,...frames.map(frame=>frame.wall)),
+    vectorChanges:new Set(frames.map(frame=>frame.view)).size,paints:new Set(frames.map(frame=>frame.signature)).size};
+}
+
 export async function checkReleaseRaster(page,info){
   const version=installedRecord()?.version;
   if(version&&Number(version.split('.')[0])===1&&Number(version.split('.')[1])<86){
@@ -57,10 +93,15 @@ export async function checkReleaseRaster(page,info){
     await expect(stage(host)).toHaveAttribute('data-projection','iso');await settle(host);
     expect(await page.evaluate(()=>innerWidth*innerHeight*devicePixelRatio**2),'the whole window is below the old 6M cutoff').toBeLessThan(6000000);
     const truth=await pair(),writeCount=writes.length;
-    await expect.poll(()=>page.evaluate(()=>window.__releaseRasterSources.length),{timeout:60000}).toBeGreaterThan(0);
+    let renderer;
+    await expect.poll(async()=>{
+      renderer=await stage(host).evaluate(liveFrame)?'webgl'
+        :await page.evaluate(()=>window.__releaseRasterSources.length)?'svg-raster':null;
+      return renderer;
+    },{timeout:60000,message:'the settled HA floor must paint a coloured live 3D canvas or build the legacy gesture raster'}).toBeTruthy();
     const samples=[];
     for(const direction of [1,-1]){
-      const observing=stage(host).evaluate(async svg=>{
+      const observing=renderer==='webgl'?observeNativeWheel(host):stage(host).evaluate(async svg=>{
         const root=svg.getRootNode(),end=performance.now()+3500;
         let active=0,coloured=0,maxArea=0,vectorChanges=0,view=svg.getAttribute('viewBox');
         const observer=new MutationObserver(()=>{const next=svg.getAttribute('viewBox');if(next!==view){vectorChanges++;view=next;}});
@@ -96,14 +137,22 @@ export async function checkReleaseRaster(page,info){
       }
       await lightUpdate;
       const result=await observing;
-      expect(result.active,'real HA panel must show a bitmap during wheel').toBeGreaterThan(0);
-      expect(result.coloured,'the actual bitmap retains opaque coloured wall pixels').toBeGreaterThan(30);
+      expect(result.active,'real HA panel must paint during wheel').toBeGreaterThan(0);
+      expect(result.coloured,'the visible output retains opaque coloured wall pixels').toBeGreaterThan(30);
+      if(renderer==='webgl'){
+        expect(result.vectorChanges,'the live plan responds to wheel input').toBeGreaterThan(1);
+        expect(result.paints,'the canvas must repaint as the camera changes').toBeGreaterThan(1);
+      }
       samples.push({direction,...result});
       await settle(host);
-      await expect.poll(()=>stage(host).evaluate(svg=>getComputedStyle(svg.parentElement).opacity)).toBe('1');
+      if(renderer==='webgl'){
+        await expect(stage(host)).toHaveAttribute('data-projection','iso');
+        await expect.poll(()=>stage(host).evaluate(liveFrame)).toBeTruthy();
+      }else await expect.poll(()=>stage(host).evaluate(svg=>getComputedStyle(svg.parentElement).opacity)).toBe('1');
     }
     const sources=await page.evaluate(()=>window.__releaseRasterSources);
-    expect(sources.length).toBeGreaterThan(0);
+    if(renderer==='webgl')expect(sources,'the live renderer needs no legacy SVG bitmap').toEqual([]);
+    else expect(sources.length).toBeGreaterThan(0);
     for(const source of sources){
       expect(source.materials['--iso-side-mid']).toBe('#246844');
       expect(source.materials['--iso-top-hi']).toBe('#481477');
@@ -118,7 +167,7 @@ export async function checkReleaseRaster(page,info){
     expect(await pair()).toEqual(truth);
     expect(writes.slice(writeCount)).toEqual([]);expect(services).toEqual([]);
     await evidence(info,page,'iso-raster-after-real-wheel');
-    await info.attach('iso-raster-real-ha.json',{body:JSON.stringify({version,samples,sources:sources.length,storedPairUnchanged:true},null,2),contentType:'application/json'});
+    await info.attach('iso-raster-real-ha.json',{body:JSON.stringify({version,renderer,samples,sources:sources.length,storedPairUnchanged:true},null,2),contentType:'application/json'});
   }finally{
     await page.goto('about:blank');
     await callService('light',originalLight.state==='on'?'turn_on':'turn_off',{entity_id:lamp});

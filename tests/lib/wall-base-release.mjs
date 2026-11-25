@@ -8,6 +8,7 @@ import { card, evidence, expectPlanDrawn } from './ha-page.mjs';
 import { importDocument, planConfig, snapshotPlan, spaceOf, wsCall } from './ha-ws.mjs';
 import { selectSpace, settle, stage } from './plan.mjs';
 import { hp } from './hooks.mjs';
+import { liveFrame, observeNativeWheel } from './iso-raster-release.mjs';
 
 export async function checkWallBaseRelease(page, info) {
   const version = installedRecord()?.version;
@@ -34,6 +35,17 @@ export async function checkWallBaseRelease(page, info) {
     context = await page.context().browser().newContext({baseURL:HA_URL,
       storageState:await page.context().storageState(),viewport:{width:684,height:893},deviceScaleFactor:2});
     await context.addInitScript(() => {
+      globalThis.__wallBaseTextures=[];
+      const objectUrl=URL.createObjectURL;
+      URL.createObjectURL=function(blob){
+        if(blob.type.includes('image/svg+xml'))void blob.text().then(text=>{
+          const document=new DOMParser().parseFromString(text,'image/svg+xml');
+          const hatch=[...document.querySelectorAll('path')].filter(path=>path.getAttribute('fill')?.includes('#hp-wall-hatch'))
+            .map(path=>({d:path.getAttribute('d'),rule:path.getAttribute('fill-rule')||'nonzero'}));
+          if(hatch.length)globalThis.__wallBaseTextures.push(hatch);
+        }).catch(()=>{});
+        return objectUrl.call(this,blob);
+      };
       const original = globalThis.createImageBitmap.bind(globalThis);
       globalThis.createImageBitmap = async (...args) => {
         if (globalThis.__wallBaseWaitForBitmap) await new Promise(r=>setTimeout(r,850));
@@ -48,19 +60,58 @@ export async function checkWallBaseRelease(page, info) {
     await expectPlanDrawn(subject,host);await selectSpace(host,'f1');
     const svg=stage(host);
     await expect(svg).toHaveAttribute('data-projection','iso');
+    await settle(host);
     expect(await subject.evaluate(()=>devicePixelRatio)).toBe(2);
     const walls=host.locator(hp('wall',{kind:'union'}));
-    const inspect=()=>walls.evaluateAll((paths,points)=>{
+    let native=false;
+    await expect.poll(async()=>{
+      native=!!await svg.evaluate(liveFrame,{green:false});
+      return native||await walls.count()>0;
+    },{message:'paint an actual 3D frame or provide the legacy wall-base surface'}).toBe(true);
+    const probes={window,door,shoulders:[{x:window.x,y:window.y-.003},{x:window.x,y:window.y+.003}]};
+    const inspect=()=>native?svg.evaluate((_,points)=>{
+      const paths=globalThis.__wallBaseTextures.at(-1)||[];
+      const ctx=document.createElement('canvas').getContext('2d');
+      const contains=({x,y})=>paths.some(({d,rule})=>ctx.isPointInPath(new Path2D(d),x*1000,y*1000,rule));
+      return {window:contains(points.window),door:contains(points.door),
+        shoulders:points.shoulders.every(contains),paths:paths.map(path=>path.d)};
+    },probes):walls.evaluateAll((paths,points)=>{
       const contains=({x,y})=>paths.some(path=>path.isPointInFill(new DOMPoint(x*1000,y*1000)));
       return { window: contains(points.window), door: contains(points.door),
         shoulders: points.shoulders.every(contains), paths:paths.map(path=>path.getAttribute('d')) };
-    },{window,door,shoulders:[{x:window.x,y:window.y-.003},{x:window.x,y:window.y+.003}]});
+    },probes);
+    await expect.poll(async()=>(await inspect()).paths.length).toBeGreaterThan(0);
     const geometry=await inspect();
     expect(geometry.paths.length).toBeGreaterThan(0);
     expect(geometry).toMatchObject({window:true,door:false,shoulders:true});
     await selectSpace(host,'f2');await selectSpace(host,'f1');
+    if(native)await expect.poll(()=>svg.evaluate(liveFrame,{green:false})).toBeTruthy();
     expect(await inspect()).toEqual(geometry);
     await evidence(info,subject,'iso-wall-base-real-panel');
+    if(native){
+      const before=await svg.getAttribute('viewBox'), box=await svg.boundingBox();
+      const observation=observeNativeWheel(host,{green:false});
+      await subject.mouse.move(box.x+box.width*.68,box.y+box.height*.46);
+      for(let i=0;i<13;i++){
+        await subject.mouse.wheel(0,-100);
+        await subject.waitForTimeout(85);
+      }
+      const frames=await observation;
+      expect(frames.active,'paint the live canvas during DPR2 wheel input').toBeGreaterThan(0);
+      expect(frames.paints,'repaint geometry at distinct crops').toBeGreaterThan(1);
+      await settle(host);
+      await expect(svg).toHaveAttribute('data-projection','iso');
+      await expect(svg).not.toHaveAttribute('viewBox',before);
+      await expect.poll(()=>svg.evaluate(liveFrame,{green:false})).toBeTruthy();
+      expect(await inspect()).toEqual(geometry);
+      expect(await pair()).toEqual(truth);
+      expect(writes).toEqual([]);
+      expect(errors).toEqual([]);
+      await info.attach('wall-base-real-ha.json',{body:JSON.stringify({version,renderer:'webgl',dpr:2,frames,
+        windowContinuous:geometry.window,doorUnfilled:!geometry.door,sameGeometryAfterHandoff:true},null,2),
+        contentType:'application/json'});
+      return;
+    }
     // Warm one sharp bitmap at a serious zoom, then zoom out near a corner
     // while new bitmaps decode slowly; observe the actual retained pair.
     const box=await svg.boundingBox();
