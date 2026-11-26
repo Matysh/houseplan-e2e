@@ -69,20 +69,35 @@ export async function checkWallBaseRelease(page, info) {
       return native||await walls.count()>0;
     },{message:'paint an actual 3D frame or provide the legacy wall-base surface'}).toBe(true);
     const probes={window,door,shoulders:[{x:window.x,y:window.y-.003},{x:window.x,y:window.y+.003}]};
-    const inspect=()=>native?svg.evaluate((_,points)=>{
+    const inspect=()=>native?host.evaluate((card,points)=>{
+      const base=card._plan3dHost?.world.wallBase;
+      if(base){
+        // The first warm floor frame now draws the footprint into a texture
+        // bound to a plan-space mesh, independently of the decor SVG.
+        const mesh=base.children[0], image=mesh?.material.map?.image;
+        if(!mesh?.visible||!(image instanceof HTMLCanvasElement))return {paint:[]};
+        mesh.geometry.computeBoundingBox();
+        const {min,max}=mesh.geometry.boundingBox;
+        const ctx=image.getContext('2d');
+        const alpha=({x,y})=>ctx.getImageData(
+          Math.floor((x*1000-min.x)*image.width/(max.x-min.x)),
+          Math.floor((y*1000-min.z)*image.height/(max.z-min.z)),1,1).data[3];
+        const [window,door,...shoulders]=[points.window,points.door,...points.shoulders].map(alpha);
+        return {window:window>128,door:door>128,shoulders:shoulders.every(pixel=>pixel>128),
+          paint:[image.width,image.height,window,door,...shoulders]};
+      }
       const paths=globalThis.__wallBaseTextures.at(-1)||[];
       const ctx=document.createElement('canvas').getContext('2d');
       const contains=({x,y})=>paths.some(({d,rule})=>ctx.isPointInPath(new Path2D(d),x*1000,y*1000,rule));
       return {window:contains(points.window),door:contains(points.door),
-        shoulders:points.shoulders.every(contains),paths:paths.map(path=>path.d)};
+        shoulders:points.shoulders.every(contains),paint:paths.map(path=>path.d)};
     },probes):walls.evaluateAll((paths,points)=>{
       const contains=({x,y})=>paths.some(path=>path.isPointInFill(new DOMPoint(x*1000,y*1000)));
       return { window: contains(points.window), door: contains(points.door),
-        shoulders: points.shoulders.every(contains), paths:paths.map(path=>path.getAttribute('d')) };
+        shoulders: points.shoulders.every(contains), paint:paths.map(path=>path.getAttribute('d')) };
     },probes);
-    await expect.poll(async()=>(await inspect()).paths.length).toBeGreaterThan(0);
+    await expect.poll(async()=>(await inspect()).paint.length).toBeGreaterThan(0);
     const geometry=await inspect();
-    expect(geometry.paths.length).toBeGreaterThan(0);
     expect(geometry).toMatchObject({window:true,door:false,shoulders:true});
     await selectSpace(host,'f2');await selectSpace(host,'f1');
     if(native)await expect.poll(()=>svg.evaluate(liveFrame,{green:false})).toBeTruthy();
