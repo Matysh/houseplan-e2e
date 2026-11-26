@@ -5,6 +5,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {HA_URL, USERS} from '../scripts/users.mjs';
 import {card, expectPlanDrawn} from './lib/ha-page.mjs';
+import {HP} from './lib/hooks.mjs';
 import {accessToken, getState} from './lib/ha-api.mjs';
 import {importDocument, planConfig, planLayout, snapshotPlan, wsCall} from './lib/ha-ws.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
@@ -68,11 +69,14 @@ async function setHouse(projection, rotation, profile, centered = profile, stati
     floor.settings={...floor.settings,show_borders:true,show_names:false,
       fill_mode:'custom',custom_fill:{c:'#263649',a:1},glow:false};
     config.settings.sun_rays=false;
-    // The server snapshot deliberately omits live opening state, light
-    // and markers. Compare static geometry on a deterministic fixture;
-    // the other preview journeys exercise live state after the swap.
-    for(const opening of staticWitness ? floor.openings : []){
-      for(const field of ['entity','lock','cover','sensor'])delete opening[field];
+    if(staticWitness){
+      // Removing layout positions alone leaves explicit markers and devices
+      // discovered via room areas. Their live badges still change the fit key.
+      config.markers=[];
+      for(const room of floor.rooms)delete room.area;
+      for(const opening of floor.openings){
+        for(const field of ['entity','lock','cover','sensor'])delete opening[field];
+      }
     }
   }
   let screenId;
@@ -226,6 +230,7 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
     await page.goto(path,{waitUntil:'domcontentloaded'});
     const host=card(page);
     await expectPlanDrawn(page,host);
+    if(projection==='iso')await expect(host.locator(HP.device())).toHaveCount(0);
     await expect.poll(async()=> (await facts(host))?.remote,
       {timeout:10_000,message:JSON.stringify(await status(host))}).toBe('stored');
   } finally { await warm.close(); }
