@@ -24,10 +24,9 @@ async function browserSidebarPreference(page) {
 async function setHiddenPreference(page, hidden) {
   const control = await browserSidebarPreference(page);
   await expect(control).toBeEnabled();
-  // HA's native switch paints its thumb over the internal input. Click the
-  // custom-element host: its label activates that input through real pointer
-  // input. Keep the semantic input as the checked-state oracle (no force).
-  if (await control.isChecked() !== hidden) await page.locator('ha-force-narrow-row ha-switch').click();
+  // Activate HA's focusable switch with real keyboard input. The wrapper
+  // and the label hit target differ across HA frontend versions.
+  if (await control.isChecked() !== hidden) await control.press('Space');
   if (hidden) await expect(control).toBeChecked();
   else await expect(control).not.toBeChecked();
 }
