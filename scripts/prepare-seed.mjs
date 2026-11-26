@@ -2,11 +2,13 @@
 /**
  * Build the Home Assistant config directory an E2E run boots from.
  *
- *   node scripts/prepare-seed.mjs [--out=run] [--variant=house|empty]
+ *   node scripts/prepare-seed.mjs [--out=run] [--variant=house|empty|legacy-stairs]
  *
  * `empty` keeps the same Home Assistant (areas, devices, users, dashboards)
  * but removes every House Plan document, so the run starts where a new user
  * does: the integration is configured, no plan exists yet.
+ * `legacy-stairs` boots with the original configuration for #1269 and no
+ * current layout. The separate Playwright config avoids migrating it in setup.
  *
  * `seed/` is the pristine tree (derived from the public demo stand). It is
  * copied verbatim, then the parts that must never be committed are written:
@@ -16,7 +18,7 @@
  */
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
-import { cpSync, mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { USERS } from './users.mjs';
@@ -28,6 +30,7 @@ const arg = (name, fallback) => {
 };
 const out = resolve(ROOT, arg('out', 'run'));
 const variant = arg('variant', process.env.E2E_SEED_VARIANT || 'house');
+if (!['house', 'empty', 'legacy-stairs'].includes(variant)) throw new Error(`unknown seed variant ${variant}`);
 
 if (existsSync(out)) rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
@@ -49,13 +52,18 @@ writeFileSync(resolve(out, '.storage/core.uuid'), JSON.stringify({
   version: 1, minor_version: 1, key: 'core.uuid', data: { uuid: randomBytes(16).toString('hex') },
 }, null, 2) + '\n');
 
-if (variant === 'empty') {
+if (variant !== 'house') {
   for (const file of ['houseplan.config', 'houseplan.layout', 'houseplan.trails']) {
     rmSync(resolve(out, '.storage', file), { force: true });
   }
   rmSync(resolve(out, 'houseplan'), { recursive: true, force: true });
-} else if (variant !== 'house') {
-  throw new Error(`unknown seed variant ${variant}`);
+}
+if (variant === 'legacy-stairs') {
+  const file = resolve(ROOT, 'fixtures/regressions/legacy-stairs.json');
+  const config = JSON.parse(readFileSync(file, 'utf8'));
+  writeFileSync(resolve(out, '.storage/houseplan.config'), JSON.stringify({
+    version: 1, minor_version: 1, key: 'houseplan.config', data: { config, rev: 1 },
+  }, null, 2) + '\n');
 }
 writeFileSync(resolve(out, '.e2e-seed.json'), JSON.stringify({ variant }, null, 2) + '\n');
 

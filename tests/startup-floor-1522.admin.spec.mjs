@@ -1,11 +1,13 @@
 import {test, expect, devices} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {HA_URL, USERS} from '../scripts/users.mjs';
 import {card, expectPlanDrawn} from './lib/ha-page.mjs';
+import {HP} from './lib/hooks.mjs';
 import {accessToken, getState} from './lib/ha-api.mjs';
-import {importDocument, planConfig, snapshotPlan, wsCall} from './lib/ha-ws.mjs';
+import {importDocument, planConfig, planLayout, snapshotPlan, wsCall} from './lib/ha-ws.mjs';
 import {restoreSeedAfterEach} from './lib/seed-guard.mjs';
 import {screenDefaults, viewDefaults} from './lib/profile-fixtures.mjs';
 import {installedRecord} from './lib/contract.mjs';
@@ -55,7 +57,7 @@ const ignore = (message, ws) => {
   return true;
 };
 
-async function setHouse(projection, rotation, profile, centered = profile) {
+async function setHouse(projection, rotation, profile, centered = profile, staticWitness = false) {
   const current = await planConfig(), config = structuredClone(current.config);
   const floor = config.spaces.find(s => s.id === 'f1');
   floor.decor.push(
@@ -63,6 +65,20 @@ async function setHouse(projection, rotation, profile, centered = profile) {
     {id:'t1522-cabinet',kind:'furniture',symbol:'cabinet_tv',x:.25,y:.275,w:.15,h:.06,color:'#627783'},
   );
   config.settings.volumetric_view = projection === 'iso';
+  if(projection==='iso'){
+    floor.settings={...floor.settings,show_borders:true,show_names:false,
+      fill_mode:'custom',custom_fill:{c:'#263649',a:1},glow:false};
+    config.settings.sun_rays=false;
+    if(staticWitness){
+      // Removing layout positions alone leaves explicit markers and devices
+      // discovered via room areas. Their live badges still change the fit key.
+      config.markers=[];
+      for(const room of floor.rooms)delete room.area;
+      for(const opening of floor.openings){
+        for(const field of ['entity','lock','cover','sensor'])delete opening[field];
+      }
+    }
+  }
   let screenId;
   if (profile) {
     const previous = config.settings.external_screens ?? {next_id:1,screens:[]};
@@ -73,6 +89,11 @@ async function setHouse(projection, rotation, profile, centered = profile) {
   }
   await wsCall({type:'houseplan/config/set',config,expected_rev:current.rev,
     opening_features_api:1,furniture_workstation_api:1});
+  if(staticWitness && projection === 'iso'){
+    const {layout,rev}=await planLayout();
+    await wsCall({type:'houseplan/layout/set',expected_rev:rev,
+      layout:Object.fromEntries(Object.entries(layout).filter(([,pos])=>pos.s!==floor.id))});
+  }
   return screenId;
 }
 
@@ -94,8 +115,40 @@ function measure(root, elements) {
   };
 }
 
-const sample = async (host, preview) => host.evaluate(async (c, {preview,measureSource}) => {
+/** Compare occupied masonry/furniture pixels on the very same measured
+ * viewport, with a colour/coverage tolerance for WebP, not a camera tolerance. */
+function rasterGeometry(element, stage, regions, dimensions) {
+  const box=element.getBoundingClientRect(), frame=stage.getBoundingClientRect();
+  const [width,height]=dimensions??[Math.min(1100,Math.round(frame.width)),
+    Math.round(Math.min(1100,Math.round(frame.width))*frame.height/frame.width)];
+  const scratch=document.createElement('canvas');scratch.width=width;scratch.height=height;
+  const ctx=scratch.getContext('2d',{willReadFrequently:true});
+  const sx=width/frame.width,sy=height/frame.height;
+  ctx.drawImage(element,(box.x-frame.x)*sx,(box.y-frame.y)*sy,box.width*sx,box.height*sy);
+  const pixels=ctx.getImageData(0,0,width,height).data;
+  const masks=Object.fromEntries(Object.entries(regions).map(([name,[l,t,r,b]])=>{
+    let mask='',hit=0,sx=0,sy=0;
+    for(let y=Math.max(0,Math.floor(t*height)-2);y<Math.min(height,Math.ceil(b*height)+2);y++){
+      for(let x=Math.max(0,Math.floor(l*width)-2);x<Math.min(width,Math.ceil(r*width)+2);x++){
+        const i=(y*width+x)*4;
+        // Exterior coverage is independent of the live shadows and the
+        // colour of neutral opening panels. Furniture inside the opaque
+        // floor needs its visible paint instead of the scene alpha mask.
+        const paint=name==='walls' ? pixels[i+3]>225 :
+          pixels[i+3]>130&&Math.min(pixels[i],pixels[i+1],pixels[i+2])>140;
+        mask+=paint?'1':'0';if(paint){hit++;sx+=x;sy+=y;}
+      }
+    }
+    return [name,{mask,hit,centre:hit?[sx/hit*frame.width/width,sy/hit*frame.height/height]:null}];
+  }));
+  return {dimensions:[width,height],size:[frame.width,frame.height],
+    source:[box.x-frame.x,box.y-frame.y,box.width,box.height],masks};
+}
+
+const sample = async (host, preview, expectedNative = null) => host.evaluate(async (c,
+  {preview,measureSource,rasterSource,expectedNative}) => {
   const measure = (0,eval)('('+measureSource+')');
+  const raster = (0,eval)('('+rasterSource+')');
   const stage = c.shadowRoot.querySelector('.stage');
   const live = stage.querySelector('svg.plan-svg');
   const work = root => {
@@ -109,6 +162,32 @@ const sample = async (host, preview) => host.evaluate(async (c, {preview,measure
     return {all:drawn.filter(shape),furniture};
   };
   if (!preview) {
+    const host=c._plan3dHost;
+    if(host?.canvas.hasAttribute('data-hp-plan-3d-ready')){
+      const camera=host.viewport.painted.camera;
+      const bounds=meshes=>{
+        let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
+        for(const mesh of meshes){
+          const pos=mesh.geometry.getAttribute('position');
+          for(let i=0;i<pos.count;i++){
+            const point=camera.position.clone().set(pos.getX(i),pos.getY(i),pos.getZ(i)).project(camera);
+            const x=(point.x+1)/2,y=(1-point.y)/2;
+            left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+          }
+        }
+        if(!Number.isFinite(left+top+right+bottom))throw Error('expected a painted geometry region');
+        return [left,top,right,bottom];
+      };
+      const regions={walls:bounds(host.world.structure.children.slice(1))};
+      for(const id of ['t1522-tv','t1522-cabinet']){
+        regions[id]=bounds(host.world.furniture.children.filter(mesh=>mesh.name.startsWith('furniture:'+id+':')));
+      }
+      // A native paint uses a presented camera, not the support SVG's
+      // transformed viewBox. The packet carries the canonical camera.
+      const {zoom,viewBox:v}=c._cameraState();
+      return {zoom,viewBox:[v.x,v.y,v.w,v.h],
+        native:{regions,crop:{...host.crop},...raster(host.canvas,stage,regions)}};
+    }
     const found=work(live);
     const byId = Object.fromEntries(['t1522-tv','t1522-cabinet'].map(id => [id, measure(live, found.all
       .filter(el=>!!el.closest('[data-hp="decor"][data-id="'+id+'"]'))).samples]));
@@ -116,6 +195,15 @@ const sample = async (host, preview) => host.evaluate(async (c, {preview,measure
       walls:measure(live,[...live.querySelectorAll('.wallbodies path.wallbody')]).samples};
   }
   const img = stage.querySelector('img[data-hp-startup-source="server"]');
+  if(expectedNative){
+    await img.decode();
+    const blob=await (await fetch(img.src)).blob();
+    const header=new TextDecoder().decode(await blob.slice(0,12).arrayBuffer());
+    if(!header.startsWith('RIFF')||header.slice(8)!=='WEBP')throw Error('3D preview is not WebP');
+    const style=c._startupStyle.value, v=style.view;
+    return {zoom:style.zoom,viewBox:[v.x,v.y,v.w,v.h],
+      native:raster(img,stage,expectedNative.regions,expectedNative.dimensions)};
+  }
   const box = img.getBoundingClientRect(), xml = await (await fetch(img.src)).text();
   const parsed = new DOMParser().parseFromString(xml,'image/svg+xml').documentElement;
   const root = document.importNode(parsed,true);
@@ -127,11 +215,12 @@ const sample = async (host, preview) => host.evaluate(async (c, {preview,measure
     const found=work(root);
     return {zoom:c._startupStyle.value.zoom, anchors:measure(root,found.all),furniture:measure(root,found.furniture).samples, xml};
   } finally { holder.remove(); }
-}, {preview,measureSource:String(measure)});
+}, {preview,measureSource:String(measure),rasterSource:String(rasterGeometry),
+  expectedNative:expectedNative&&{regions:expectedNative.regions,dimensions:expectedNative.dimensions}});
 
 async function checkScene(browser, projection, rotation, profile, testInfo) {
   expect(new URL(HA_URL).hostname).toBe('127.0.0.1');
-  const screenId = await setHouse(projection,rotation,profile);
+  const screenId = await setHouse(projection,rotation,profile,profile,true);
   const path = profile ? `/houseplan?hpprofile=${screenId}&hpspace=1` : '/houseplan';
   const warm = await browser.newContext({storageState:authOnly(),baseURL:HA_URL,viewport});
   let put;
@@ -141,6 +230,7 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
     await page.goto(path,{waitUntil:'domcontentloaded'});
     const host=card(page);
     await expectPlanDrawn(page,host);
+    if(projection==='iso')await expect(host.locator(HP.device())).toHaveCount(0);
     await expect.poll(async()=> (await facts(host))?.remote,
       {timeout:10_000,message:JSON.stringify(await status(host))}).toBe('stored');
   } finally { await warm.close(); }
@@ -151,6 +241,7 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
   expect((await wsCall(get)).packet).toBe(put.packet);
   expect((await wsCall(get,'viewer')).packet).toBeNull();
   expect((await wsCall({...get,source:['a'.repeat(64),key.source[1]]})).packet).toBeNull();
+  const wire=JSON.parse(gunzipSync(Buffer.from(put.packet,'base64')));
   const data=[];
   for (const [name, geometry, reducedMotion] of [['desktop',{viewport},'reduce'],
     ['phone',devices['Pixel 7'],'no-preference']]) {
@@ -162,13 +253,23 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
       await page.goto(path,{waitUntil:'domcontentloaded'});
       const host=card(page);
       await expectPlanDrawn(page,host);
+      if(await host.locator('canvas[data-hp-plan-3d]').count()){
+        await expect(host.locator('canvas[data-hp-plan-3d-ready]')).toBeVisible();
+      }
       expected=await sample(host,false);
     } finally { await ref.close(); }
     const candidate=await browser.newContext({...geometry,storageState:authOnly(),baseURL:HA_URL,reducedMotion});
     try {
       const page=await candidate.newPage();
       let request;
-      await downlink(page,message => { if(message.type.endsWith('/get')&&message.type.includes('startup_floor')) request=message; return false; });
+      await downlink(page,(message,ws) => {
+        if(message.type.endsWith('/get')&&message.type.includes('startup_floor')) request=message;
+        if(message.type === 'houseplan/startup_floor/put'){
+          ws.send(JSON.stringify({id:message.id,type:'result',success:true,result:{stored:false}}));
+          return true;
+        }
+        return false;
+      });
       await page.route('**/floor-worker-*.js',async route=>{
         await new Promise(resolve=>setTimeout(resolve,2_400));
         await route.continue();
@@ -182,10 +283,40 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
           requested:request?.variant,warmed:key.variant});
         throw err;
       }
-      const preview=await sample(host,true);
+      const preview=await sample(host,true,expected.native);
       expect(request.variant).toBe(key.variant);
-      expect(preview.xml).not.toMatch(/houseplan\/content|<image|<text|data-hp-live|<script/);
       const precise = numbers => numbers.map(n=>Math.round(n*1e9));
+      if(expected.native){
+        expect(precise(preview.viewBox)).toEqual(precise(expected.viewBox));
+        expect(precise([preview.zoom])).toEqual(precise([expected.zoom]));
+        expect(preview.native.size).toEqual(expected.native.size);
+        if(wire.version===3){
+          const [x,y,w,h]=wire.rect, c=expected.native.crop, [vw,vh]=expected.native.size;
+          const place=[(x-c.x)*vw/c.w,(y-c.y)*vh/c.h,w*vw/c.w,h*vh/c.h];
+          for(const [i,coordinate] of place.entries())
+            expect(Math.abs(preview.native.source[i]-coordinate),`${name}: exact position/scale at axis ${i}`).toBeLessThan(.04);
+        }
+        const regions={};
+        for(const [id,live] of Object.entries(expected.native.masks)){
+          const cached=preview.native.masks[id];
+          expect(Math.min(live.hit,cached.hit),`${id}: visible 3D silhouette`).toBeGreaterThan(12);
+          let intersection=0,union=0;
+          for(let i=0;i<live.mask.length;i++){
+            if(live.mask[i]==='1'||cached.mask[i]==='1')union++;
+            if(live.mask[i]==='1'&&cached.mask[i]==='1')intersection++;
+          }
+          const overlap=intersection/union;
+          const drift=Math.hypot(live.centre[0]-cached.centre[0],live.centre[1]-cached.centre[1]);
+          expect(overlap,`${name}/${id}: same WebP geometry (drift ${drift})`).toBeGreaterThan(.88);
+          expect(drift,`${name}/${id}: geometry stays in place (overlap ${overlap})`).toBeLessThan(2);
+          regions[id]={overlap,drift};
+        }
+        await expectPlanDrawn(page,host);await expect(img).toHaveCount(0);
+        data.push({name,projection,rotation,viewBox:preview.viewBox,zoom:preview.zoom,
+          format:'webp',frame:preview.native.source,regions,facts:await facts(host)});
+        continue;
+      }
+      expect(preview.xml).not.toMatch(/houseplan\/content|<image|<text|data-hp-live|<script/);
       expect(precise(preview.anchors.viewBox)).toEqual(precise(expected.anchors.viewBox));
       expect(precise([preview.zoom])).toEqual(precise([expected.zoom]));
       expect(preview.anchors.size).toEqual(expected.anchors.size);
@@ -213,6 +344,7 @@ async function checkScene(browser, projection, rotation, profile, testInfo) {
         wallPaint:expected.walls.map(x=>x[5]),facts:await facts(host)});
     } finally { await candidate.close(); }
   }
+  expect((await wsCall(get)).packet).toBe(put.packet);
   await testInfo.attach('1522-exact-'+projection+rotation,{body:JSON.stringify(data,null,2),contentType:'application/json'});
 }
 

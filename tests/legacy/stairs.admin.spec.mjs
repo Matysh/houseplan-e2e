@@ -15,6 +15,7 @@ test('#1269 a missing-version legacy stair moves under the armed tool and has ex
  test.skip(version&&compareTags('v'+version,'v1.84.0-beta.4')<0,'legacy stair-history repair ships in1.84.0-beta.4');
  await page.setViewportSize({width:2000,height:1100});
  const initial=(await planConfig()).config;
+ expect(initial.spaces[0]?.id, 'boot the legacy-stairs seed before running this scenario').toBe('legacy');
  expect(Number(initial.model_version??0)).toBeLessThan(9);
  expect(initial.spaces.every(s=>!s.plan_graph&&!s.wall_segments)).toBe(true);
  const host=await openPlan(page,{space:'legacy'});await enterEditor(host,'plan');

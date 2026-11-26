@@ -20,9 +20,16 @@ export async function expectPanelShell(panel, host) {
     .toBeLessThanOrEqual(1);
 }
 
+export function nativeSidebarEntry(page) {
+  // HA 2026.12 renders the icon and link in a row. In the docked icon rail,
+  // the row is visible and clickable even though the inner anchor is 0px wide.
+  // The row precedes its inner link; older HA renders the link directly.
+  return page.locator('ha-sidebar :is(#sidebar-panel-houseplan, a[href="/houseplan"])').first();
+}
+
 /** The custom panel entry can be below the fold in HA's own scrollable menu. */
 export async function expectNativeDrawerEntry(page) {
-  const entry = page.locator('ha-sidebar a[href="/houseplan"]');
+  const entry = nativeSidebarEntry(page);
   // A native scroll makes the oracle independent of sidebar ordering. It does
   // not click/focus the entry or send a menu event; the drawer must already open.
   await entry.scrollIntoViewIfNeeded();

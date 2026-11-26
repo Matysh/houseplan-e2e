@@ -1,5 +1,5 @@
 // #1451: production 2.5D on real HA. No UI Lab DOM/URL switches, mocked hass,
-// private card fields or intercepted writes. Only an isolated loopback seed is
+// private writes or intercepted saves. Only an isolated loopback seed is
 // changed; screenshots are evidence, not an exact-pixel acceptance gate.
 import {test,expect} from '@playwright/test';
 import {isDeepStrictEqual} from 'node:util';
@@ -39,6 +39,28 @@ test.afterEach(async({page})=>{
 const object=(config,id)=>spaceOf(config,FLOOR).decor.find(item=>item.id===id);
 const volume=(host,id)=>host.locator(hp('decor',{id,kind:'furniture','data-hp-furniture-volume':true}));
 const plain=(host,id)=>host.locator('path'+hp('decor',{id,kind:'furniture'}));
+async function expectVolume(host, idsToCheck){
+  const native=host.locator('canvas[data-hp-plan-3d]');
+  await expect(native.or(volume(host,idsToCheck[0]).first()).first()).toBeAttached();
+  if(!await native.count()){
+    for(const id of idsToCheck)await expect(volume(host,id).first()).toBeVisible();
+    return;
+  }
+  await expect(native).toHaveAttribute('data-hp-plan-3d-ready','');
+  await expect(native).toBeVisible();
+  const drawn=await host.evaluate((card,ids)=>{
+    const renderer=card._plan3dHost, canvas=renderer?.canvas;
+    if(!renderer?.viewport.painted||!canvas?.width||!canvas.height)return false;
+    const sample=document.createElement('canvas');sample.width=sample.height=32;
+    const ctx=sample.getContext('2d');ctx.drawImage(canvas,0,0,32,32);
+    const alpha=ctx.getImageData(0,0,32,32).data;
+    const models=renderer.world.furniture.children;
+    return alpha.some((value,index)=>index%4===3&&value>200)
+      &&ids.every(id=>models.some(mesh=>mesh.name.startsWith('furniture:'+id+':')
+        &&mesh.visible&&mesh.geometry.getAttribute('position').count>0));
+  },idsToCheck);
+  expect(drawn,'requested furniture belongs to the painted native scene').toBeTruthy();
+}
 const pair=async()=>{const[c,l]=await Promise.all([planConfig(),planLayout()]);return{config:c.config,layout:l.layout,configRev:c.rev,layoutRev:l.rev};};
 
 async function installFurniture(symbol='desk'){
@@ -71,7 +93,7 @@ async function enableVolume(host){
   await dialog.locator(HP.dialogConfirm).first().click();await expect(dialog).toBeHidden();
   await waitForConfig(c=>c.settings.volumetric_view===true,{message:'ordinary 2.5D setting persisted by real UI'});
   await expect(stage(host)).toHaveAttribute('data-projection','iso');
-  for(const id of ids)await expect(volume(host,id).first()).toBeVisible();
+  await expectVolume(host,ids);
 }
 
 async function turn(host){
@@ -140,12 +162,13 @@ for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses all came
     const before=await pair(),writeCount=writes.length;
     for(const rotation of angles){
       await assertProfile(host,rotation);
-      for(const id of ids)await expect(volume(host,id).first()).toBeVisible();
+      await expectVolume(host,ids);
       await evidence(info,page,`${surface}-volume-${cameraYaw(rotation)}`);
       await turn(host);
     }
     await assertProfile(host,0);
     await enterEditor(host,'decor');await assertProfile(host,0,'flat');
+    await expect(host.locator('canvas[data-hp-plan-3d]')).toHaveCount(0);
     for(const id of ids){await expect(volume(host,id)).toHaveCount(0);await expect(plain(host,id).first()).toBeVisible();}
     await evidence(info,page,surface+'-editor-is-flat');
     await leaveEditor(host);await assertProfile(host,0);
@@ -153,7 +176,7 @@ for(const surface of ['panel','card'])test(`native 2.5D ${surface} uses all came
     expect(writes.slice(writeCount),'view turns and entering/leaving an unchanged editor never save the plan').toEqual([]);
     await page.reload();await expectPlanDrawn(page,host);
     if(surface==='panel')await selectSpace(host,FLOOR);
-    await assertProfile(host,0);for(const id of ids)await expect(volume(host,id).first()).toBeVisible();
+    await assertProfile(host,0);await expectVolume(host,ids);
     expect(await pair()).toEqual(before);expect(errors).toEqual([]);
     await info.attach('native-profile.json',{body:JSON.stringify({surface,productVersion:installedRecord()?.version,
       acceptedYaw:[35,125,215,305],viewWrites:writes.slice(writeCount),sameStoredPair:true},null,2),contentType:'application/json'});
@@ -182,7 +205,7 @@ for(const symbol of ['desk','desk_corner'])test(`native ${symbol} workstation is
   await history(host,'undo');await waitForConfig(c=>isDeepStrictEqual(c,before.config),{message:'one Undo restores both original objects'});
   await history(host,'redo');await waitForConfig(c=>isDeepStrictEqual(c,mounted),{message:'one Redo restores the whole linked pair'});
   await leaveEditor(host);await page.reload();host=await openPlan(page,{space:FLOOR});
-  await expect(volume(host,DESK).first()).toBeVisible();await expect(volume(host,PC).first()).toBeVisible();
+  await expectVolume(host,[DESK,PC]);
   expect((await planConfig()).config).toEqual(mounted);
   await evidence(info,page,evidencePrefix+'-after-reload');
   await enterEditor(host,'decor');await chooseDecor(page,host,DESK);

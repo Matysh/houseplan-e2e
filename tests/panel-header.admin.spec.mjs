@@ -7,7 +7,7 @@ import { historicalHp, requireHooks } from './lib/contract.mjs';
 import { HP } from './lib/hooks.mjs';
 import { card, expectPlanDrawn, spaceEntries, evidence } from './lib/ha-page.mjs';
 import { hasBeta4PanelContract, hasBeta5UiPolishContract, hasNamedSpaceHeaderContract, hasHeaderPolishContract } from './lib/panel-release-contract.mjs';
-import { expectPanelShell, expectNativeDrawerEntry } from './lib/panel-shell.mjs';
+import { expectPanelShell, expectNativeDrawerEntry, nativeSidebarEntry } from './lib/panel-shell.mjs';
 import { enterEditor } from './lib/plan.mjs';
 import { headerActionTarget, expectIntrinsicHeader } from './lib/header-actions.mjs';
 import { hasSingleBorderFocus, tabTo, oneBorder, noOuterFocus } from './lib/button-focus.mjs';
@@ -24,10 +24,9 @@ async function browserSidebarPreference(page) {
 async function setHiddenPreference(page, hidden) {
   const control = await browserSidebarPreference(page);
   await expect(control).toBeEnabled();
-  // HA's native switch paints its thumb over the internal input. Click the
-  // custom-element host: its label activates that input through real pointer
-  // input. Keep the semantic input as the checked-state oracle (no force).
-  if (await control.isChecked() !== hidden) await page.locator('ha-force-narrow-row ha-switch').click();
+  // Activate HA's focusable switch with real keyboard input. The wrapper
+  // and the label hit target differ across HA frontend versions.
+  if (await control.isChecked() !== hidden) await control.press('Space');
   if (hidden) await expect(control).toBeChecked();
   else await expect(control).not.toBeChecked();
 }
@@ -47,7 +46,6 @@ async function menuTarget(menu) {
   expect(Math.round(box.height * 1000) / 1000).toBeGreaterThanOrEqual(44);
   return box;
 }
-const sidebarEntry = page => page.locator('ha-sidebar a[href="/houseplan"]');
 
 test('the native HA menu follows width and the real sidebar preference, and stays outside Lovelace', async ({ page }, testInfo) => {
   test.skip(!hasBeta4PanelContract(), 'installed product predates the #1120 header contract; a skip is not proof');
@@ -79,11 +77,11 @@ test('the native HA menu follows width and the real sidebar preference, and stay
       await expect(host.locator(historicalHp('header-menu'))).toBeHidden();
     }
     await page.keyboard.press('Escape'); // Close commands before exercising the separate native drawer control.
-    await expect(sidebarEntry(page)).not.toBeInViewport();
+    await expect(nativeSidebarEntry(page)).not.toBeInViewport();
     await narrowMenu.click();
     await expectNativeDrawerEntry(page);
     await page.keyboard.press('Escape');
-    await expect(sidebarEntry(page)).not.toBeInViewport();
+    await expect(nativeSidebarEntry(page)).not.toBeInViewport();
     await evidence(testInfo, page, 'native-ha-narrow-menu');
 
     await page.setViewportSize({ width: 1920, height: 1000 });
@@ -104,12 +102,12 @@ test('the native HA menu follows width and the real sidebar preference, and stay
         detail: { dock: 'always_hidden' }, bubbles: true, composed: true,
       })));
       await menuTarget(menu);
-      await expect(sidebarEntry(page)).not.toBeInViewport();
+      await expect(nativeSidebarEntry(page)).not.toBeInViewport();
       expect(await host.evaluate((el, previous) => el === previous, mounted)).toBe(true);
       await menu.click();
       await expectNativeDrawerEntry(page);
       await page.keyboard.press('Escape');
-      await expect(sidebarEntry(page)).not.toBeInViewport();
+      await expect(nativeSidebarEntry(page)).not.toBeInViewport();
       await panel.evaluate(el => el.dispatchEvent(new CustomEvent('hass-dock-sidebar', {
         detail: { dock: 'auto' }, bubbles: true, composed: true,
       })));
@@ -133,7 +131,7 @@ test('the native HA menu follows width and the real sidebar preference, and stay
     await hidden.menu.click();
     await expectNativeDrawerEntry(page);
     await page.keyboard.press('Escape');
-    await expect(sidebarEntry(page)).not.toBeInViewport();
+    await expect(nativeSidebarEntry(page)).not.toBeInViewport();
     await evidence(testInfo, page, 'native-ha-wide-hidden-sidebar-menu');
 
     await page.goto('/house-plan');
@@ -268,6 +266,9 @@ test('#1428 native editor/dialog return and composite keyboard focus use one bor
     await page.keyboard.press('Escape');await expect(trigger).toBeFocused();await noOuterFocus(trigger);
     await tabTo(page,trigger);await oneBorder(trigger);
     await page.setViewportSize({width:1920,height:1000});
+    // The header's ResizeObserver replaces the compact trigger with the
+    // inline editor actions. Wait for that presentation before opening Decor.
+    await expect(host.locator(HP.modeTab('decor'))).toBeVisible();
     await enterEditor(host,'decor');
     const shapes=host.locator('[data-editor-group="shapes"]');
     await tabTo(page,shapes);await page.keyboard.press('ArrowDown');
