@@ -107,11 +107,17 @@ export async function restorePlan(snapshot) {
         const savedScreens = snapshot.config.settings?.external_screens;
         const liveScreens = config.config.settings?.external_screens;
         // Teardown restores the saved rows and retains the server's allocated ID counter.
+        // An ordinary write that omits led_strips preserves the live shapes
+        // for legacy clients. Teardown owns the whole snapshot, so clear
+        // strips explicitly where the fixture originally had no such field.
+        const liveStrips = new Set(config.config.spaces.filter(space => space.led_strips?.length).map(space => space.id));
+        const snapshotConfig = { ...snapshot.config, spaces: snapshot.config.spaces.map(space =>
+          !Object.hasOwn(space, 'led_strips') && liveStrips.has(space.id) ? { ...space, led_strips: [] } : space) };
         const restored = liveScreens?.next_id > (savedScreens?.next_id ?? 1)
-          ? { ...snapshot.config, settings: { ...snapshot.config.settings,
+          ? { ...snapshotConfig, settings: { ...snapshotConfig.settings,
             external_screens: { version: liveScreens.version, screens: [], ...savedScreens, next_id: liveScreens.next_id },
           } }
-          : snapshot.config;
+          : snapshotConfig;
         await connection.call({ type: 'houseplan/config/set', config: restored, expected_rev: config.rev,
           ...(config.opening_features_api === 1 ? {opening_features_api:1} : {}) });
         const layout = await connection.call({ type: 'houseplan/layout/get' });
