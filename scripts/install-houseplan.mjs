@@ -12,15 +12,10 @@
  * downloads — so the frontend bundle, its assets and the version pin are the
  * shipped ones, not a rebuild.
  *
- * A branch or commit is installed from its source tree. Since houseplan-card
- * #657/#1016 the committed bundle changes only in a release-candidate commit;
- * on any other commit it legally lags behind the sources (on `dev` it is the
- * previous release's frontend under the new backend). So the frontend is
- * built from the same commit (`npm ci`, `npm run build`, `bundle-sync
- * --release`). When the build reproduces the committed bundle byte for byte —
- * a release candidate, which the stable gate dispatches by SHA — the committed
- * bytes are the ones installed; otherwise the fresh build is, and the run
- * record says so (houseplan-card#1010).
+ * A branch or commit is installed from its source tree, with frontend built
+ * from that same commit. Current refs contain no generated frontend snapshot
+ * (houseplan-card#1598). Older refs may carry one: if the build reproduces it
+ * byte for byte, those committed bytes are retained (houseplan-card#1010).
  *
  * The product's declared test contract of the same ref goes to
  * `<out>/.e2e-contract.json`: the journeys gate themselves on what the
@@ -33,7 +28,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { requireVersion } from './release-plan.mjs';
-import { sameTree, treeDigest } from './tree-digest.mjs';
+import { buildSourceFrontend } from './source-frontend.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = 'Matysh/houseplan-card';
@@ -68,26 +63,6 @@ async function resolveRelease() {
   return fetchJson(`https://api.github.com/repos/${REPO}/releases/tags/${ref}`);
 }
 
-/** Build the frontend of a source tree into its integration folder. */
-function buildFrontend(src) {
-  const pkg = JSON.parse(readFileSync(join(src, 'package.json'), 'utf8'));
-  if (!pkg.scripts?.['bundle:release']) return 'committed (no bundle:release script in this ref)';
-  const frontend = join(src, 'custom_components', 'houseplan', 'frontend');
-  const committed = treeDigest(frontend);
-  const run = (cmd, args) => execFileSync(cmd, args, { cwd: src, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, CI: '1' } });
-  console.log(`building the frontend of ${ref} from source…`);
-  run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund']);
-  run('npm', ['run', 'build']);
-  const keep = join(src, '.committed-frontend');
-  cpSync(frontend, keep, { recursive: true });
-  run('node', ['scripts/bundle-sync.mjs', '--release']);
-  if (sameTree(committed, treeDigest(frontend))) {
-    rmSync(frontend, { recursive: true, force: true });
-    cpSync(keep, frontend, { recursive: true });
-    return 'committed (the build reproduces it byte for byte)';
-  }
-  return 'built from source (the committed bundle lags behind this commit)';
-}
 
 rmSync(target, { recursive: true, force: true });
 const work = mkdtempSync(join(tmpdir(), 'hp-e2e-'));
@@ -106,7 +81,7 @@ if (existsSync(ref) && existsSync(join(ref, 'custom_components', 'houseplan'))) 
   await download(`https://codeload.github.com/${REPO}/tar.gz/${ref}`, tgz);
   execFileSync('tar', ['-xzf', tgz, '-C', work]);
   const src = execFileSync('sh', ['-c', `ls -d ${work}/*/ | head -n 1`]).toString().trim();
-  bundle = buildFrontend(src);
+  bundle = buildSourceFrontend(src, { ref });
   cpSync(join(src, 'custom_components', 'houseplan'), target, { recursive: true });
   installed = `branch ${ref}`;
   const file = join(src, 'docs', 'data-hp-contract.json');
