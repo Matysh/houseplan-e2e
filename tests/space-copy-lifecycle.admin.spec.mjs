@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { compareTags } from '../scripts/tags.mjs';
 import { installedRecord, requireHooks } from './lib/contract.mjs';
 import { card, evidence, expectPlanDrawn, stageOf } from './lib/ha-page.mjs';
-import { planConfig, planLayout, spaceOf, waitForConfig } from './lib/ha-ws.mjs';
+import { planConfig, planLayout, spaceOf, waitForConfig, wsCall } from './lib/ha-ws.mjs';
 import { HP, hp } from './lib/hooks.mjs';
 import { clickFloor, enterEditor, field, leaveEditor, openPlan, selectSpace, snap, useTool } from './lib/plan.mjs';
 import { profileWire, attachProfileReceipt } from './lib/panel-profiles.mjs';
@@ -52,6 +52,12 @@ test('space-copy furniture and decor choices persist all four combinations witho
   const version = installedRecord()?.version;
   test.skip(!!version && compareTags('v' + version, 'v1.84.0-beta.2') < 0,
     'Copy composition #1156 first ships in 1.84.0-beta.2; the earlier copy contract remains unchanged');
+  // This test measures SVG strokes/coordinates after reload. Set Flat
+  // explicitly rather than inheriting the host default renderer.
+  const start = await planConfig();
+  await wsCall({type:'houseplan/config/set',expected_rev:start.rev,
+    config:{...start.config,settings:{...start.config.settings,volumetric_view:false}},
+    opening_features_api:1,furniture_workstation_api:1});
   const wire = await profileWire(page);
   const sourceId = 'smrwhw9la';
   const host = await openPlan(page, { space: sourceId });
@@ -141,10 +147,13 @@ test('space-copy furniture and decor choices persist all four combinations witho
     expect(copy.partitions.every(partition => partition.cm === 0)).toBe(true);
     const orderSegments = segments => segments.map(segment => segment.sort((a, b) => a[0] - b[0] || a[1] - b[1]))
       .sort((a, b) => a[0][0] - b[0][0] || a[0][1] - b[0][1] || a[1][0] - b[1][0] || a[1][1] - b[1][1]);
-    const group = surface.locator('.zero-walls');
+    // The live plan surface is the room layer. Zero-width walls use a
+    // sibling SVG on the same camera, not a descendant of that surface.
+    const scene = fresh.locator('.stage .zoomwrap:visible');
+    const group = scene.locator('.zero-walls');
     await expect(group).toBeVisible();
     expect(await group.evaluate(node => Number(getComputedStyle(node).opacity))).toBeGreaterThan(0);
-    const lines = surface.locator('line.zero-wall');
+    const lines = group.locator('line.zero-wall');
     await expect(lines).toHaveCount(4);
     const rendered = await lines.evaluateAll(nodes => nodes.map(node => {
       const style = getComputedStyle(node);
