@@ -47,10 +47,11 @@ test('#1371 real HA keeps two ordinary rows and a bounded disclosure with stacke
 
 test('#1371 native scene pan survives double click in real HA',async({page},info)=>{
  test.setTimeout(120000);const host=await open(page);await page.evaluate(()=>{window.__nativeDrag1371=[];for(const name of ['dragstart','pointercancel'])document.addEventListener(name,e=>window.__nativeDrag1371.push(e.type),true);});
- const view=()=>host.locator('.stage > .zoomwrap > svg').first().getAttribute('viewBox');
+ const scene=host.locator('.stage .zoomwrap svg.plan-svg:visible');
+ const view=async()=>{await expect(scene).toHaveCount(1);return scene.getAttribute('viewBox');};
  for(const width of [390,1440])for(const delay of [0,50,250,600]){
   await page.setViewportSize({width,height:1000});const box=await host.locator('[data-hp="stage"]').boundingBox(),x=box.x+box.width*.42,y=box.y+box.height*.8;
-  await page.mouse.dblclick(x,y);if(delay)await page.waitForTimeout(delay);const before=await view();
+  await page.mouse.dblclick(x,y);if(delay)await page.waitForTimeout(delay);const before=await view();expect(before).toBeTruthy();
   await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+65,y-35,{steps:6});await page.mouse.up();await expect.poll(view).not.toBe(before);
  }
  expect(await page.evaluate(()=>window.__nativeDrag1371)).toEqual([]);await evidence(info,page,'pan-after-double-click');
