@@ -45,14 +45,52 @@ test('#1371 real HA keeps two ordinary rows and a bounded disclosure with stacke
  await evidence(info,page,'editor-column-and-menu');
 });
 
-test('#1371 native scene pan survives double click in real HA',async({page},info)=>{
- test.setTimeout(120000);const host=await open(page);await page.evaluate(()=>{window.__nativeDrag1371=[];for(const name of ['dragstart','pointercancel'])document.addEventListener(name,e=>window.__nativeDrag1371.push(e.type),true);});
- const scene=host.locator('.stage .zoomwrap svg.plan-svg:visible');
- const view=async()=>{await expect(scene).toHaveCount(1);return scene.getAttribute('viewBox');};
- for(const width of [390,1440])for(const delay of [0,50,250,600]){
-  await page.setViewportSize({width,height:1000});const box=await host.locator('[data-hp="stage"]').boundingBox(),x=box.x+box.width*.42,y=box.y+box.height*.8;
-  await page.mouse.dblclick(x,y);if(delay)await page.waitForTimeout(delay);const before=await view();expect(before).toBeTruthy();
-  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+65,y-35,{steps:6});await page.mouse.up();await expect.poll(view).not.toBe(before);
- }
- expect(await page.evaluate(()=>window.__nativeDrag1371)).toEqual([]);await evidence(info,page,'pan-after-double-click');
+test('#1371 native scene pan survives double click in real HA', async ({page}, info) => {
+  test.setTimeout(120_000);
+  for (const width of [390, 1440]) for (const delay of [0, 50, 250, 600]) {
+    // Do not carry the previous pan or a viewport-size transition into the
+    // next sample. Neither should be able to satisfy this movement oracle.
+    const host = await open(page, width);
+    const scene = host.locator('.stage .zoomwrap svg.plan-svg:visible');
+    await expect(scene).toHaveCount(1);
+    await page.evaluate(() => {
+      window.__nativeDrag1371 = [];
+      for (const name of ['dragstart', 'pointercancel'])
+        document.addEventListener(name, e => window.__nativeDrag1371.push(e.type), true);
+    });
+    const at = await scene.evaluate(svg => {
+      const stage = svg.closest('.stage'), root = svg.getRootNode();
+      const box = stage.getBoundingClientRect();
+      for (const dy of [.26, .72, .84]) for (const dx of [.22, .42, .58]) {
+        const x = box.left + box.width * dx, y = box.top + box.height * dy;
+        const hit = root.elementFromPoint(x, y);
+        if (hit?.closest('.stage') === stage && !hit.closest(
+          'button, a, input, textarea, select, [data-hp="device"], .roomlabel, .oplock, [data-scene-surface], .summary-overlay, .recoveryoverlay',
+        )) return {x, y};
+      }
+      throw Error('No uncovered point on the live plan');
+    });
+    const point = () => scene.evaluate(svg => {
+      const matrix = svg.getScreenCTM();
+      if (!matrix) throw Error('The live plan has no screen transform');
+      return [matrix.e, matrix.f];
+    });
+    await page.mouse.dblclick(at.x, at.y);
+    if (delay) await page.waitForTimeout(delay);
+    await page.mouse.down();
+    try {
+      // Pointer down interrupts a running Fit. Observe movement in the
+      // drag direction before mouseup, not an arbitrary changed viewBox.
+      const [x, y] = await point();
+      await page.mouse.move(at.x + 65, at.y - 35, {steps: 6});
+      await expect.poll(async () => {
+        const [px, py] = await point();
+        return px - x > 20 && y - py > 10;
+      }, {message: `plan follows the held drag at ${width}px, delay ${delay}ms`}).toBe(true);
+    } finally {
+      await page.mouse.up();
+    }
+    expect(await page.evaluate(() => window.__nativeDrag1371)).toEqual([]);
+  }
+  await evidence(info, page, 'pan-after-double-click');
 });
