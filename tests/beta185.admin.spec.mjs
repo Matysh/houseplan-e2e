@@ -196,7 +196,27 @@ test('Shift rotation is absolute 45 degrees for all decor families and backdrop 
   await page.reload();await expect(card(page).locator(HP.ready)).toBeVisible({timeout:60000});await selectSpace(host,id);await enterEditor(host,'decor');
   const angle=async()=>{const s=spaceOf((await planConfig()).config,id);return kind==='backdrop'?s.plan_angle:s.decor.find(d=>d.id==='rotate185').angle;};
   const select=async()=>{if(kind==='backdrop')await useTool(host,'backdrop');else{await useTool(host,'select');await page.keyboard.press('Control+a');}await settle(host);};
-  await select();const box=await stage(host).boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);for(let z=0;z<8;z++){await page.mouse.wheel(0,120);await settle(host);}const frame=host.locator(kind==='backdrop'?'.bdframe':'.dtframe').last(),handle=frame.locator('.dtrot');await expect(handle).toBeVisible();
+  await select();
+  const frame=host.locator(kind==='backdrop'?'.bdframe':'.dtframe').last(),handle=frame.locator('.dtrot');
+  await expect(handle).toBeVisible();
+  const insideStage=()=>handle.evaluate(node=>{
+   const h=node.getBoundingClientRect(),r=node.closest('.stage').getBoundingClientRect();
+   const left=Math.max(r.left,0)+20,top=Math.max(r.top,0)+20;
+   const right=Math.min(r.right,innerWidth)-20,bottom=Math.min(r.bottom,innerHeight)-20;
+   return h.width>0&&h.height>0&&h.left>=left&&h.top>=top&&h.right<=right&&h.bottom<=bottom;
+  });
+  // A fixed wheel count can leave a large object and its rotation handle
+  // outside the clipped stage. Use real wheel input until the selected
+  // handle is reachable, and require each notch to change the live scale.
+  for(let z=0;z<24&&!await insideStage();z++){
+   const svg=stage(host),before=Number((await svg.getAttribute('viewBox')).trim().split(/[ ,]+/)[2]);
+   const box=await svg.boundingBox();
+   await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.wheel(0,120);
+   await expect.poll(async()=>Number((await svg.getAttribute('viewBox')).trim().split(/[ ,]+/)[2]),
+    {timeout:3500,message:`${kind}: wheel expands the visible floor`}).toBeGreaterThan(before);
+   await settle(host);
+  }
+  expect(await insideStage(),`${kind}: rotation handle is reachable on the editor stage`).toBe(true);
   const shown=()=>frame.evaluate(n=>Number(n.getAttribute('transform').match(/rotate\(([^ ,]+)/)[1]));
   const gesture=async(delta)=>{
    // #1405: rotate's pivot is in parent coordinates. The backdrop frame also
