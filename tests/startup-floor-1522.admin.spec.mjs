@@ -188,11 +188,16 @@ const sample = async (host, preview, expectedNative = null) => host.evaluate(asy
       return {zoom,viewBox:[v.x,v.y,v.w,v.h],
         native:{regions,crop:{...host.crop},...raster(host.canvas,stage,regions)}};
     }
-    const found=work(live);
-    const byId = Object.fromEntries(['t1522-tv','t1522-cabinet'].map(id => [id, measure(live, found.all
+    // Flat View can split paint among sibling SVGs on the same camera.
+    // Use the plan layer as the coordinate reference, not as the sole
+    // owner of furniture and walls. One-SVG versions use the same reader.
+    const layers=[...(live.closest('.zoomwrap')?.querySelectorAll('svg.hp-mode-scene-svg') ?? [])];
+    if(!layers.length)layers.push(live);
+    const all=layers.flatMap(layer=>work(layer).all);
+    const byId = Object.fromEntries(['t1522-tv','t1522-cabinet'].map(id => [id, measure(live, all
       .filter(el=>!!el.closest('[data-hp="decor"][data-id="'+id+'"]'))).samples]));
-    return {zoom:c._zoom, anchors:measure(live, found.all), furniture:byId,
-      walls:measure(live,[...live.querySelectorAll('.wallbodies path.wallbody')]).samples};
+    return {zoom:c._zoom, anchors:measure(live, all), furniture:byId,
+      walls:measure(live,layers.flatMap(layer=>[...layer.querySelectorAll('.wallbodies path.wallbody')])).samples};
   }
   const img = stage.querySelector('img[data-hp-startup-source="server"]');
   if(expectedNative){
